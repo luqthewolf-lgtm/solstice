@@ -1492,6 +1492,106 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-084 — 5 modos via `data-mode` no app shell + dropdown header
+
+**Status:** Aceito · Bloco 12
+**Contexto:** SEÇÃO 5 do PROMPT pede 5 modos (edit/analyze/review/present/slides). Implementar via classes/atributos CSS evita reflow JS pesado.
+**Decisão:** Atributo `data-mode` no `.solstice__app` controla via CSS o que esconde/mostra. Cada modo é uma regra CSS específica (`[data-mode="present"] .solstice__sidebar { display: none }`). Dropdown "Modo" no header com 5 opções clicáveis substitui pills de mode antigas.
+**Modos:**
+- `edit` — default, tudo visível
+- `analyze` — opacity 0.4 + pointer-events:none em ações de edição
+- `review` — placeholder para B13 (comentários)
+- `present` — esconde sidebar/inspector/filtros/toolbar (grid colapsa para canvas full-width)
+- `slides` — entra em overlay full-viewport (`SolsticeSlides.enter()`)
+**Consequências:**
+- ✅ Mudança de modo é CSS-only (sem re-render JS)
+- ✅ Estado persistido em `ui.mode` no Store
+- ✅ Modos limpos para deck/apresentação
+- ⚠️ Modo "review" só fica útil quando B13 implementar comentários — por ora é cosmético
+
+---
+
+## ADR-085 — Modo Slides reusa sections existentes sem editor próprio
+
+**Status:** Aceito · Bloco 12
+**Contexto:** Modo Slides poderia ter editor próprio (Keynote-style). Implementação custaria 1-2 blocos inteiros.
+**Decisão:** Cada `canvas.section` vira 1 slide. Title da section vira título do slide. Rows + slots são renderizados como estão (reusa `SolsticeComponents.render`). Sem editor de slide separado — usuário edita no modo Edit, vê em Slides.
+**Estrutura visual:**
+- Overlay full-viewport (`position: fixed`)
+- Section title centralizado no topo
+- Rows + slots ocupam o body
+- Barra inferior com navegação ← → · contador · barra de progresso · botão Apresentador · Esc sair
+**Setas:** `←` `→` · `Espaço` (próximo) · `F` (entrada/saída) · `A` (apresentador) · `Esc` (sai)
+**Consequências:**
+- ✅ Zero código duplicado — sections viram slides "free"
+- ✅ Usuário aprende uma vez (modo Edit), apresenta em outro modo
+- ⚠️ Sem transições fancy (só slide-in 300ms) — aceitável vs over-engineering
+- ⚠️ Sem editor de notas — `section.notes` existe mas só lido por Apresentador (B13 adiciona editor)
+
+---
+
+## ADR-086 — Apresentador single-window dual-pane em vez de window.open dual-screen
+
+**Status:** Aceito · Bloco 12
+**Contexto:** Padrão Keynote: 2 monitores (audiência + apresentador com notas). Implementar via `window.open()` requer:
+- Pop-up permission (bloqueado por default em muitos browsers)
+- Comunicação via localStorage events ou BroadcastChannel
+- UX confusa em 1 monitor único
+**Decisão:** Apresentador é **overlay no mesmo window** com layout dual-pane (grid 1.6fr/1fr). À esquerda: slide atual (resumido com lista de componentes). À direita: notas + preview próximo. Footer com navegação + timer.
+**Justificativa:**
+- 90% dos apresentadores usam 1 monitor (laptop projetando)
+- Single-window evita pop-up blocked
+- Dual-pane mostra o essencial: o que está sendo apresentado + o que vai depois + tempo
+**Consequências:**
+- ✅ Funciona em qualquer browser sem permissões extras
+- ✅ Sem código de sync entre windows
+- ⚠️ Para projetor real (dual-monitor), apresentador VÊ no projetor — não ideal
+- 🔮 B13+ pode adicionar `window.open()` opcional para dual-screen verdadeiro
+
+---
+
+## ADR-087 — Command Palette com catálogo hardcoded + fuzzy match simples
+
+**Status:** Aceito · Bloco 12
+**Contexto:** Ctrl+K é padrão de power user (Slack, Linear, VS Code, Notion). Precisa de fuzzy search rápido.
+**Decisão:** Array `_commands()` retorna 35 comandos hardcoded em 12 categorias. Cada comando: `{ id, label, category, icon, run, kbd?, syn? }`. Fuzzy match em 2 níveis:
+1. Substring match (haystack inclui query) → score 100
+2. Char-order match (chars do query aparecem em ordem) → score 50 - penalty
+**Sinônimos** (`syn`) ajudam: "dark mode" encontra "Tema escuro" mesmo sem o termo exato.
+**UI:**
+- Overlay com backdrop blur
+- Input com placeholder "O que você quer fazer? (ex: salvar, gauge, dark, exportar...)"
+- Lista com ícone, label, categoria, kbd hint
+- ↑↓ navegam, Enter executa, Esc fecha, Ctrl+K toggle
+**Consequências:**
+- ✅ Atalho universal para acessar QUALQUER feature do Solstice
+- ✅ Catálogo legível e auditável no código (35 entradas)
+- ✅ Power user fica feliz; usuário casual pode descobrir features
+- ⚠️ Catálogo hardcoded — escalar para registry plugável no B13 se virar pain point
+- ⚠️ Sem prioridade por uso recente — clicks recentes não bubble up (futuro)
+
+---
+
+## ADR-088 — Tour spotlight via clip-path + posicionamento dinâmico do tooltip
+
+**Status:** Aceito · Bloco 12
+**Contexto:** Tour interativo (estilo Intro.js) precisa "destacar" elemento + tooltip explicativo. Implementações comuns usam SVG overlay ou múltiplos divs.
+**Decisão:** Único `<div class="tour-mask">` com `clip-path: polygon(...)` que tem "buraco" no elemento target. Tooltip absoluto com posicionamento dinâmico (abaixo do target preferencialmente; em cima se não couber).
+**9 passos** cobrem: Brand · Sidebar · Canvas · Toolbar · Catálogo · Modos · Help · Status · Final.
+**Algoritmo de posicionamento:**
+- Lê `target.getBoundingClientRect()`
+- `top = rect.bottom + pad + 8` (abaixo)
+- Se `top + 200 > window.innerHeight` → `top = rect.top - 200 - pad` (em cima)
+- `left = rect.left`; clamp ao viewport
+**Consequências:**
+- ✅ Visual elegante (spotlight focal nítido)
+- ✅ Único elemento DOM em vez de 4+ divs sobrepostos
+- ✅ Tooltip sempre visível (clamp ao viewport)
+- ⚠️ Clip-path com polygon longo pode pesar em mobile fraco — aceitável
+- ⚠️ Se target não está visível (scroll necessário), tooltip aponta para fora — usuário tem que scrollar manualmente
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

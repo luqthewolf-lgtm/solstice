@@ -269,6 +269,74 @@ Copie o bloco abaixo ao reportar:
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
 
+### Bloco 12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish
+
+- [ ] Sentinela `[Solstice] Bloco 12 aplicado · 5 modos + Slides + Apresentador + Command Palette + Tour + Polish` verde
+- [ ] `[Solstice] boot OK` aparece
+- [ ] `Solstice.version === '5.3.0-bloco12'`
+- [ ] Footer mostra `v5.3 · Bloco 12`
+- [ ] Console: `Solstice.Modes / Slides / Presenter / CommandPalette / Tour` expostos
+- [ ] `Solstice.Stats.lttb([[1,1],[2,2],[3,5],[4,3]], 3).length === 3`
+
+**Modes:**
+- [ ] Header tem dropdown "Modo" (✏️ Edit) ao lado do toggle de tema
+- [ ] Click no dropdown → 5 opções: ✏️ Edit, 🔬 Analyze, 💬 Review, 🖥️ Present, 🎬 Slides
+- [ ] Trocar para "Present" → sidebar, inspector, filtros, toolbar somem; canvas full-width
+- [ ] Trocar para "Analyze" → toolbar e ações ficam opacity 0.4
+- [ ] Console: `Solstice.Modes.current()` retorna o modo
+- [ ] Console: `Solstice.Modes.set('slides')` entra em slides
+
+**Slides:**
+- [ ] Pressionar **F** (sem foco em input) → entra em modo Slides
+- [ ] Section title aparece no topo + componentes embaixo
+- [ ] Barra inferior: setas + contador "1/N" + barra de progresso + botão 🎤 Apresentador + Esc
+- [ ] **→** ou **Espaço** avança · **←** volta
+- [ ] **Esc** sai
+- [ ] **A** abre Apresentador no slide atual
+- [ ] Componentes respeitam filtros B9 (cross-filter funcional)
+
+**Presenter:**
+- [ ] No modo Slides → click "🎤 Apresentador" → grid 2-pane abre
+- [ ] Painel esquerdo: título + contagem de slots + lista resumida
+- [ ] Painel direito: 📝 Notas (lê `section.notes` ou placeholder) + ⏭️ próxima
+- [ ] Footer: setas nav + timer mm:ss + botão fechar
+- [ ] Timer roda em tempo real (1s tick)
+- [ ] **← →** navegam · **Esc** fecha
+
+**Command Palette:**
+- [ ] **Ctrl+K** (sem foco em input) abre overlay
+- [ ] Input com placeholder de exemplo aparece focado
+- [ ] Digitar "salvar" → filtra para "Salvar snapshot"
+- [ ] Digitar "dark" → "Tema escuro" aparece (via synonym)
+- [ ] Setas ↑↓ navegam · item com fundo accent indica selecionado
+- [ ] Enter executa o comando + fecha
+- [ ] Click em item executa
+- [ ] Esc fecha · Ctrl+K novamente fecha (toggle)
+- [ ] Console: `Solstice.CommandPalette._commands().length === 35`
+- [ ] Mostrar kbd hints na lista (Ctrl+S, Ctrl+P, etc.)
+
+**Tour:**
+- [ ] Console: `Solstice.Tour.start()` abre overlay
+- [ ] Spotlight aparece sobre o elemento Brand (1º passo)
+- [ ] Tooltip com "Bem-vindo ao Solstice 👋" + texto + botões
+- [ ] Botões: ← Anterior (oculto no passo 1) · Pular · Próximo →
+- [ ] **→** avança · **←** volta · **Esc** fecha
+- [ ] Tour completo: 9 passos (1/9 até 9/9)
+- [ ] No último passo: botão "✓ Finalizar"
+- [ ] Posicionamento do tooltip respeita viewport (não corta)
+- [ ] Acessível via Command Palette ("Abrir tour interativo")
+
+**Polish:**
+- [ ] Focus visible em botões/pills/sidebar-tabs (outline accent + offset 2px)
+- [ ] Transição grid 300ms suaviza mudança de modo
+- [ ] `Solstice.Stats.lttb` disponível para downsampling
+
+**Regressão B1-B11:**
+- [ ] Auto-Dashboard, Wizard, Snapshots, Inspector, Drawer Análise — tudo operacional
+- [ ] 10 componentes renderizam
+- [ ] Filtros, cross-filter, params, dictionary operacionais
+- [ ] Insights, Narrative, Agent, Inconsistências operacionais
+
 ### Bloco 11 — Snapshots + Versions + FileSystem + Export + Templates Itaú
 
 - [ ] Sentinela `[Solstice] Bloco 11 aplicado · Snapshots + Versions + FileSystem + Export + Templates Itaú` verde

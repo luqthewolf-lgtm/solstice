@@ -2085,3 +2085,113 @@ Aparecem no picker do `SolsticeTemplates` quando `dictKey === 'banco_pj'`.
 .solstice__dicts-panel / -list / .solstice__dict-item / -icon / -body / -name / -meta / -actions
 .solstice__export-options / .solstice__export-option / -title / -desc / -meta
 ```
+
+---
+
+## `Solstice.Modes` (Bloco 12 · ADR-084)
+
+5 modos do Solstice: edit/analyze/review/present/slides.
+
+```js
+set(mode)                      // edit | analyze | review | present | slides
+current()                      // → string id do modo atual
+cycle()                        // próximo modo da lista
+list()                         // → array<Mode> { id, icon, name, desc, kbd }
+init()                         // chamado por boot — insere dropdown no header
+MODES                          // debug
+```
+
+Modo controla CSS via `data-mode` no `.solstice__app`. Dropdown "Modo" aparece no header (entre densidade e theme-toggle).
+
+## `Solstice.Slides` (Bloco 12 · ADR-085)
+
+Modo Slides — cada section = 1 slide.
+
+```js
+enter() / exit()
+next() / prev() / goTo(i)
+init()                         // bind F/setas/Esc/A
+```
+
+**Atalhos no modo:** `←` `→` (nav) · `Espaço` (próximo) · `Esc` (sai) · `A` (abre Apresentador) · `F` (toggle global).
+
+## `Solstice.Presenter` (Bloco 12 · ADR-086)
+
+Modo Apresentador — dual-pane single-window com notas e timer.
+
+```js
+open(slideIndex=0)
+close()
+next() / prev()
+init()                         // bind setas/Esc
+```
+
+Lê `section.notes` para o painel direito (futuro: editor no Inspector via B13).
+
+## `Solstice.CommandPalette` (Bloco 12 · ADR-087)
+
+Ctrl+K palette com 35 comandos fuzzy-searchable.
+
+```js
+open() / close()
+init()                         // bind Ctrl+K
+_commands()                    // → array<Command> (debug)
+```
+
+**Comando shape:** `{ id, label, category, icon, run, kbd?, syn? }`.
+
+**Categorias:** Componente · Ação · Persistência · Template · Config · Modo · Tema · Análise · Ajuda · Dev · Edição · Dados.
+
+## `Solstice.Tour` (Bloco 12 · ADR-088)
+
+Tour interativo com spotlight e tooltip.
+
+```js
+start() / close()
+next() / prev()
+init()                         // bind setas/Esc quando ativo
+STEPS                          // array dos 9 passos catalogados
+```
+
+**Trigger:** botão `?` do header (B1 onboarding) → modal · ou via Command Palette ("Abrir tour interativo").
+
+## `Solstice.Stats.lttb` (Bloco 12 · adicionado ao Stats do B7)
+
+Downsampling Largest Triangle Three Buckets para gráficos grandes.
+
+```js
+lttb(points, threshold)        // → array de até threshold pontos
+                               //   points: array<[x,y]>; threshold >= 3
+                               //   preserva "forma visual" da série
+```
+
+O(n). Crítico para séries com 100K+ pontos. Uso opcional pelos componentes.
+
+## Estilos CSS novos (Bloco 12)
+
+```css
+.solstice__mode-dropdown / -trigger / -panel / -option (.is-active) / -option-icon / -name / -desc / -kbd
+.solstice__app[data-mode="present"] / [data-mode="analyze"] / [data-mode="slides"]
+.solstice__slides-overlay / -stage / .solstice__slide / -title / -bar / -nav / -counter / -progress / -progress-fill / -help
+.solstice__presenter / -current / -notes / -notes-label / -notes-text / -preview / -preview-label / -preview-title / -footer / -timer
+.solstice__cmd-overlay / -panel / -input-wrap / -input / -list / -item (.is-active) / -item-icon / -item-label / -item-cat / -item-kbd / -empty
+.solstice__tour-overlay / -mask / -tooltip / -step-num / -title / -text / -actions / -progress
+```
+
+## Atalhos globais (consolidado pós-B12)
+
+| Tecla | Ação |
+|---|---|
+| `Ctrl + K` | Command Palette |
+| `Ctrl + P` | Pergunte ao Solstice (Ask) |
+| `Ctrl + S` | Salvar snapshot rápido |
+| `Ctrl + O` | Abrir modal de Snapshots |
+| `Ctrl + Z` | Undo |
+| `Ctrl + Shift + Z` / `Ctrl + Y` | Redo |
+| `Ctrl + Shift + D` | Debug overlay |
+| `F` | Entra/sai do modo Slides |
+| `←` `→` | Navegação no modo Slides/Apresentador/Tour |
+| `Espaço` | Próximo no modo Slides |
+| `A` | Apresentador (dentro de Slides) |
+| `Esc` | Fecha overlay top-of-stack (cascata) |
+| `?` | Help/Onboarding |

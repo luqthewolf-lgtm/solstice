@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco11** (B11 — Snapshots + Versions + FileSystem + Export + Templates Itaú) |
-| Bloco corrente | **Bloco 11 — Snapshots + Templates + Export + File System** ✅ COMPLETO |
-| Próximo bloco | Bloco 12 — 5 Modos + Atalhos + Polish (Modo Slides + Apresentador) |
+| Versão atual | **v5.3.0-bloco12** (B12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish) |
+| Bloco corrente | **Bloco 12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish** ✅ COMPLETO |
+| Próximo bloco | Bloco 13 — Diferenciais Avançados (Comentários + Grafo de Métricas + 10+ features) |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
 | Tempo total estimado restante | ~5-7 sessões |
@@ -624,6 +624,70 @@ Templates aparecem no picker do `SolsticeTemplates` (B3) quando `dictKey === 'ba
 
 **ADRs novas:** ADR-079 (Snapshots em localStorage com LZ-String · cap 30 por perfil) · ADR-080 (Versions = ring buffer 10 em memória, sessão-only) · ADR-081 (FileSystem com detecção + fallback gracioso) · ADR-082 (Export HTML standalone com hidratação no boot via meta + script) · ADR-083 (Templates Itaú anexados a `SolsticeTemplates.DOMAIN` no init).
 
+### 🟨 Bloco 12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish
+
+**Entregue em:** 2026-05-18 · Sessão 3 (final)
+
+**5 módulos novos:**
+
+| Módulo | API pública | Função |
+|---|---|---|
+| `SolsticeModes` | set/current/cycle/list/MODES | 5 modos via `data-mode` no app shell |
+| `SolsticeSlides` | enter/exit/next/prev/goTo | Modo Slides full-viewport (cada section = 1 slide) |
+| `SolsticePresenter` | open/close/next/prev | Dual-pane: slide + notas + preview + timer |
+| `SolsticeCommandPalette` | open/close · Ctrl+K | Fuzzy search com 30+ ações |
+| `SolsticeTour` | start/close/next/prev/STEPS | Spotlight + tooltip · 9 passos |
+
+**5 modos catalogados:**
+- ✏️ **Edit** (default) — tudo visível
+- 🔬 **Analyze** — toolbar e ações de edição em opacity 0.4
+- 💬 **Review** — placeholder para B13 (Modo Comentário)
+- 🖥️ **Present** — esconde sidebar/inspector/filtros/toolbar (grid colapsa para canvas full-width)
+- 🎬 **Slides** — cada section vira slide com setas e contador (tecla **F** entra)
+
+**Modo Slides:**
+- Overlay full-viewport com transição `slide-in` 300ms
+- Setas ← → navegam · `F` toggle entrada · `Esc` sai · `A` abre Apresentador
+- Contador `3/8` + barra de progresso accent
+- Re-renderiza componentes usando ctx filtrado (respeita filtros B9)
+
+**Modo Apresentador:**
+- Grid 2-pane: slide atual (1.6fr) + notas (1fr) + footer
+- Notas vêm de `section.notes` (vazio se não definido — placeholder para B13)
+- Preview da próxima seção
+- Timer mm:ss desde abertura
+- Setas ← → navegam · Esc fecha
+
+**Command Palette (Ctrl+K):**
+- Catálogo com **35 comandos** em 9 categorias: Componente, Ação, Persistência, Template, Config, Modo, Tema, Análise, Ajuda, Dev, Edição, Dados
+- Cada comando: `{ id, label, category, icon, run, kbd?, syn? }`
+- Fuzzy match: full-substring match prioritário, fallback char-order match
+- Setas ↑↓ navegam · Enter executa · Esc fecha · click executa
+- Mostra kbd shortcuts (Ctrl+S, Ctrl+P, etc.) ao lado
+
+**Tour interativo (9 passos):**
+- Brand → Sidebar → Canvas → Toolbar → Catálogo → Modos → Help → Status → Final
+- Spotlight via clip-path no overlay com "buraco" no elemento target
+- Tooltip 320px posicionado dinamicamente (abaixo do target, ou acima se sem espaço)
+- Botões: ← Anterior · Pular · Próximo →
+- Setas teclado ← → navegam · Esc fecha
+- Trigger: `Solstice.Tour.start()` ou via Command Palette ("Abrir tour interativo")
+
+**Stats.lttb adicionado** — downsampling Largest Triangle Three Buckets para gráficos com 100K+ pontos (`SolsticeStats.lttb(points, threshold)`). API documentada; uso opcional (componentes podem chamar internamente).
+
+**Polish CSS:**
+- `:focus-visible` em `.solstice__btn`, `.solstice__pill`, `.solstice__sidebar-tab` (WCAG AA)
+- Transição grid 300ms suaviza mudança de modos
+- Dropdown "Modo" no header (ao lado do toggle de tema) com 5 opções clicáveis + kbd hints
+
+**Header recebe:** dropdown "Modo" (▼ Edit/Analyze/Review/Present/Slides) inserido entre densidade e theme-toggle.
+
+**`Solstice.Modes / Slides / Presenter / CommandPalette / Tour` expostos.** Versão `5.3.0-bloco12`. Sentinela `[Solstice] Bloco 12 aplicado · 5 modos + Slides + Apresentador + Command Palette + Tour + Polish`.
+
+**Tamanho:** dashboard.html ~16.437 linhas (~712 KB).
+
+**ADRs novas:** ADR-084 (5 modos via `data-mode` no app shell + dropdown header) · ADR-085 (Modo Slides reusa sections existentes sem editor próprio) · ADR-086 (Apresentador single-window dual-pane em vez de window.open dual-screen) · ADR-087 (Command Palette com catálogo hardcoded + fuzzy match simples · Ctrl+K) · ADR-088 (Tour spotlight via clip-path + posicionamento dinâmico do tooltip).
+
 ---
 
 ## 📅 Roadmap
@@ -639,7 +703,7 @@ Templates aparecem no picker do `SolsticeTemplates` (B3) quando `dictKey === 'ba
 - [x] **Bloco 9** — Filtros Globais + Cross-Filter + Parâmetros
 - [x] **Bloco 10** — Auto-Dashboard + Wizard Expandido + Recomendações (15+ tipos · 11 intenções)
 - [x] **Bloco 11** — Snapshots + Versions + FileSystem + Export HTML + Templates Itaú
-- [ ] **Bloco 12** — 5 Modos + Atalhos + Polish (Modo Slides + Apresentador)
+- [x] **Bloco 12** — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish
 - [ ] **Bloco 13** — Diferenciais Avançados (Modo Comentário + Grafo de Métricas) + `portabilidade/INDICE.md`
 
 ---

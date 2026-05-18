@@ -1500,6 +1500,346 @@
     margin-top: 6px;
   }
 
+  /* ============================================================
+     BLOCO 12 — 5 MODOS + SLIDES + PRESENTER + COMMAND PALETTE + TOUR
+     ============================================================ */
+
+  /* Mode dropdown no header */
+  .solstice__mode-dropdown {
+    position: relative;
+  }
+  .solstice__mode-trigger {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 12px;
+    height: var(--row-h);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    font-size: var(--fs-sm); color: var(--c-text-2);
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .solstice__mode-trigger:hover { background: var(--c-surface-3); color: var(--c-text); }
+  .solstice__mode-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    box-shadow: var(--sh-2);
+    z-index: 200;
+    min-width: 240px;
+    padding: 6px;
+  }
+  .solstice__mode-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: var(--rad-sm);
+    color: var(--c-text-2);
+    transition: background var(--t-fast);
+  }
+  .solstice__mode-option:hover { background: var(--c-surface-2); color: var(--c-text); }
+  .solstice__mode-option.is-active { background: var(--c-accent); color: #fff; }
+  .solstice__mode-option-icon { font-size: 16px; line-height: 1; }
+  .solstice__mode-option-body { flex: 1; }
+  .solstice__mode-option-name {
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  }
+  .solstice__mode-option-desc {
+    font-size: 10px; color: var(--c-muted);
+    margin-top: 2px;
+  }
+  .solstice__mode-option.is-active .solstice__mode-option-desc { color: rgba(255,255,255,0.8); }
+  .solstice__mode-option-kbd {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--c-muted);
+  }
+  .solstice__mode-option.is-active .solstice__mode-option-kbd { color: rgba(255,255,255,0.7); }
+
+  /* Modos esconde/mostra elementos */
+  .solstice__app[data-mode="present"] .solstice__sidebar,
+  .solstice__app[data-mode="present"] .solstice__canvas-toolbar,
+  .solstice__app[data-mode="present"] .solstice__inspector,
+  .solstice__app[data-mode="present"] .solstice__analysis,
+  .solstice__app[data-mode="present"] .solstice__filterbar,
+  .solstice__app[data-mode="present"] .solstice__minimap {
+    display: none !important;
+  }
+  .solstice__app[data-mode="present"] {
+    grid-template-areas: "header header header" "canvas canvas canvas" "status status status";
+    grid-template-columns: 0 1fr 0;
+  }
+  .solstice__app[data-mode="present"] .solstice__comp-actions { display: none !important; }
+
+  .solstice__app[data-mode="analyze"] .solstice__canvas-toolbar,
+  .solstice__app[data-mode="analyze"] .solstice__comp-actions {
+    opacity: 0.4; pointer-events: none;
+  }
+
+  /* Modo Slides — overlay full-viewport */
+  .solstice__slides-overlay {
+    position: fixed; inset: 0;
+    background: var(--c-bg);
+    z-index: 500;
+    display: flex; flex-direction: column;
+  }
+  .solstice__slides-stage {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--sp-8);
+    overflow: auto;
+  }
+  .solstice__slide {
+    width: 100%; max-width: 1200px;
+    animation: solstice-slide-in 300ms var(--ease-out);
+  }
+  @keyframes solstice-slide-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .solstice__slide-title {
+    font-family: var(--font-display);
+    font-size: var(--fs-3xl);
+    font-weight: var(--fw-bold);
+    color: var(--c-text);
+    margin-bottom: var(--sp-5);
+    text-align: center;
+  }
+  .solstice__slides-bar {
+    background: var(--c-surface);
+    border-top: 1px solid var(--c-border);
+    padding: var(--sp-3) var(--sp-5);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3);
+  }
+  .solstice__slides-nav {
+    display: flex; gap: var(--sp-2); align-items: center;
+  }
+  .solstice__slides-counter {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--c-text);
+  }
+  .solstice__slides-progress {
+    flex: 1;
+    height: 4px;
+    background: var(--c-surface-3);
+    border-radius: var(--rad-full);
+    margin: 0 var(--sp-4);
+    overflow: hidden;
+  }
+  .solstice__slides-progress-fill {
+    height: 100%;
+    background: var(--c-accent);
+    transition: width 300ms var(--ease);
+    border-radius: var(--rad-full);
+  }
+  .solstice__slides-help {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--c-muted);
+  }
+
+  /* Modo Apresentador — dual-pane */
+  .solstice__presenter {
+    position: fixed; inset: 0;
+    background: var(--c-bg);
+    z-index: 500;
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      "current notes"
+      "footer  footer";
+  }
+  .solstice__presenter-current {
+    grid-area: current;
+    padding: var(--sp-5);
+    overflow: auto;
+    border-right: 1px solid var(--c-border);
+    display: flex; flex-direction: column;
+  }
+  .solstice__presenter-notes {
+    grid-area: notes;
+    padding: var(--sp-5);
+    background: var(--c-surface);
+    overflow: auto;
+  }
+  .solstice__presenter-notes-label {
+    font-size: var(--fs-xs); color: var(--c-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: var(--sp-2);
+  }
+  .solstice__presenter-notes-text {
+    font-size: var(--fs-sm); color: var(--c-text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+  .solstice__presenter-preview {
+    margin-top: var(--sp-4);
+    padding: var(--sp-3);
+    background: var(--c-surface-2);
+    border-radius: var(--rad-sm);
+  }
+  .solstice__presenter-preview-label {
+    font-size: var(--fs-xs); color: var(--c-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: var(--sp-2);
+  }
+  .solstice__presenter-preview-title {
+    font-size: var(--fs-md);
+    color: var(--c-text);
+    font-weight: var(--fw-semibold);
+  }
+  .solstice__presenter-footer {
+    grid-area: footer;
+    padding: var(--sp-3) var(--sp-5);
+    background: var(--c-surface);
+    border-top: 1px solid var(--c-border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-3);
+  }
+  .solstice__presenter-timer {
+    font-family: var(--font-mono);
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-bold);
+    color: var(--c-accent);
+  }
+
+  /* Command Palette (Ctrl+K) */
+  .solstice__cmd-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 450;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding-top: 12vh;
+    animation: solstice-fade-in var(--t-fast) var(--ease-out);
+  }
+  .solstice__cmd-panel {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-lg);
+    box-shadow: var(--sh-3);
+    width: 100%; max-width: 580px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .solstice__cmd-input-wrap {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--c-border);
+  }
+  .solstice__cmd-input {
+    flex: 1; border: 0; background: transparent;
+    font-size: var(--fs-md); color: var(--c-text);
+    outline: none;
+  }
+  .solstice__cmd-list {
+    max-height: 380px; overflow-y: auto;
+    padding: 4px;
+  }
+  .solstice__cmd-item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: var(--sp-2); align-items: center;
+    padding: 8px 10px;
+    border-radius: var(--rad-sm);
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    color: var(--c-text);
+  }
+  .solstice__cmd-item:hover,
+  .solstice__cmd-item.is-active {
+    background: var(--c-accent);
+    color: #fff;
+  }
+  .solstice__cmd-item.is-active .solstice__cmd-item-kbd { background: rgba(255,255,255,0.2); color: #fff; }
+  .solstice__cmd-item-icon { font-size: 14px; }
+  .solstice__cmd-item-label {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .solstice__cmd-item-cat {
+    font-size: 10px; opacity: 0.6;
+    margin-left: 6px;
+  }
+  .solstice__cmd-item-kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--c-surface-2);
+    color: var(--c-muted);
+    padding: 2px 6px;
+    border-radius: var(--rad-xs);
+  }
+  .solstice__cmd-empty {
+    padding: var(--sp-4); text-align: center;
+    color: var(--c-muted); font-size: var(--fs-xs);
+  }
+
+  /* Tour interativo */
+  .solstice__tour-overlay {
+    position: fixed; inset: 0;
+    z-index: 600;
+    pointer-events: auto;
+  }
+  .solstice__tour-mask {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.65);
+    transition: clip-path 300ms var(--ease);
+  }
+  .solstice__tour-tooltip {
+    position: absolute;
+    background: var(--c-surface);
+    border: 1px solid var(--c-accent);
+    border-radius: var(--rad-md);
+    padding: var(--sp-4);
+    box-shadow: var(--sh-3);
+    width: 320px;
+    z-index: 601;
+  }
+  .solstice__tour-step-num {
+    display: inline-block;
+    background: var(--c-accent);
+    color: #fff;
+    font-size: 10px; font-weight: var(--fw-bold);
+    padding: 2px 8px;
+    border-radius: var(--rad-full);
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+  }
+  .solstice__tour-title {
+    font-size: var(--fs-md); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    margin-bottom: 6px;
+  }
+  .solstice__tour-text {
+    font-size: var(--fs-sm); color: var(--c-text-2);
+    line-height: 1.5;
+    margin-bottom: var(--sp-3);
+  }
+  .solstice__tour-actions {
+    display: flex; gap: var(--sp-2); justify-content: space-between;
+    align-items: center;
+  }
+  .solstice__tour-progress {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--c-muted);
+  }
+
+  /* Polish — focus rings WCAG AA */
+  .solstice__btn:focus-visible,
+  .solstice__pill:focus-visible,
+  .solstice__sidebar-tab:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+  }
+
+  /* Polish — transição suave entre modos */
+  .solstice__app {
+    transition: grid-template-columns 300ms var(--ease);
+  }
+
   /* ===== MODAL ===== */
   .solstice__modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.55);
@@ -3160,7 +3500,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 11 · SNAPSHOTS + VERSIONS + FILE SYSTEM + EXPORT HTML + TEMPLATES ITAÚ
+  ☀️ SOLSTICE v5.3 · BLOCO 12 · 5 MODOS + SLIDES + APRESENTADOR + COMMAND PALETTE + TOUR + POLISH
 </div>
 
 <!-- App shell -->
@@ -3298,7 +3638,12 @@
         <strong style="color:var(--c-success)">✓</strong> Export HTML standalone com dados embutidos (B11)<br>
         <strong style="color:var(--c-success)">✓</strong> 3 templates Itaú pré-instalados (Carteira PJ · Inadimplência · Pipeline) (B11)<br>
         <strong style="color:var(--c-success)">✓</strong> Aba "🧠 Dicionários" na sidebar — CRUD de dicionários salvos (B11)<br>
-        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 12 (5 modos · Atalhos · Polish · Slides + Apresentador)
+        <strong style="color:var(--c-success)">✓</strong> 5 modos: Edit · Analyze · Review · Present · Slides (B12)<br>
+        <strong style="color:var(--c-success)">✓</strong> Modo Slides + Apresentador dual-window com notas e timer (B12)<br>
+        <strong style="color:var(--c-success)">✓</strong> Command Palette · Ctrl+K · fuzzy search com 30+ ações (B12)<br>
+        <strong style="color:var(--c-success)">✓</strong> Tour interativo · 9 passos · spotlight overlay (B12)<br>
+        <strong style="color:var(--c-success)">✓</strong> LTTB downsampling + microinterações + a11y polish (B12)<br>
+        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 13 (Diferenciais Avançados · Comentários · Grafo de Métricas)
       </div>
     </div>
   </aside>
@@ -4955,11 +5300,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     SolsticeVersions.init();
     SolsticeFileSystem.init();
     SolsticeTemplatesItau.init();
+    // B12: inicializa Modes/Slides/Presenter/CommandPalette/Tour
+    SolsticeModes.init();
+    SolsticeSlides.init();
+    SolsticePresenter.init();
+    SolsticeCommandPalette.init();
+    SolsticeTour.init();
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 11','color:#4D9FFF;font-size:14px;font-weight:bold;');
-    console.log('Atalhos: Ctrl+Z/Shift+Z · Ctrl+Shift+D · Ctrl+P · Ctrl+S salva · Ctrl+O abre · Esc');
-    console.log('💾 Salvar / 📂 Abrir / ⬇️ Exportar / 🕐 Histórico na toolbar · Snapshots/Versions/FS/Export carregados');
-    console.log('%c[Solstice] Bloco 11 aplicado · Snapshots + Versions + FileSystem + Export + Templates Itaú','color:#4ADE80;font-weight:bold;');
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 12','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('Atalhos: Ctrl+K palette · Ctrl+P ask · Ctrl+S save · Ctrl+O open · Ctrl+Z/Shift+Z undo/redo · Esc · F slides');
+    console.log('5 modos: edit/analyze/review/present/slides · Command Palette + Tour interativo carregados');
+    console.log('%c[Solstice] Bloco 12 aplicado · 5 modos + Slides + Apresentador + Command Palette + Tour + Polish','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -7201,6 +7552,43 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return out;
     }
 
+    /**
+     * LTTB — Largest Triangle Three Buckets (downsampling para gráficos).
+     * Reduz array de N pontos para `threshold` pontos preservando "forma" visual.
+     * O(n). Crítico para séries com 100K+ pontos.
+     * Input: points como array<[x, y]>; threshold ≥ 3.
+     */
+    function lttb(points, threshold){
+      const n = points ? points.length : 0;
+      if (!n) return [];
+      if (threshold >= n || threshold < 3) return points.slice();
+      const bucketSize = (n - 2) / (threshold - 2);
+      const sampled = [points[0]];
+      let a = 0;
+      for (let i = 0; i < threshold - 2; i++){
+        const avgRangeStart = Math.floor((i + 1) * bucketSize) + 1;
+        const avgRangeEnd   = Math.min(n, Math.floor((i + 2) * bucketSize) + 1);
+        let avgX = 0, avgY = 0;
+        const avgRangeLength = avgRangeEnd - avgRangeStart || 1;
+        for (let j = avgRangeStart; j < avgRangeEnd; j++){
+          avgX += points[j][0]; avgY += points[j][1];
+        }
+        avgX /= avgRangeLength; avgY /= avgRangeLength;
+        const rangeOffs = Math.floor(i * bucketSize) + 1;
+        const rangeTo   = Math.floor((i + 1) * bucketSize) + 1;
+        const pAx = points[a][0], pAy = points[a][1];
+        let maxArea = -1, maxAreaIdx = rangeOffs;
+        for (let j = rangeOffs; j < rangeTo; j++){
+          const area = Math.abs((pAx - avgX) * (points[j][1] - pAy) - (pAx - points[j][0]) * (avgY - pAy));
+          if (area > maxArea){ maxArea = area; maxAreaIdx = j; }
+        }
+        sampled.push(points[maxAreaIdx]);
+        a = maxAreaIdx;
+      }
+      sampled.push(points[n - 1]);
+      return sampled;
+    }
+
     /* ---------- Análise direcional ---------- */
 
     /**
@@ -7395,7 +7783,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // clustering
       kMeans,
       // transformações
-      normalize, zScore, bucketize, lag,
+      normalize, zScore, bucketize, lag, lttb,
       // direcional
       trend,
       // smart suggest
@@ -15337,10 +15725,647 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
+     BLOCO 12 — SolsticeModes (ADR-084)
+     5 modos: edit · analyze · review · present · slides.
+     Controla via data-mode no .solstice__app.
+     ============================================================ */
+  const SolsticeModes = (function(){
+
+    const MODES = [
+      { id: 'edit',    icon: '✏️', name: 'Edit',      desc: 'Modo padrão de edição', kbd: '' },
+      { id: 'analyze', icon: '🔬', name: 'Analyze',   desc: 'Foco em análise, edição limitada', kbd: '' },
+      { id: 'review',  icon: '💬', name: 'Review',    desc: 'Comentários (B13)', kbd: '' },
+      { id: 'present', icon: '🖥️', name: 'Present',   desc: 'Tela cheia para apresentar', kbd: '' },
+      { id: 'slides',  icon: '🎬', name: 'Slides',    desc: 'Cada section vira slide', kbd: 'F' }
+    ];
+
+    function current(){ return SolsticeStore.get('ui.mode') || 'edit'; }
+
+    function set(mode){
+      const valid = MODES.find(m => m.id === mode);
+      if (!valid){ console.warn('[Modes] modo inválido:', mode); return; }
+      // Saindo de slides ou present → restaura UI
+      const prev = current();
+      if (prev === 'slides') SolsticeSlides.exit();
+      const app = document.querySelector('.solstice__app');
+      if (app) app.setAttribute('data-mode', mode);
+      SolsticeStore.set('ui.mode', mode);
+      if (mode === 'slides') SolsticeSlides.enter();
+      SolsticeAudit.record({ action:'mode_change', details:{ from: prev, to: mode } });
+    }
+
+    function cycle(){
+      const ids = MODES.map(m => m.id);
+      const i = ids.indexOf(current());
+      set(ids[(i + 1) % ids.length]);
+    }
+
+    function list(){ return MODES.slice(); }
+
+    /** Cria o dropdown "Modo" no header. */
+    function _renderDropdown(){
+      const wrap = SolsticeUtils.el('div', { class:'solstice__mode-dropdown' });
+      const trigger = SolsticeUtils.el('button', { class:'solstice__mode-trigger' });
+      function refreshTrigger(){
+        const m = MODES.find(x => x.id === current()) || MODES[0];
+        trigger.innerHTML = '';
+        trigger.appendChild(SolsticeUtils.el('span', null, m.icon));
+        trigger.appendChild(SolsticeUtils.el('span', null, m.name));
+        trigger.appendChild(SolsticeUtils.el('span', { style:'font-size:10px;color:var(--c-muted);' }, '▼'));
+      }
+      refreshTrigger();
+      let panel = null;
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (panel){ panel.remove(); panel = null; return; }
+        panel = SolsticeUtils.el('div', { class:'solstice__mode-panel' });
+        MODES.forEach(m => {
+          const opt = SolsticeUtils.el('div', {
+            class:'solstice__mode-option' + (current() === m.id ? ' is-active' : ''),
+            onclick: () => { set(m.id); panel.remove(); panel = null; refreshTrigger(); }
+          });
+          opt.appendChild(SolsticeUtils.el('span', { class:'solstice__mode-option-icon' }, m.icon));
+          const body = SolsticeUtils.el('div', { class:'solstice__mode-option-body' });
+          body.appendChild(SolsticeUtils.el('div', { class:'solstice__mode-option-name' }, m.name));
+          body.appendChild(SolsticeUtils.el('div', { class:'solstice__mode-option-desc' }, m.desc));
+          opt.appendChild(body);
+          if (m.kbd) opt.appendChild(SolsticeUtils.el('span', { class:'solstice__mode-option-kbd' }, m.kbd));
+          panel.appendChild(opt);
+        });
+        wrap.appendChild(panel);
+        // Fecha ao clicar fora
+        setTimeout(() => {
+          document.addEventListener('click', function close(ev){
+            if (panel && !wrap.contains(ev.target)){ panel.remove(); panel = null; document.removeEventListener('click', close); }
+          });
+        }, 0);
+      });
+      wrap.appendChild(trigger);
+      return wrap;
+    }
+
+    function init(){
+      const app = document.querySelector('.solstice__app');
+      if (app) app.setAttribute('data-mode', current());
+      // Insere dropdown no header antes do botão de tema
+      const headerActions = document.querySelector('.solstice__header-actions');
+      const themeToggle = document.getElementById('theme-toggle');
+      if (headerActions && themeToggle){
+        const dd = _renderDropdown();
+        headerActions.insertBefore(dd, themeToggle);
+      }
+    }
+
+    return { set, current, cycle, list, init, MODES };
+  })();
+
+  /* ============================================================
+     BLOCO 12 — SolsticeSlides (ADR-085)
+     Modo Slides: cada section vira slide full-viewport com setas.
+     Tecla F entra/sai. Esc sai. ← → navegam.
+     ============================================================ */
+  const SolsticeSlides = (function(){
+    let overlay = null;
+    let currentIndex = 0;
+
+    function _sections(){ return SolsticeStore.get('canvas.sections') || []; }
+
+    function enter(){
+      if (overlay) return;
+      currentIndex = 0;
+      _render();
+    }
+    function exit(){
+      if (overlay){ overlay.remove(); overlay = null; }
+      // Garante voltar ao modo edit se vier daqui
+      const app = document.querySelector('.solstice__app');
+      if (app && app.getAttribute('data-mode') === 'slides'){
+        SolsticeStore.set('ui.mode', 'edit');
+        app.setAttribute('data-mode', 'edit');
+      }
+    }
+    function next(){
+      const secs = _sections();
+      if (currentIndex < secs.length - 1){ currentIndex++; _render(); }
+    }
+    function prev(){
+      if (currentIndex > 0){ currentIndex--; _render(); }
+    }
+    function goTo(i){
+      const secs = _sections();
+      currentIndex = Math.max(0, Math.min(secs.length - 1, i));
+      _render();
+    }
+
+    function _render(){
+      const secs = _sections();
+      if (!secs.length){
+        SolsticeToast.warn('Modo Slides', 'Crie ao menos uma seção no canvas primeiro.');
+        SolsticeModes.set('edit');
+        return;
+      }
+      if (overlay) overlay.remove();
+      overlay = SolsticeUtils.el('div', { class:'solstice__slides-overlay' });
+
+      const stage = SolsticeUtils.el('div', { class:'solstice__slides-stage' });
+      const slide = SolsticeUtils.el('div', { class:'solstice__slide' });
+      const sec = secs[currentIndex];
+
+      slide.appendChild(SolsticeUtils.el('h1', { class:'solstice__slide-title' }, sec.title || ('Slide ' + (currentIndex + 1))));
+
+      // Re-renderiza as rows do section dentro do slide
+      // Reuso simplificado — copia o DOM gerado pelo Canvas
+      sec.rows.forEach(row => {
+        const rowEl = SolsticeUtils.el('div', {
+          class: 'solstice__row',
+          'data-layout': row.layout || '1col',
+          style: row.widths ? ('grid-template-columns: ' + row.widths.map(w => w + 'fr').join(' ')) : ''
+        });
+        // Aplica o grid-template-columns inline via stylesheet
+        const layoutMap = {
+          '1col': '1fr',
+          '2col-equal': '1fr 1fr',
+          '2col-2-1': '2fr 1fr',
+          '2col-1-2': '1fr 2fr',
+          '3col-equal': '1fr 1fr 1fr',
+          '3col-1-2-1': '1fr 2fr 1fr',
+          '4col-equal': 'repeat(4, 1fr)'
+        };
+        rowEl.style.display = 'grid';
+        rowEl.style.gridTemplateColumns = layoutMap[row.layout] || '1fr';
+        rowEl.style.gap = 'var(--sp-4)';
+
+        row.slots.forEach(slot => {
+          if (!slot.type || slot.type === 'empty'){
+            const ph = SolsticeUtils.el('div', { style:'background:var(--c-surface-2);border-radius:var(--rad-md);min-height:200px;display:flex;align-items:center;justify-content:center;color:var(--c-muted);font-size:var(--fs-sm);' }, '— vazio —');
+            rowEl.appendChild(ph); return;
+          }
+          const host = SolsticeUtils.el('div', { class:'solstice__comp', 'data-comp-id': slot.id, 'data-comp-type': slot.type });
+          const head = SolsticeUtils.el('div', { class:'solstice__comp-head' });
+          const def = SolsticeComponents.get(slot.type);
+          const ctx = (function(){
+            const ingest = SolsticeStore.get('ingest');
+            const allRows = (ingest && ingest.rows) || [];
+            const rows = (typeof SolsticeFilters !== 'undefined') ? SolsticeFilters.apply(allRows) : allRows;
+            return { rows, rowsAll: allRows, columns: (ingest && ingest.columns) || [], types: (ingest && ingest.types) || {}, dictionary: SolsticeStore.get('dictionary'), L: SolsticeLocale };
+          })();
+          const dyn = def && typeof def.getTitle === 'function' ? def.getTitle(slot, ctx) : (def ? def.name : 'Componente');
+          head.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-title' },
+            (def ? def.icon : '🧩') + '  ' + dyn));
+          host.appendChild(head);
+          try { def && def.render(slot, host, ctx); } catch(e){ console.error('[Slides render]', e); }
+          rowEl.appendChild(host);
+        });
+        slide.appendChild(rowEl);
+      });
+
+      stage.appendChild(slide);
+      overlay.appendChild(stage);
+
+      // Barra inferior
+      const bar = SolsticeUtils.el('div', { class:'solstice__slides-bar' });
+      const nav = SolsticeUtils.el('div', { class:'solstice__slides-nav' });
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: prev, disabled: currentIndex === 0 ? '' : null }, '←'));
+      nav.appendChild(SolsticeUtils.el('span', { class:'solstice__slides-counter' }, (currentIndex + 1) + ' / ' + secs.length));
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: next, disabled: currentIndex === secs.length - 1 ? '' : null }, '→'));
+      bar.appendChild(nav);
+
+      const progress = SolsticeUtils.el('div', { class:'solstice__slides-progress' });
+      const fill = SolsticeUtils.el('div', { class:'solstice__slides-progress-fill',
+        style: 'width:' + (((currentIndex + 1) / secs.length) * 100) + '%' });
+      progress.appendChild(fill);
+      bar.appendChild(progress);
+
+      const right = SolsticeUtils.el('div', { style:'display:flex;align-items:center;gap:var(--sp-3);' });
+      right.appendChild(SolsticeUtils.el('button', { class:'solstice__btn',
+        title:'Modo Apresentador (notas + timer)',
+        onclick: () => SolsticePresenter.open(currentIndex)
+      }, '🎤 Apresentador'));
+      right.appendChild(SolsticeUtils.el('span', { class:'solstice__slides-help' },
+        '← → navegar · Esc sair · A apresentador'));
+      right.appendChild(SolsticeUtils.el('button', { class:'solstice__btn',
+        title:'Sair (Esc)',
+        onclick: () => SolsticeModes.set('edit')
+      }, '✕'));
+      bar.appendChild(right);
+
+      overlay.appendChild(bar);
+      document.body.appendChild(overlay);
+    }
+
+    function init(){
+      document.addEventListener('keydown', (e) => {
+        // F entra em slides quando estiver em edit/analyze
+        if (e.key === 'f' || e.key === 'F'){
+          const tag = e.target && e.target.tagName;
+          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+          if (e.ctrlKey || e.metaKey || e.altKey) return;
+          if (document.querySelector('.solstice__modal-overlay')) return;
+          if (SolsticeModes.current() !== 'slides'){
+            e.preventDefault();
+            SolsticeModes.set('slides');
+          }
+        }
+        if (SolsticeModes.current() !== 'slides') return;
+        if (e.key === 'ArrowRight' || e.key === ' '){ e.preventDefault(); next(); }
+        else if (e.key === 'ArrowLeft'){ e.preventDefault(); prev(); }
+        else if (e.key === 'Escape'){ e.preventDefault(); SolsticeModes.set('edit'); }
+        else if (e.key === 'a' || e.key === 'A'){ e.preventDefault(); SolsticePresenter.open(currentIndex); }
+      });
+    }
+
+    return { enter, exit, next, prev, goTo, init, _render };
+  })();
+
+  /* ============================================================
+     BLOCO 12 — SolsticePresenter (ADR-086)
+     Modo Apresentador: dual-pane com notas + timer + preview próximo.
+     Versão simplificada: usa overlay no mesmo window (não dual-window
+     com window.open para evitar bloqueio de popup em vários browsers).
+     ============================================================ */
+  const SolsticePresenter = (function(){
+    let overlay = null;
+    let slideIndex = 0;
+    let startTs = 0;
+    let timerInterval = null;
+
+    function _sections(){ return SolsticeStore.get('canvas.sections') || []; }
+
+    function open(index){
+      slideIndex = index || 0;
+      startTs = Date.now();
+      _render();
+      timerInterval = setInterval(_updateTimer, 1000);
+    }
+    function close(){
+      if (overlay){ overlay.remove(); overlay = null; }
+      if (timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+    }
+    function next(){
+      const secs = _sections();
+      if (slideIndex < secs.length - 1){ slideIndex++; _render(); }
+    }
+    function prev(){
+      if (slideIndex > 0){ slideIndex--; _render(); }
+    }
+
+    function _updateTimer(){
+      const el = document.querySelector('.solstice__presenter-timer');
+      if (!el) return;
+      const elapsed = Math.floor((Date.now() - startTs) / 1000);
+      const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const ss = String(elapsed % 60).padStart(2, '0');
+      el.textContent = mm + ':' + ss;
+    }
+
+    function _render(){
+      if (overlay) overlay.remove();
+      const secs = _sections();
+      if (!secs.length){ SolsticeToast.warn('Apresentador', 'Sem seções para apresentar.'); return; }
+      const sec = secs[slideIndex];
+      const nextSec = secs[slideIndex + 1];
+
+      overlay = SolsticeUtils.el('div', { class:'solstice__presenter' });
+
+      // Painel atual — só título e contagem de slots por agora
+      const current = SolsticeUtils.el('div', { class:'solstice__presenter-current' });
+      current.appendChild(SolsticeUtils.el('h2', { style:'font-family:var(--font-display);font-size:var(--fs-3xl);font-weight:var(--fw-bold);color:var(--c-text);margin-bottom:var(--sp-3);' },
+        sec.title || ('Slide ' + (slideIndex + 1))));
+      current.appendChild(SolsticeUtils.el('div', { style:'font-size:var(--fs-md);color:var(--c-muted);margin-bottom:var(--sp-4);' },
+        sec.rows.length + ' linha(s) · ' +
+        sec.rows.reduce((s, r) => s + r.slots.filter(sl => sl.type && sl.type !== 'empty').length, 0) +
+        ' componente(s)'));
+      // Slots resumidos
+      sec.rows.forEach((row, ri) => {
+        row.slots.forEach(slot => {
+          if (!slot.type || slot.type === 'empty') return;
+          const def = SolsticeComponents.get(slot.type);
+          const tag = SolsticeUtils.el('div', { style:'background:var(--c-surface-2);border-radius:var(--rad-sm);padding:var(--sp-2) var(--sp-3);margin-bottom:6px;font-size:var(--fs-sm);' },
+            (def ? def.icon : '🧩') + ' ' + (def ? def.name : slot.type));
+          current.appendChild(tag);
+        });
+      });
+
+      // Painel notas + preview
+      const notes = SolsticeUtils.el('div', { class:'solstice__presenter-notes' });
+      notes.appendChild(SolsticeUtils.el('div', { class:'solstice__presenter-notes-label' }, '📝 Notas'));
+      const notesText = (sec.notes || '').trim() ||
+        'Nenhuma nota para esta seção. Clique em "✏️ Editar notas" no modo Edit (B13) para adicionar.';
+      notes.appendChild(SolsticeUtils.el('div', { class:'solstice__presenter-notes-text' }, notesText));
+      if (nextSec){
+        const preview = SolsticeUtils.el('div', { class:'solstice__presenter-preview' });
+        preview.appendChild(SolsticeUtils.el('div', { class:'solstice__presenter-preview-label' }, '⏭️ PRÓXIMA'));
+        preview.appendChild(SolsticeUtils.el('div', { class:'solstice__presenter-preview-title' }, nextSec.title || ('Slide ' + (slideIndex + 2))));
+        notes.appendChild(preview);
+      }
+
+      // Footer com nav + timer
+      const footer = SolsticeUtils.el('div', { class:'solstice__presenter-footer' });
+      const nav = SolsticeUtils.el('div', { style:'display:flex;gap:var(--sp-2);align-items:center;' });
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: prev, disabled: slideIndex === 0 ? '' : null }, '← Anterior'));
+      nav.appendChild(SolsticeUtils.el('span', { style:'font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--c-muted);' },
+        (slideIndex + 1) + ' / ' + secs.length));
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: next, disabled: slideIndex === secs.length - 1 ? '' : null }, 'Próximo →'));
+      footer.appendChild(nav);
+      footer.appendChild(SolsticeUtils.el('div', { class:'solstice__presenter-timer' }, '00:00'));
+      footer.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: close }, '✕ Fechar'));
+
+      overlay.append(current, notes, footer);
+      document.body.appendChild(overlay);
+    }
+
+    function init(){
+      document.addEventListener('keydown', (e) => {
+        if (!overlay) return;
+        if (e.key === 'ArrowRight'){ e.preventDefault(); next(); }
+        else if (e.key === 'ArrowLeft'){ e.preventDefault(); prev(); }
+        else if (e.key === 'Escape'){ e.preventDefault(); close(); }
+      });
+    }
+
+    return { open, close, next, prev, init };
+  })();
+
+  /* ============================================================
+     BLOCO 12 — SolsticeCommandPalette (ADR-087)
+     Ctrl+K palette com fuzzy search. 30+ ações catalogadas.
+     ============================================================ */
+  const SolsticeCommandPalette = (function(){
+    let overlay = null;
+    let activeIndex = 0;
+    let filtered = [];
+
+    /** Catálogo de comandos. Cada comando: { id, label, category, icon, run, kbd?, syn? } */
+    function _commands(){
+      return [
+        // Componentes
+        { id:'add-kpi',          label:'Adicionar KPI Card',          icon:'📊', category:'Componente', syn:'numero indicador medida', run:() => SolsticeComponents.addByType('kpi') },
+        { id:'add-time',         label:'Adicionar Série Temporal',    icon:'📈', category:'Componente', syn:'linha tempo evolucao', run:() => SolsticeComponents.addByType('time-series') },
+        { id:'add-dist',         label:'Adicionar Distribuição',      icon:'📉', category:'Componente', syn:'histograma forma', run:() => SolsticeComponents.addByType('distribution') },
+        { id:'add-table',        label:'Adicionar Tabela',            icon:'📋', category:'Componente', syn:'dados crus', run:() => SolsticeComponents.addByType('table') },
+        { id:'add-scatter',      label:'Adicionar Scatter',           icon:'⚡', category:'Componente', syn:'dispersao correlacao', run:() => SolsticeComponents.addByType('scatter') },
+        { id:'add-gauge',        label:'Adicionar Gauge',             icon:'⏲️', category:'Componente', syn:'velocimetro meta', run:() => SolsticeComponents.addByType('gauge') },
+        { id:'add-boxplot',      label:'Adicionar Box Plot',          icon:'📦', category:'Componente', syn:'quartis outliers', run:() => SolsticeComponents.addByType('boxplot') },
+        { id:'add-sankey',       label:'Adicionar Sankey',            icon:'🌊', category:'Componente', syn:'fluxo categorias', run:() => SolsticeComponents.addByType('sankey') },
+        { id:'add-heatmap',      label:'Adicionar Heatmap Calendário',icon:'🗓️', category:'Componente', syn:'github calendar', run:() => SolsticeComponents.addByType('heatmap-cal') },
+        { id:'add-md',           label:'Adicionar Markdown',          icon:'📝', category:'Componente', syn:'texto rich', run:() => SolsticeComponents.addByType('markdown') },
+        // Ações principais
+        { id:'auto-dash',        label:'Auto-Dashboard',              icon:'🪄', category:'Ação', syn:'automatico sugerido', run:() => SolsticeAutoDashboard.run({ force: true }) },
+        { id:'wizard',           label:'Wizard',                      icon:'🧙', category:'Ação', syn:'guiado intencao', run:() => SolsticeWizard.open() },
+        { id:'save-snap',        label:'Salvar snapshot',             icon:'💾', category:'Persistência', kbd:'Ctrl+S', syn:'guardar estado', run:() => { SolsticeSnapshots.save(); SolsticeToast.success('Snapshot rápido salvo'); } },
+        { id:'open-snap',        label:'Abrir snapshots',             icon:'📂', category:'Persistência', kbd:'Ctrl+O', syn:'carregar', run:() => SolsticeSnapshots.openModal() },
+        { id:'export-html',      label:'Exportar HTML standalone',    icon:'⬇️', category:'Persistência', syn:'baixar compartilhar', run:() => SolsticeExport.openExportModal() },
+        { id:'history',          label:'Histórico de versões',        icon:'🕐', category:'Persistência', syn:'versions undo', run:() => SolsticeVersions.openModal() },
+        // Templates
+        { id:'templates',        label:'Aplicar template',            icon:'📋', category:'Template', syn:'pronto modelo', run:() => SolsticeTemplates.openPicker() },
+        { id:'params',           label:'Editar parâmetros globais',   icon:'🎛️', category:'Config', syn:'variaveis', run:() => SolsticeParams.openModal() },
+        { id:'header',           label:'Configurar cabeçalho',        icon:'📋', category:'Config', syn:'banner titulo', run:() => SolsticeDashHeader.openConfig() },
+        // Modos
+        { id:'mode-edit',        label:'Modo Edit',                   icon:'✏️', category:'Modo', run:() => SolsticeModes.set('edit') },
+        { id:'mode-analyze',     label:'Modo Analyze',                icon:'🔬', category:'Modo', run:() => SolsticeModes.set('analyze') },
+        { id:'mode-present',     label:'Modo Present',                icon:'🖥️', category:'Modo', syn:'apresentar limpo', run:() => SolsticeModes.set('present') },
+        { id:'mode-slides',      label:'Modo Slides',                 icon:'🎬', category:'Modo', kbd:'F', syn:'apresentacao', run:() => SolsticeModes.set('slides') },
+        // Tema
+        { id:'theme-dark',       label:'Tema escuro',                 icon:'🌙', category:'Tema', syn:'dark mode', run:() => SolsticeTheme.set('mode', 'dark') },
+        { id:'theme-light',      label:'Tema claro',                  icon:'☀️', category:'Tema', syn:'light mode', run:() => SolsticeTheme.set('mode', 'light') },
+        { id:'palette-cycle',    label:'Próxima paleta',              icon:'🎨', category:'Tema', syn:'cor', run:() => SolsticeTheme.cycle('palette') },
+        // Stats/Análise
+        { id:'ask',              label:'Pergunte ao Solstice',        icon:'🔍', category:'Análise', kbd:'Ctrl+P', syn:'pergunta query', run:() => SolsticeAsk.open() },
+        { id:'audit',            label:'Auditoria de decisões',       icon:'📋', category:'Análise', syn:'log historico', run:() => SolsticeAudit.openModal() },
+        // Outros
+        { id:'tour',             label:'Abrir tour interativo',       icon:'🧭', category:'Ajuda', syn:'guia passos', run:() => SolsticeTour.start() },
+        { id:'help',             label:'Mostrar Onboarding',          icon:'❓', category:'Ajuda', run:() => SolsticeOnboarding.show() },
+        { id:'debug',            label:'Debug overlay',               icon:'🐛', category:'Dev', kbd:'Ctrl+Shift+D', run:() => SolsticeDebug.toggle() },
+        { id:'undo',             label:'Desfazer',                    icon:'↺', category:'Edição', kbd:'Ctrl+Z', run:() => SolsticeUndo.undo() },
+        { id:'redo',             label:'Refazer',                     icon:'↻', category:'Edição', kbd:'Ctrl+Shift+Z', run:() => SolsticeUndo.redo() },
+        { id:'add-section',      label:'Adicionar seção',             icon:'➕', category:'Edição', run:() => SolsticeCanvas.addSection() },
+        { id:'load-dummy',       label:'Carregar CSV dummy',          icon:'📊', category:'Dados', syn:'exemplo teste', run:() => _loadDummyDataset() },
+        { id:'import-csv',       label:'Importar CSV',                icon:'📁', category:'Dados', run:() => document.getElementById('file-input').click() }
+      ];
+    }
+
+    /** Fuzzy match simples: cada char do query deve aparecer na ordem no haystack. */
+    function _fuzzyScore(query, str){
+      if (!query) return 1;
+      const q = query.toLowerCase();
+      const s = (str || '').toLowerCase();
+      if (s.includes(q)) return 100;
+      let qi = 0;
+      for (let i = 0; i < s.length && qi < q.length; i++){
+        if (s[i] === q[qi]) qi++;
+      }
+      return qi === q.length ? 50 - (s.length - q.length) * 0.1 : 0;
+    }
+
+    function _filter(query){
+      const all = _commands();
+      if (!query) return all;
+      return all.map(c => {
+        const haystack = c.label + ' ' + (c.syn || '') + ' ' + c.category;
+        const score = _fuzzyScore(query, haystack);
+        return { c, score };
+      }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).map(x => x.c);
+    }
+
+    function open(){
+      if (overlay) return;
+      activeIndex = 0;
+      overlay = SolsticeUtils.el('div', { class:'solstice__cmd-overlay',
+        onclick: (e) => { if (e.target === overlay) close(); }
+      });
+      const panel = SolsticeUtils.el('div', { class:'solstice__cmd-panel' });
+      const inputWrap = SolsticeUtils.el('div', { class:'solstice__cmd-input-wrap' });
+      inputWrap.appendChild(SolsticeUtils.el('span', { style:'font-size:16px;' }, '⌘'));
+      const input = SolsticeUtils.el('input', { class:'solstice__cmd-input', type:'text',
+        placeholder:'O que você quer fazer? (ex: salvar, gauge, dark, exportar...)' });
+      inputWrap.appendChild(input);
+      inputWrap.appendChild(SolsticeUtils.el('span', { class:'solstice__cmd-item-kbd' }, 'Esc'));
+      panel.appendChild(inputWrap);
+
+      const list = SolsticeUtils.el('div', { class:'solstice__cmd-list' });
+      panel.appendChild(list);
+
+      function renderList(){
+        list.innerHTML = '';
+        if (!filtered.length){
+          list.appendChild(SolsticeUtils.el('div', { class:'solstice__cmd-empty' },
+            'Nada encontrado. Tente outro termo.'));
+          return;
+        }
+        filtered.forEach((c, i) => {
+          const item = SolsticeUtils.el('div', {
+            class:'solstice__cmd-item' + (i === activeIndex ? ' is-active' : ''),
+            onclick: () => { close(); try { c.run(); } catch(e){ console.error(e); } }
+          });
+          item.appendChild(SolsticeUtils.el('span', { class:'solstice__cmd-item-icon' }, c.icon || '•'));
+          const labelEl = SolsticeUtils.el('div', { class:'solstice__cmd-item-label' });
+          labelEl.appendChild(SolsticeUtils.el('span', null, c.label));
+          if (c.category) labelEl.appendChild(SolsticeUtils.el('span', { class:'solstice__cmd-item-cat' }, '· ' + c.category));
+          item.appendChild(labelEl);
+          if (c.kbd) item.appendChild(SolsticeUtils.el('span', { class:'solstice__cmd-item-kbd' }, c.kbd));
+          else item.appendChild(SolsticeUtils.el('span'));
+          list.appendChild(item);
+        });
+      }
+      filtered = _filter('');
+      renderList();
+
+      input.addEventListener('input', (e) => {
+        filtered = _filter(e.target.value);
+        activeIndex = 0;
+        renderList();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = Math.min(filtered.length - 1, activeIndex + 1); renderList(); }
+        else if (e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = Math.max(0, activeIndex - 1); renderList(); }
+        else if (e.key === 'Enter'){
+          e.preventDefault();
+          const cmd = filtered[activeIndex];
+          if (cmd){ close(); try { cmd.run(); } catch(err){ console.error(err); } }
+        }
+        else if (e.key === 'Escape'){ e.preventDefault(); close(); }
+      });
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function close(){
+      if (overlay){ overlay.remove(); overlay = null; }
+    }
+
+    function init(){
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){
+          const tag = e.target && e.target.tagName;
+          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+          e.preventDefault();
+          if (overlay) close(); else open();
+        }
+      });
+    }
+
+    return { open, close, init, _commands };
+  })();
+
+  /* ============================================================
+     BLOCO 12 — SolsticeTour (ADR-088)
+     Tour interativo passo-a-passo. Spotlight (clip-path) + tooltip.
+     ============================================================ */
+  const SolsticeTour = (function(){
+    let overlay = null;
+    let stepIndex = 0;
+
+    const STEPS = [
+      { selector: '.solstice__brand', title:'Bem-vindo ao Solstice 👋',
+        text:'Você está num Dashboard Studio single-file. Vamos passar pelos pontos principais em 9 passos rápidos.' },
+      { selector: '.solstice__sidebar', title:'Sidebar esquerda 📊',
+        text:'Aqui ficam: dados importados, catálogo de componentes, dicionários semânticos e snapshots salvos.' },
+      { selector: '.solstice__canvas', title:'Canvas 🎨',
+        text:'O dashboard se monta aqui. Cada componente vai em um slot dentro de uma seção. Layout livre, drag-resize.' },
+      { selector: '.solstice__canvas-toolbar', title:'Toolbar de ação ⚙️',
+        text:'Auto-Dashboard, Wizard, Snapshots, Exportar, Histórico — tudo aqui.' },
+      { selector: '#tab-componentes', title:'Catálogo de componentes 🧩',
+        text:'10 tipos disponíveis em 3 grupos accordion: Básicos · Avançados · Texto.' },
+      { selector: '.solstice__header-actions', title:'Modos de visualização 🎬',
+        text:'5 modos: Edit, Analyze, Review, Present, Slides. Pressione F para entrar em Slides.' },
+      { selector: '#help-btn', title:'Ajuda contextual ❓',
+        text:'Pressione Ctrl+K para a Command Palette com 30+ ações. Ctrl+P para "Pergunte ao Solstice".' },
+      { selector: '.solstice__status', title:'Status bar 📍',
+        text:'Locale, perfil ativo, linhas no dataset, e a versão atual do Solstice.' },
+      { selector: '.solstice__brand', title:'Pronto! 🚀',
+        text:'Você completou o tour. Importe um CSV e use o 🪄 Auto-Dashboard para começar com tudo pronto.' }
+    ];
+
+    function start(){
+      if (overlay) return;
+      stepIndex = 0;
+      _render();
+    }
+    function close(){
+      if (overlay){ overlay.remove(); overlay = null; }
+    }
+    function next(){
+      if (stepIndex < STEPS.length - 1){ stepIndex++; _render(); }
+      else close();
+    }
+    function prev(){
+      if (stepIndex > 0){ stepIndex--; _render(); }
+    }
+
+    function _render(){
+      if (overlay) overlay.remove();
+      const step = STEPS[stepIndex];
+      const target = document.querySelector(step.selector);
+      const rect = target ? target.getBoundingClientRect() : { left: window.innerWidth/2 - 100, top: window.innerHeight/2 - 50, width: 200, height: 100 };
+      const pad = 8;
+
+      overlay = SolsticeUtils.el('div', { class:'solstice__tour-overlay' });
+
+      // Máscara com clip-path "buraco" no target
+      const mask = SolsticeUtils.el('div', { class:'solstice__tour-mask' });
+      const clip = 'polygon(' +
+        '0 0, 100% 0, 100% 100%, 0 100%, 0 0, ' +
+        (rect.left - pad) + 'px ' + (rect.top - pad) + 'px, ' +
+        (rect.left - pad) + 'px ' + (rect.bottom + pad) + 'px, ' +
+        (rect.right + pad) + 'px ' + (rect.bottom + pad) + 'px, ' +
+        (rect.right + pad) + 'px ' + (rect.top - pad) + 'px, ' +
+        (rect.left - pad) + 'px ' + (rect.top - pad) + 'px' +
+      ')';
+      mask.style.clipPath = clip;
+      mask.style.webkitClipPath = clip;
+      overlay.appendChild(mask);
+
+      // Tooltip
+      const tooltip = SolsticeUtils.el('div', { class:'solstice__tour-tooltip' });
+      // Posiciona embaixo do target, ou em cima se não houver espaço
+      let top = rect.bottom + pad + 8;
+      if (top + 200 > window.innerHeight){ top = rect.top - 200 - pad; }
+      let left = rect.left;
+      if (left + 320 > window.innerWidth) left = window.innerWidth - 320 - 16;
+      if (left < 16) left = 16;
+      tooltip.style.top = top + 'px';
+      tooltip.style.left = left + 'px';
+
+      tooltip.appendChild(SolsticeUtils.el('span', { class:'solstice__tour-step-num' }, (stepIndex + 1) + ' / ' + STEPS.length));
+      tooltip.appendChild(SolsticeUtils.el('div', { class:'solstice__tour-title' }, step.title));
+      tooltip.appendChild(SolsticeUtils.el('div', { class:'solstice__tour-text' }, step.text));
+
+      const acts = SolsticeUtils.el('div', { class:'solstice__tour-actions' });
+      acts.appendChild(SolsticeUtils.el('span', { class:'solstice__tour-progress' }, 'Passo ' + (stepIndex + 1) + ' de ' + STEPS.length));
+      const btns = SolsticeUtils.el('div', { style:'display:flex;gap:6px;' });
+      if (stepIndex > 0) btns.appendChild(SolsticeUtils.el('button', { class:'solstice__btn',
+        style:'font-size:10px;padding:4px 10px;height:24px;', onclick: prev }, '← Anterior'));
+      btns.appendChild(SolsticeUtils.el('button', { class:'solstice__btn',
+        style:'font-size:10px;padding:4px 10px;height:24px;', onclick: close }, 'Pular'));
+      btns.appendChild(SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary',
+        style:'font-size:10px;padding:4px 10px;height:24px;', onclick: next },
+        stepIndex === STEPS.length - 1 ? '✓ Finalizar' : 'Próximo →'));
+      acts.appendChild(btns);
+      tooltip.appendChild(acts);
+
+      overlay.appendChild(tooltip);
+      document.body.appendChild(overlay);
+    }
+
+    function init(){
+      document.addEventListener('keydown', (e) => {
+        if (!overlay) return;
+        if (e.key === 'ArrowRight') next();
+        else if (e.key === 'ArrowLeft') prev();
+        else if (e.key === 'Escape') close();
+      });
+    }
+
+    return { start, close, next, prev, init, STEPS };
+  })();
+
+  /* ============================================================
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco11',
+    version: '5.3.0-bloco12',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,
@@ -15396,6 +16421,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     FileSystem:      SolsticeFileSystem,
     Export:          SolsticeExport,
     TemplatesItau:   SolsticeTemplatesItau,
+    Modes:           SolsticeModes,
+    Slides:          SolsticeSlides,
+    Presenter:       SolsticePresenter,
+    CommandPalette:  SolsticeCommandPalette,
+    Tour:            SolsticeTour,
     LZ:          (typeof LZString !== 'undefined') ? LZString : null
   };
 
