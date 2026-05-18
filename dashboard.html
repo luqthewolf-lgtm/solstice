@@ -241,14 +241,23 @@
     box-shadow: var(--sh-1);
   }
 
-  /* App shell */
+  /* App shell — Patch B7-r2: 3 colunas (sidebar | canvas | inspector lateral direito)
+     Inspector width vai a 0 quando fechado; transição CSS suave.
+     Drawer de análise é absolute dentro do canvas (não afeta grid). ADR-063. */
   .solstice__app {
     display: grid;
-    grid-template-areas: "header header" "sidebar canvas" "status status";
-    grid-template-columns: 280px 1fr;
+    grid-template-areas:
+      "header  header  header"
+      "sidebar canvas  inspector"
+      "status  status  status";
+    grid-template-columns: 280px 1fr 0px;
     grid-template-rows: auto 1fr auto;
     min-height: 100vh;
     padding-top: 24px;
+    transition: grid-template-columns 300ms var(--ease);
+  }
+  .solstice__app.has-inspector {
+    grid-template-columns: 280px 1fr 340px;
   }
 
   /* Header */
@@ -385,9 +394,15 @@
     grid-area: canvas;
     padding: var(--sp-6);
     overflow-y: auto;
+    overflow-x: hidden;       /* B7-r2: evita scroll horizontal durante transição do inspector */
     background:
       radial-gradient(circle at 0% 0%, rgba(77,159,255,.04), transparent 40%),
       var(--c-bg);
+    position: relative;        /* B7-r2: ancora o drawer de análise */
+  }
+  /* B7-r2: quando o drawer de análise está aberto, deixa espaço inferior no canvas */
+  .solstice__app.has-analysis .solstice__canvas {
+    padding-bottom: calc(var(--sp-6) + 340px);
   }
   .solstice__canvas-empty {
     height: 100%;
@@ -419,6 +434,282 @@
   .solstice__status-dot {
     width: 6px; height: 6px; border-radius: var(--rad-full);
     background: var(--c-success); flex-shrink: 0;
+  }
+
+  /* ============================================================
+     B7-r2 — INSPECTOR LATERAL DIREITO (ADR-063)
+     Painel de propriedades do componente selecionado.
+     Grid-area "inspector" — width controlado pelo grid-template-columns
+     do .solstice__app. Quando fechado, coluna = 0px e o conteúdo
+     fica clipado por overflow: hidden no aside.
+     ============================================================ */
+  .solstice__inspector {
+    grid-area: inspector;
+    background: var(--c-surface);
+    border-left: 1px solid var(--c-border);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
+  .solstice__inspector-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--c-border);
+    position: sticky; top: 0;
+    background: var(--c-surface);
+    z-index: 1;
+    flex-shrink: 0;
+  }
+  .solstice__inspector-title {
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    display: flex; align-items: center; gap: var(--sp-2);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .solstice__inspector-title-icon { font-size: 16px; }
+  .solstice__inspector-body {
+    padding: var(--sp-3) var(--sp-4);
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    min-width: 0;
+  }
+  .solstice__inspector-footer {
+    padding: var(--sp-3) var(--sp-4);
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface);
+    position: sticky; bottom: 0;
+    flex-shrink: 0;
+  }
+
+  /* Botão destrutivo no rodapé do inspector */
+  .solstice__btn--destructive {
+    color: var(--c-error);
+    border-color: color-mix(in srgb, var(--c-error) 30%, transparent);
+    background: transparent;
+    width: 100%;
+    justify-content: center;
+  }
+  .solstice__btn--destructive:hover {
+    background: color-mix(in srgb, var(--c-error) 12%, transparent);
+    color: var(--c-error);
+  }
+
+  /* Controles MAIS espaçosos no inspector (mais largura disponível) */
+  .solstice__inspector .solstice__props-select,
+  .solstice__inspector .solstice__props-input {
+    height: 40px;
+    padding: 10px 12px;
+    font-size: var(--fs-sm);
+    border-radius: var(--rad-sm);
+  }
+  .solstice__inspector textarea.solstice__props-input { height: auto; }
+  .solstice__inspector .solstice__props-label {
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-semibold);
+    color: var(--c-text-2);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .solstice__inspector .solstice__props-field {
+    margin-bottom: var(--sp-4);
+  }
+  .solstice__inspector .solstice__compare-radio {
+    padding: 10px 12px;
+    font-size: var(--fs-sm);
+    min-height: 40px;
+    border-radius: var(--rad-sm);
+    border: 1px solid transparent;
+    transition: all var(--t-fast);
+  }
+  .solstice__inspector .solstice__compare-radio:hover {
+    background: var(--c-surface-2);
+    border-color: var(--c-border);
+  }
+
+  /* ============================================================
+     B7-r2 — ACCORDION REUTILIZÁVEL (ADR-064)
+     Usado no inspector E no catálogo de componentes.
+     Cada seção colapsa/expande individualmente. Estado persistido
+     em Store.ui.accordion.<key> (lido por createAccordion).
+     ============================================================ */
+  .solstice__accord {
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    margin-bottom: var(--sp-2);
+    overflow: hidden;
+    background: var(--c-surface);
+  }
+  .solstice__accord-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--c-surface-2);
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-medium);
+    color: var(--c-text);
+    user-select: none;
+    transition: background var(--t-fast);
+  }
+  .solstice__accord-head:hover { background: var(--c-surface-3); }
+  .solstice__accord-head-label {
+    display: flex; align-items: center; gap: var(--sp-2);
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .solstice__accord-head-count {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    margin-left: 6px;
+    flex-shrink: 0;
+  }
+  .solstice__accord-chevron {
+    font-size: 10px; color: var(--c-muted);
+    transition: transform 200ms var(--ease);
+    flex-shrink: 0;
+    margin-left: var(--sp-2);
+  }
+  .solstice__accord.is-open .solstice__accord-chevron {
+    transform: rotate(90deg);
+  }
+  .solstice__accord-body {
+    padding: var(--sp-3);
+    border-top: 1px solid var(--c-border);
+    display: none;
+  }
+  .solstice__accord.is-open .solstice__accord-body { display: block; }
+  @keyframes solstice-accord-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .solstice__accord.is-open .solstice__accord-body {
+    animation: solstice-accord-in 150ms var(--ease);
+  }
+
+  /* ============================================================
+     B7-r2 — DRAWER INFERIOR DE ANÁLISE (ADR-065)
+     Posicionado FIXED para ficar sobre o canvas sem ser limpo pelos
+     re-renders do SolsticeCanvas. left/right ajustados conforme
+     sidebar (280px fixa) e inspector (0/340px conforme estado).
+     Slide-up 300ms. NÃO faz parte do inspector — é leitura estatística
+     destinada a ser vista lado-a-lado com o gráfico.
+     ============================================================ */
+  .solstice__analysis {
+    position: fixed;
+    bottom: 32px; /* altura aproximada do status bar */
+    left: 280px;  /* width da sidebar */
+    right: 0;
+    height: 340px;
+    background: var(--c-surface);
+    border-top: 2px solid var(--c-accent);
+    box-shadow: 0 -8px 24px rgba(0,0,0,.18);
+    transform: translateY(calc(100% + 40px));
+    transition: transform 300ms var(--ease), right 300ms var(--ease);
+    display: flex; flex-direction: column;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .solstice__app.has-analysis .solstice__analysis {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .solstice__app.has-inspector .solstice__analysis {
+    right: 340px;  /* desloca para a esquerda quando inspector aberto */
+  }
+  .solstice__analysis-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-3) var(--sp-5);
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-surface);
+    flex-shrink: 0;
+  }
+  .solstice__analysis-title {
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    display: flex; align-items: center; gap: var(--sp-2);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .solstice__analysis-title-meta {
+    font-size: var(--fs-xs); color: var(--c-muted);
+    font-weight: var(--fw-regular);
+    text-transform: none; letter-spacing: 0;
+    margin-left: var(--sp-3);
+  }
+  .solstice__analysis-body {
+    flex: 1; overflow-y: auto;
+    padding: var(--sp-4) var(--sp-5);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--sp-4);
+    align-content: start;
+  }
+  .solstice__analysis-card {
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    padding: var(--sp-3);
+  }
+  .solstice__analysis-card-title {
+    font-size: var(--fs-xs); text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--c-text-2);
+    font-weight: var(--fw-semibold);
+    margin-bottom: var(--sp-2);
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--c-border);
+  }
+  .solstice__analysis-explain {
+    grid-column: 1 / -1;
+    padding: var(--sp-2) var(--sp-3);
+    background: color-mix(in srgb, var(--c-accent) 10%, transparent);
+    border-left: 3px solid var(--c-accent);
+    border-radius: var(--rad-sm);
+    font-size: var(--fs-xs); color: var(--c-text-2);
+    line-height: 1.5;
+  }
+  .solstice__analysis-footer {
+    padding: var(--sp-2) var(--sp-5);
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface);
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--c-muted); line-height: 1.4;
+    word-break: break-all;
+    flex-shrink: 0;
+  }
+
+  /* B7-r2: catálogo de componentes em accordion por grupo */
+  .solstice__catalog-group .solstice__cat-grid {
+    margin-top: 0;
+  }
+  .solstice__catalog-helper {
+    margin-top: var(--sp-3);
+    padding: var(--sp-3);
+    background: var(--c-surface-2);
+    border-radius: var(--rad-sm);
+    font-size: var(--fs-xs); color: var(--c-muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* B7-r2: responsividade — < 1200px inspector vira overlay */
+  @media (max-width: 1200px) {
+    .solstice__app.has-inspector { grid-template-columns: 280px 1fr 0px; }
+    .solstice__app.has-inspector .solstice__inspector {
+      position: fixed;
+      top: calc(24px + 56px);
+      bottom: 32px;
+      right: 0;
+      width: 340px;
+      box-shadow: -8px 0 24px rgba(0,0,0,.25);
+      z-index: var(--z-sticky);
+    }
+    .solstice__app.has-inspector .solstice__analysis { right: 0; }
+  }
+
+  /* B7-r2: mobile (< 768px) sidebar e inspector somem; drawer vira full-width */
+  @media (max-width: 768px) {
+    .solstice__analysis { left: 0; right: 0; height: 280px; }
+    .solstice__app.has-inspector .solstice__analysis { right: 0; }
   }
 
   /* ===== MODAL ===== */
@@ -2081,7 +2372,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 7 r1 · MÓDULO ESTATÍSTICO SolsticeStats (47 funções) + UX SMART + CAP DE TAMANHO DOS COMPONENTES
+  ☀️ SOLSTICE v5.3 · BLOCO 7 r2 · INSPECTOR LATERAL DIREITO + DRAWER ANÁLISE INFERIOR + CATÁLOGO ACCORDION
 </div>
 
 <!-- App shell -->
@@ -2161,11 +2452,10 @@
         <div class="solstice__editor" id="editor-panel" style="margin-top: var(--sp-3);"></div>
       </div>
 
-      <!-- Bloco 5: painel de componentes (lista todos os componentes criados no canvas) -->
+      <!-- Bloco 5 / B7-r2: painel de componentes (catálogo accordion + lista) -->
       <div id="components-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
 
-      <!-- Bloco 5: painel de propriedades (aparece quando componente é selecionado) -->
-      <div id="props-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
+      <!-- B7-r2: props-panel MOVIDO para o inspector lateral direito (#inspector). -->
     </div>
 
     <div class="solstice__sidebar-section">
@@ -2192,13 +2482,51 @@
         <strong style="color:var(--c-success)">✓</strong> Aba "📈 Análise" no Props · "Por que esse número?" (B7)<br>
         <strong style="color:var(--c-success)">✓</strong> Smart defaults Scatter/Gauge/Box Plot/Sankey ao adicionar componente (B7)<br>
         <strong style="color:var(--c-success)">✓</strong> Cap de tamanho dos componentes (max-height por tier · sem estouro vertical) (B7-r1)<br>
+        <strong style="color:var(--c-success)">✓</strong> Inspector lateral direito (320px · accordion · grid 3-col) (B7-r2)<br>
+        <strong style="color:var(--c-success)">✓</strong> Drawer Análise inferior (📈 estatística separada do Inspector) (B7-r2)<br>
+        <strong style="color:var(--c-success)">✓</strong> Catálogo de componentes em accordion (Básicos/Avançados/Texto) (B7-r2)<br>
         <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 8 (Insights + Narrativa + Agente + Inconsistências)
       </div>
     </div>
   </aside>
 
   <!-- ===== CANVAS (Bloco 3: SolsticeCanvas controla o conteúdo) ===== -->
-  <main class="solstice__canvas"></main>
+  <main class="solstice__canvas" id="canvas-root"></main>
+
+  <!-- ===== INSPECTOR LATERAL DIREITO (B7-r2 / ADR-063) ===== -->
+  <aside class="solstice__inspector" id="inspector" aria-label="Painel de propriedades do componente">
+    <div class="solstice__inspector-head">
+      <div class="solstice__inspector-title" id="inspector-title">
+        <span class="solstice__inspector-title-icon">⚙️</span>
+        <span>Propriedades</span>
+      </div>
+      <button class="solstice__btn solstice__btn--icon solstice__btn--ghost"
+              id="inspector-close" title="Fechar painel" aria-label="Fechar painel">✕</button>
+    </div>
+    <div class="solstice__inspector-body" id="inspector-body">
+      <!-- Preenchido por SolsticeProps.renderInspector() -->
+    </div>
+    <div class="solstice__inspector-footer" id="inspector-footer" hidden>
+      <!-- Botão Remover componente — populado dinamicamente -->
+    </div>
+  </aside>
+
+  <!-- ===== DRAWER INFERIOR DE ANÁLISE (B7-r2 / ADR-065) ===== -->
+  <aside class="solstice__analysis" id="analysis" aria-label="Painel de análise estatística">
+    <div class="solstice__analysis-head">
+      <div class="solstice__analysis-title" id="analysis-title">
+        <span>📈 ANÁLISE</span>
+        <span class="solstice__analysis-title-meta" id="analysis-meta"></span>
+      </div>
+      <button class="solstice__btn solstice__btn--icon solstice__btn--ghost"
+              id="analysis-close" title="Fechar análise" aria-label="Fechar análise">✕</button>
+    </div>
+    <div class="solstice__analysis-body" id="analysis-body">
+      <!-- Preenchido por SolsticeAnalysis.render() -->
+    </div>
+    <div class="solstice__analysis-footer" id="analysis-footer"></div>
+  </aside>
+
   <!-- file input fica fora do canvas porque o Canvas o limpa a cada render -->
   <input type="file" id="file-input" accept=".csv,.tsv,.txt" class="solstice__hidden" aria-label="Selecionar arquivo CSV">
 
@@ -3776,10 +4104,34 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       el.textContent = 'v5.3 · Bloco ' + blocoNum + revision;
     })();
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 7 (r1)','color:#4D9FFF;font-size:14px;font-weight:bold;');
-    console.log('Atalhos: Ctrl+Z desfaz · Ctrl+Shift+Z refaz · Ctrl+Shift+D debug · window.Solstice expõe a API.');
-    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções estatísticas · Solstice.Components.list() → '+SolsticeComponents.list().length+' componentes · aba 📈 Análise disponível em qualquer componente selecionado');
-    console.log('%c[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)','color:#4ADE80;font-weight:bold;');
+    // B7-r2: inicializa Inspector lateral, Analysis drawer, binds globais
+    SolsticeInspector.init();
+    SolsticeAnalysis.init();
+    // Esc: fecha o que estiver mais "na frente" (drawer Análise primeiro, depois Inspector)
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      // Não intercepta se um modal está aberto (modais têm seu próprio handler)
+      if (document.querySelector('.solstice__modal-overlay')) return;
+      if (SolsticeAnalysis.isOpen()){ SolsticeAnalysis.close(); e.preventDefault(); return; }
+      if (SolsticeInspector.isOpen()){ SolsticeInspector.close(); e.preventDefault(); return; }
+    });
+    // Click em área vazia do canvas fecha inspector
+    const canvasRoot = document.getElementById('canvas-root');
+    if (canvasRoot){
+      canvasRoot.addEventListener('click', (e) => {
+        if (e.target.closest('.solstice__comp')) return;  // clicou no componente
+        if (e.target.closest('.solstice__section-head')) return;
+        if (e.target.closest('.solstice__row-tools')) return;
+        if (e.target.closest('button')) return;
+        if (e.target.closest('input, select, textarea')) return;
+        if (SolsticeInspector.isOpen()) SolsticeInspector.close();
+      });
+    }
+
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 7 (r2)','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('Atalhos: Ctrl+Z desfaz · Ctrl+Shift+Z refaz · Ctrl+Shift+D debug · Esc fecha inspector/análise · window.Solstice expõe a API.');
+    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções · '+SolsticeComponents.list().length+' componentes · Inspector lateral direito + Drawer Análise inferior + Catálogo accordion');
+    console.log('%c[Solstice] Patch B7-r2 aplicado · inspector lateral direito + drawer Análise inferior + catálogo accordion','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -6226,6 +6578,372 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
+     B7-r2 — Helper createAccordion (ADR-064)
+     Cria uma seção accordion reutilizável. Persiste estado aberto/
+     fechado por `key` em Store.ui.accordion.<key>.
+     Usado pelo Inspector e pelo Catálogo de Componentes.
+     ============================================================ */
+  function createAccordion(opts){
+    opts = opts || {};
+    const icon = opts.icon || '';
+    const title = opts.title || '';
+    const key = opts.key || ('acc-' + String(title).toLowerCase().replace(/\s+/g, '-'));
+    const buildFn = opts.build;
+    const count = opts.count;
+    // Estado persistido: lê do Store; default = openByDefault (true)
+    const stored = SolsticeStore.get('ui.accordion.' + key);
+    const isOpen = (stored == null) ? (opts.openByDefault !== false) : !!stored;
+
+    const section = SolsticeUtils.el('div', {
+      class: 'solstice__accord' + (isOpen ? ' is-open' : ''),
+      'data-accord-key': key
+    });
+
+    const head = SolsticeUtils.el('div', {
+      class: 'solstice__accord-head',
+      onclick: () => {
+        const nowOpen = !section.classList.contains('is-open');
+        section.classList.toggle('is-open', nowOpen);
+        SolsticeStore.set('ui.accordion.' + key, nowOpen);
+      }
+    });
+    const label = SolsticeUtils.el('div', { class:'solstice__accord-head-label' });
+    if (icon) label.appendChild(SolsticeUtils.el('span', null, icon));
+    label.appendChild(SolsticeUtils.el('span', null, title));
+    if (count != null){
+      label.appendChild(SolsticeUtils.el('span', { class:'solstice__accord-head-count' }, '(' + count + ')'));
+    }
+    head.appendChild(label);
+    head.appendChild(SolsticeUtils.el('span', { class:'solstice__accord-chevron' }, '▶'));
+
+    const body = SolsticeUtils.el('div', { class:'solstice__accord-body' });
+    if (typeof buildFn === 'function'){
+      try { buildFn(body); } catch (e){ console.error('[createAccordion] build error:', e); }
+    }
+
+    section.append(head, body);
+    return section;
+  }
+
+  /* ============================================================
+     B7-r2 — SolsticeInspector (ADR-063)
+     Gerencia abertura/fechamento do painel lateral direito.
+     Não conhece conteúdo: apenas controla a classe .has-inspector
+     no app root, o título do header e a chamada para preencher body.
+     Conteúdo é responsabilidade de SolsticeProps.renderInspector.
+     ============================================================ */
+  const SolsticeInspector = (function(){
+    const app   = () => document.querySelector('.solstice__app');
+    const title = () => document.getElementById('inspector-title');
+    const body  = () => document.getElementById('inspector-body');
+    const foot  = () => document.getElementById('inspector-footer');
+
+    function open(){
+      const a = app(); if (a) a.classList.add('has-inspector');
+      SolsticeStore.set('ui.inspector.open', true);
+    }
+    function close(){
+      const a = app(); if (a) a.classList.remove('has-inspector');
+      const b = body(); if (b) b.innerHTML = '';
+      const f = foot(); if (f){ f.innerHTML = ''; f.hidden = true; }
+      // Sinaliza ao Props para deselecionar (sem loop: Props.deselect chama close→este flag)
+      if (SolsticeProps && SolsticeProps.deselect){
+        SolsticeProps.deselect({ skipInspector: true });
+      }
+      SolsticeStore.set('ui.inspector.open', false);
+      SolsticeStore.set('ui.inspector.slotId', null);
+    }
+    function setTitle(iconText, label){
+      const t = title();
+      if (!t) return;
+      t.innerHTML = '';
+      t.appendChild(SolsticeUtils.el('span', { class:'solstice__inspector-title-icon' }, iconText || '⚙️'));
+      t.appendChild(SolsticeUtils.el('span', null, label || 'Propriedades'));
+    }
+    function setFooter(buttonEl){
+      const f = foot();
+      if (!f) return;
+      f.innerHTML = '';
+      if (buttonEl){ f.appendChild(buttonEl); f.hidden = false; }
+      else f.hidden = true;
+    }
+    function getBody(){ return body(); }
+    function isOpen(){
+      const a = app();
+      return a ? a.classList.contains('has-inspector') : false;
+    }
+    function init(){
+      const closeBtn = document.getElementById('inspector-close');
+      if (closeBtn) closeBtn.addEventListener('click', close);
+    }
+    return { open, close, setTitle, setFooter, getBody, isOpen, init };
+  })();
+
+  /* ============================================================
+     B7-r2 — SolsticeAnalysis (ADR-065)
+     Drawer inferior com análise estatística do componente selecionado.
+     Acionado pelo botão 📈 no header da casca do componente.
+     Conteúdo idêntico ao que a aba "📈 Análise" tinha antes (B7), só
+     que agora em grid de cards (220px min) em vez de lista vertical.
+     ============================================================ */
+  const SolsticeAnalysis = (function(){
+    let currentSlotId = null;
+    const app    = () => document.querySelector('.solstice__app');
+    const title  = () => document.getElementById('analysis-title');
+    const meta   = () => document.getElementById('analysis-meta');
+    const body   = () => document.getElementById('analysis-body');
+    const foot   = () => document.getElementById('analysis-footer');
+
+    function open(slotId){
+      currentSlotId = slotId;
+      render(slotId);
+      const a = app(); if (a) a.classList.add('has-analysis');
+      SolsticeStore.set('ui.analysis.open', true);
+      SolsticeStore.set('ui.analysis.slotId', slotId);
+    }
+    function close(){
+      const a = app(); if (a) a.classList.remove('has-analysis');
+      const b = body(); if (b) b.innerHTML = '';
+      const f = foot(); if (f) f.innerHTML = '';
+      currentSlotId = null;
+      SolsticeStore.set('ui.analysis.open', false);
+      SolsticeStore.set('ui.analysis.slotId', null);
+    }
+    function toggle(slotId){
+      if (currentSlotId === slotId && SolsticeStore.get('ui.analysis.open')){
+        close();
+      } else {
+        open(slotId);
+      }
+    }
+    function isOpen(){
+      return !!SolsticeStore.get('ui.analysis.open');
+    }
+    function getCurrentSlotId(){ return currentSlotId; }
+
+    /**
+     * Resolve a coluna numérica primária para o componente — mesma lógica
+     * do antigo _renderStatsTab (B7), reaproveitada.
+     */
+    function _primaryCol(slot, def){
+      const cfg = slot.config || {};
+      if (def.id === 'kpi' || def.id === 'distribution' || def.id === 'gauge') return cfg.column;
+      if (def.id === 'time-series' || def.id === 'scatter') return cfg.yColumn;
+      if (def.id === 'boxplot') return cfg.valueColumn;
+      if (def.id === 'heatmap-cal') return cfg.valueColumn;
+      if (def.id === 'sankey') return cfg.valueColumn;
+      return null;
+    }
+
+    function _ctxFor(){
+      const ingest = SolsticeStore.get('ingest');
+      return {
+        rows: (ingest && ingest.rows) || [],
+        columns: (ingest && ingest.columns) || [],
+        types: (ingest && ingest.types) || {},
+        dictionary: SolsticeStore.get('dictionary'),
+        L: SolsticeLocale
+      };
+    }
+
+    function render(slotId){
+      const b = body(); const t = title(); const m = meta(); const f = foot();
+      if (!b || !t) return;
+      b.innerHTML = ''; if (f) f.innerHTML = ''; if (m) m.textContent = '';
+
+      // Localiza slot
+      const sec = SolsticeStore.get('canvas.sections') || [];
+      let slot = null;
+      for (const s of sec) for (const r of s.rows){
+        const sl = r.slots.find(x => x.id === slotId);
+        if (sl){ slot = sl; break; }
+      }
+      if (!slot){
+        b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
+          'Componente não encontrado.'));
+        return;
+      }
+      const def = SolsticeComponents.get(slot.type);
+      if (!def){
+        b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
+          'Tipo de componente desconhecido: ' + slot.type));
+        return;
+      }
+      if (slot.type === 'markdown'){
+        b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
+          'Markdown não tem análise estatística — é um componente puramente textual.'));
+        return;
+      }
+
+      const ctx = _ctxFor();
+      const col = _primaryCol(slot, def);
+      if (!col){
+        b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
+          'Configure ao menos uma coluna numérica em ⚙️ Propriedades para ver a análise.'));
+        return;
+      }
+      const values = (ctx.rows || []).map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      if (!values.length){
+        b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
+          'Sem valores numéricos válidos em "' + SolsticeHumanize.column(col, ctx.dictionary) + '".'));
+        return;
+      }
+
+      const desc = SolsticeStats.describe(values);
+
+      // Atualiza meta do header
+      if (m) m.textContent = '· ' + SolsticeHumanize.column(col, ctx.dictionary);
+
+      function fmt(v, digits){
+        if (v == null || isNaN(v)) return '—';
+        return ctx.L.decimal(v, digits == null ? 2 : digits);
+      }
+      function row(label, value, hint){
+        const r = SolsticeUtils.el('div', { class:'solstice__stats-row' });
+        r.appendChild(SolsticeUtils.el('div', { class:'solstice__stats-label', title: hint || '' }, label));
+        r.appendChild(SolsticeUtils.el('div', { class:'solstice__stats-value' }, value));
+        return r;
+      }
+      function card(title){
+        const c = SolsticeUtils.el('div', { class:'solstice__analysis-card' });
+        c.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-card-title' }, title));
+        return c;
+      }
+
+      // Cabeçalho explicativo (ocupa todas as colunas do grid)
+      b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
+        SolsticeUtils.el('strong', null, '🔬 Por que esse número? '),
+        document.createTextNode(
+          'Análise calculada sobre ' + SolsticeHumanize.recordCount(desc.n) +
+          ' de "' + SolsticeHumanize.column(col, ctx.dictionary) + '"' +
+          (desc.nulls ? ' (' + desc.nulls + ' nulos ignorados)' : '') + '.')
+      ));
+
+      // Card 1: Distribuição central
+      const card1 = card('📊 Distribuição central');
+      card1.appendChild(row('Média', fmt(desc.mean), 'Sensível a outliers'));
+      card1.appendChild(row('Mediana', fmt(desc.median), 'Robusta a outliers'));
+      card1.appendChild(row('Desvio padrão', fmt(desc.stdDev), 'Dispersão em torno da média'));
+      b.appendChild(card1);
+
+      // Card 2: Faixa e quartis
+      const card2 = card('📏 Faixa e quartis');
+      card2.appendChild(row('Mínimo', fmt(desc.min)));
+      card2.appendChild(row('Q1 (25%)', fmt(desc.q1)));
+      card2.appendChild(row('Q3 (75%)', fmt(desc.q3)));
+      card2.appendChild(row('Máximo', fmt(desc.max)));
+      card2.appendChild(row('IQR', fmt(desc.iqr), 'Q3 − Q1 · faixa do meio (50%)'));
+      b.appendChild(card2);
+
+      // Card 3: Forma
+      const card3 = card('🔍 Forma');
+      const skTxt = desc.skewness == null ? '—' :
+        (Math.abs(desc.skewness) < 0.2 ? 'Simétrica' :
+         desc.skewness > 0 ? 'Cauda à direita' : 'Cauda à esquerda');
+      card3.appendChild(row('Assimetria', fmt(desc.skewness) + ' · ' + skTxt, 'Skewness Pearson 3'));
+      const ktTxt = desc.kurtosis == null ? '—' :
+        (Math.abs(desc.kurtosis) < 0.5 ? 'Normal-like' :
+         desc.kurtosis > 0 ? 'Caudas pesadas' : 'Caudas leves');
+      card3.appendChild(row('Curtose', fmt(desc.kurtosis) + ' · ' + ktTxt, 'Excesso de curtose (Fisher)'));
+      b.appendChild(card3);
+
+      // Card 4: Outliers
+      const card4 = card('⚠️ Outliers');
+      card4.appendChild(row('Detectados (IQR 1.5×)', desc.outlierCount + ' de ' + desc.n));
+      const pctOut = desc.n ? (desc.outlierCount / desc.n * 100).toFixed(1) : '0';
+      card4.appendChild(row('% do total', pctOut + '%'));
+      b.appendChild(card4);
+
+      // Card contextual: Time Series → tendência + forecast
+      if (def.id === 'time-series'){
+        const tr = SolsticeStats.trend(values);
+        if (tr){
+          const cT = card('📈 Tendência');
+          const dirLabel = tr.direction === 'up' ? '🔼 Subindo' : tr.direction === 'down' ? '🔽 Descendo' : '➡️ Estável';
+          cT.appendChild(row('Direção', dirLabel));
+          cT.appendChild(row('Variação total', (tr.totalChange > 0 ? '+' : '') + fmt(tr.totalChange) +
+            ' (' + fmt(tr.magnitude * 100, 1) + '%)'));
+          cT.appendChild(row('R² da regressão', fmt(tr.r2, 3)));
+          b.appendChild(cT);
+          const fc = SolsticeStats.linearForecast(values, 5);
+          if (fc.length){
+            const cF = card('🔮 Forecast linear (5 períodos)');
+            fc.forEach((v, i) => cF.appendChild(row('t+' + (i+1), fmt(v, 0))));
+            b.appendChild(cF);
+          }
+        }
+      }
+
+      // Card contextual: Scatter → correlação
+      if (def.id === 'scatter'){
+        const cfg = slot.config || {};
+        if (cfg.xColumn && cfg.yColumn){
+          const xs = ctx.rows.map(r => parseFloat(r[cfg.xColumn]));
+          const ys = ctx.rows.map(r => parseFloat(r[cfg.yColumn]));
+          const r = SolsticeStats.correlation(xs, ys);
+          const rho = SolsticeStats.correlationSpearman(xs, ys);
+          const cR = card('🔗 Correlação');
+          const strength = r == null ? '—' :
+            (Math.abs(r) >= 0.7 ? 'forte' : Math.abs(r) >= 0.4 ? 'moderada' : 'fraca');
+          cR.appendChild(row('Pearson (linear)', fmt(r, 3) + ' · ' + strength));
+          cR.appendChild(row('Spearman (monotônica)', fmt(rho, 3)));
+          if (r != null && rho != null && Math.abs(Math.abs(rho) - Math.abs(r)) > 0.15){
+            cR.appendChild(SolsticeUtils.el('div', { class:'solstice__stats-note' },
+              '💡 |ρ| ≠ |r| sugere relação não-linear. Considere log/raiz.'));
+          }
+          b.appendChild(cR);
+        }
+      }
+
+      // Card contextual: Gauge → distância da meta
+      if (def.id === 'gauge' && slot.config && slot.config.target != null){
+        const mVal = SolsticeStats.mean(values);
+        const dist = mVal - slot.config.target;
+        const cM = card('🎯 Distância da meta');
+        cM.appendChild(row('Meta', fmt(slot.config.target)));
+        cM.appendChild(row('Atual (média)', fmt(mVal)));
+        cM.appendChild(row('Diferença', (dist >= 0 ? '+' : '') + fmt(dist) +
+          ' (' + fmt(slot.config.target ? Math.abs(dist / slot.config.target * 100) : 0, 1) + '%)'));
+        b.appendChild(cM);
+      }
+
+      // Card contextual: Box Plot agrupado → top grupos
+      if (def.id === 'boxplot' && slot.config && slot.config.groupColumn){
+        const groups = new Map();
+        for (const r of ctx.rows){
+          const v = parseFloat(r[col]); if (isNaN(v)) continue;
+          const g = String(r[slot.config.groupColumn]);
+          if (!groups.has(g)) groups.set(g, []);
+          groups.get(g).push(v);
+        }
+        const cG = card('📦 Por grupo (top 6)');
+        Array.from(groups.entries()).slice(0, 6).forEach(([g, vs]) => {
+          cG.appendChild(row(g.length > 16 ? g.slice(0, 15) + '…' : g,
+            'med=' + fmt(SolsticeStats.median(vs)) + ' · n=' + vs.length));
+        });
+        b.appendChild(cG);
+      }
+
+      // Footer com snippet
+      if (f){
+        f.textContent = '🔬 Solstice.Stats.describe(Solstice.Store.get(\'ingest\').rows.map(r => parseFloat(r[\'' + col + '\']))) — reproduz no console.';
+      }
+    }
+
+    function init(){
+      const closeBtn = document.getElementById('analysis-close');
+      if (closeBtn) closeBtn.addEventListener('click', close);
+      // Re-renderiza se o slot atual for atualizado (mudou config)
+      SolsticeStore.subscribe('canvas.sections', () => {
+        if (currentSlotId && SolsticeStore.get('ui.analysis.open')){
+          render(currentSlotId);
+        }
+      });
+    }
+    return { open, close, toggle, isOpen, render, init, getCurrentSlotId };
+  })();
+
+  /* ============================================================
      SolsticeComponents — registry plugável + 4 implementações
      Cada componente: { id, name, icon, defaultConfig, render(slot, host, ctx) }
      ============================================================ */
@@ -6282,6 +7000,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         def.icon + '  ' + dynamicTitle));
       const acts = SolsticeUtils.el('div', { class:'solstice__comp-actions' });
       acts.append(
+        // B7-r2: novo botão 📈 abre drawer de análise estatística no rodapé do canvas
+        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'📈 Análise estatística',
+          onclick: (e) => { e.stopPropagation(); SolsticeAnalysis.toggle(slot.id); } }, '📈'),
         SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'🔬 De onde vem esse número?',
           onclick: (e) => { e.stopPropagation(); SolsticeAudit.openProvenance(slot.id); } }, '🔬'),
         SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'🔍 Decisões deste componente',
@@ -7644,19 +8365,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (def && def.defaultConfig) _updateConfig(slotId, def.defaultConfig(ctx));
       }
       SolsticeStore.set('ui.selectedSlot', slotId);
+      SolsticeStore.set('ui.inspector.slotId', slotId);
       render();
       _markSelected(slotId);
-      // ADR-041: força aba "Componentes" ativa ao selecionar — garante visibilidade do contexto de edição
-      if (SolsticeSidebarTabs && SolsticeSidebarTabs.current && SolsticeSidebarTabs.current() !== 'componentes'){
-        SolsticeSidebarTabs.activate('componentes');
-      }
+      // B7-r2: ADR-041 invalidada — não força mais aba 'componentes' porque o
+      // painel de propriedades vive no inspector lateral direito agora.
       SolsticeAudit.record({ action:'select_component', target: slotId, componentId: slotId });
     }
-    function deselect(){
+    /**
+     * deselect(opts) — opts.skipInspector evita chamar SolsticeInspector.close()
+     * quando esta função é chamada PELO próprio Inspector.close (evita loop).
+     */
+    function deselect(opts){
+      const skipInspector = opts && opts.skipInspector;
       selectedId = null;
       SolsticeStore.set('ui.selectedSlot', null);
       render();
       _markSelected(null);
+      if (!skipInspector && SolsticeInspector && SolsticeInspector.isOpen()){
+        SolsticeInspector.close();
+      }
     }
     function _markSelected(id){
       SolsticeUtils.qsa('.solstice__comp').forEach(el => {
@@ -7714,57 +8442,112 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
     }
 
+    /**
+     * render() — B7-r2: agora renderiza no INSPECTOR LATERAL DIREITO via
+     * SolsticeInspector + createAccordion. Sai do paradigma de tabs e vai
+     * para accordion expansível (ADR-064). A aba "📈 Análise" FOI MOVIDA
+     * para o drawer inferior (SolsticeAnalysis), portanto NÃO aparece aqui.
+     */
     function render(){
-      const host = document.getElementById('props-panel');
+      if (!selectedId){
+        if (SolsticeInspector && SolsticeInspector.isOpen()) SolsticeInspector.close();
+        return;
+      }
+      const slot = _findSlot(selectedId);
+      if (!slot){
+        if (SolsticeInspector && SolsticeInspector.isOpen()) SolsticeInspector.close();
+        return;
+      }
+      const def = SolsticeComponents.get(slot.type);
+      if (!def){
+        if (SolsticeInspector && SolsticeInspector.isOpen()) SolsticeInspector.close();
+        return;
+      }
+
+      // 1) Abre inspector e configura header
+      SolsticeInspector.setTitle(def.icon || '⚙️', (def.name || 'Propriedades').toUpperCase());
+      SolsticeInspector.open();
+      const host = SolsticeInspector.getBody();
       if (!host) return;
       host.innerHTML = '';
-      if (!selectedId){ host.classList.add('solstice__hidden'); return; }
-      host.classList.remove('solstice__hidden');
 
-      const slot = _findSlot(selectedId);
-      if (!slot){ host.classList.add('solstice__hidden'); return; }
-      const def = SolsticeComponents.get(slot.type);
-      if (!def){ host.classList.add('solstice__hidden'); return; }
+      // 2) Constrói seções accordion (ADR-064)
+      // Cada seção reutiliza as funções de render existentes do B5/B6/B7.
+      // Aba "Comparação" só para KPI. "📈 Análise" não está aqui — vai pro drawer.
 
-      const panel = SolsticeUtils.el('div', { class:'solstice__props' });
-      const head = SolsticeUtils.el('div', { class:'solstice__props-head' });
-      head.appendChild(SolsticeUtils.el('div', { class:'solstice__props-title' }, def.icon + ' ' + def.name));
-      head.appendChild(SolsticeUtils.el('button', { class:'solstice__editor-col-btn', title:'Fechar', onclick: deselect }, '✕'));
-      panel.appendChild(head);
+      // 📊 Dados — sempre aberta
+      host.appendChild(createAccordion({
+        icon: '📊', title: 'Dados', key: 'inspector.dados',
+        openByDefault: true,
+        build: (body) => _renderDataTab(body, slot, def)
+      }));
 
-      // Tabs base + "Comparação" exclusiva do KPI (Patch B5-r3)
-      // Bloco 7: aba "📈 Análise" adicionada para todos os componentes que não são texto.
-      const allTabs = [
-        ['data',       '📊 Dados'],
-        slot.type === 'kpi' ? ['comparison', '⚖️ Comparação'] : null,
-        slot.type !== 'markdown' ? ['stats', '📈 Análise'] : null,
-        ['visual',     '🎨 Visual'],
-        ['decisions',  '🔍 Decisões'],
-        ['provenance', '🔬 Origem']
-      ].filter(Boolean);
-      // Se aba ativa não existe nesse componente, força para 'data'
-      if (!allTabs.find(t => t[0] === activeTab)) activeTab = 'data';
+      // ⚖️ Comparação — só KPI, aberta por padrão
+      if (slot.type === 'kpi'){
+        host.appendChild(createAccordion({
+          icon: '⚖️', title: 'Comparação', key: 'inspector.comparacao',
+          openByDefault: true,
+          build: (body) => _renderComparisonTab(body, slot, def)
+        }));
+      }
 
-      const tabs = SolsticeUtils.el('div', { class:'solstice__props-tabs' });
-      allTabs.forEach(([id, label]) => {
-        const tab = SolsticeUtils.el('div', {
-          class:'solstice__props-tab' + (activeTab === id ? ' is-active' : ''),
-          onclick: () => { activeTab = id; render(); }
-        }, label);
-        tabs.appendChild(tab);
-      });
-      panel.appendChild(tabs);
+      // 🎨 Visual — fechada por padrão
+      host.appendChild(createAccordion({
+        icon: '🎨', title: 'Visual', key: 'inspector.visual',
+        openByDefault: false,
+        build: (body) => _renderVisualTab(body, slot, def)
+      }));
 
-      const content = SolsticeUtils.el('div', { class:'solstice__props-panel' });
-      if (activeTab === 'data')          _renderDataTab(content, slot, def);
-      else if (activeTab === 'comparison') _renderComparisonTab(content, slot, def);
-      else if (activeTab === 'stats')      _renderStatsTab(content, slot, def);
-      else if (activeTab === 'visual')     _renderVisualTab(content, slot, def);
-      else if (activeTab === 'decisions')  _renderDecisionsTab(content, slot, def);
-      else if (activeTab === 'provenance') _renderProvenanceTab(content, slot, def);
-      panel.appendChild(content);
+      // 🔍 Decisões — fechada por padrão
+      host.appendChild(createAccordion({
+        icon: '🔍', title: 'Decisões', key: 'inspector.decisoes',
+        openByDefault: false,
+        build: (body) => _renderDecisionsTab(body, slot, def)
+      }));
 
-      host.appendChild(panel);
+      // 🔬 Origem (Provenance Trail) — fechada por padrão
+      host.appendChild(createAccordion({
+        icon: '🔬', title: 'Origem', key: 'inspector.origem',
+        openByDefault: false,
+        build: (body) => _renderProvenanceTab(body, slot, def)
+      }));
+
+      // 3) Footer com botão destrutivo de Remover componente
+      const removeBtn = SolsticeUtils.el('button',
+        { class:'solstice__btn solstice__btn--destructive', title:'Remover componente',
+          onclick: async () => {
+            const ok = await SolsticeModal.confirm({
+              title: 'Remover componente?',
+              message: 'O componente "' + def.name + '" será removido do slot. O slot ficará vazio.',
+              confirmLabel: 'Remover',
+              cancelLabel: 'Cancelar',
+              danger: true,
+              skipKey: 'remove-component'
+            });
+            if (!ok) return;
+            const sections = SolsticeStore.get('canvas.sections') || [];
+            const newSections = sections.map(sec => ({
+              ...sec,
+              rows: sec.rows.map(row => ({
+                ...row,
+                slots: row.slots.map(s => s.id === slot.id ? { id: s.id, type: 'empty' } : s)
+              }))
+            }));
+            SolsticeStore.set('canvas.sections', newSections);
+            SolsticeAudit.record({ action:'remove_component', target: slot.id, componentId: slot.id, details: { type: slot.type, source: 'inspector-footer' } });
+            // Fecha inspector E drawer de análise
+            if (SolsticeAnalysis.isOpen() && SolsticeAnalysis.getCurrentSlotId() === slot.id) SolsticeAnalysis.close();
+            deselect();
+            SolsticeToast.action({
+              title: 'Componente removido',
+              msg: def.name, kind: 'warn',
+              actionLabel: 'Desfazer',
+              actionFn: () => SolsticeUndo && SolsticeUndo.undo && SolsticeUndo.undo()
+            });
+          }
+        }, '🗑️ Remover componente'
+      );
+      SolsticeInspector.setFooter(removeBtn);
     }
 
     function _renderDataTab(host, slot, def){
@@ -8941,72 +9724,99 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      * Antes (r1): listava componentes já criados no canvas.
      * Agora: lista TIPOS disponíveis para adicionar (lê de Components.list()).
      */
+    /**
+     * Catálogo de componentes (B7-r2): agrupa por categoria em accordions
+     * (Básicos / Avançados / Texto) para ficar mais tranquilo visualmente.
+     * Estado de abertura persiste em Store.ui.accordion.catalog.<group>.
+     */
     function _renderComponentsPanel(){
       const host = document.getElementById('components-panel');
       if (!host) return;
       host.innerHTML = '';
       const dsReady = SolsticeStore.get('dataset.ready');
-      const types = SolsticeComponents.list();
 
-      const wrap = SolsticeUtils.el('div', { class:'solstice__editor' });
-      wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__editor-title' },
-        '🧩 Adicionar componente'));
+      // Header da seção (não-accordion)
+      const titleEl = SolsticeUtils.el('div', { class:'solstice__editor-title' },
+        '🧩 Adicionar componente');
+      host.appendChild(titleEl);
+      host.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint' },
+        dsReady
+          ? 'Clique em um cartão para inserir num slot vazio ou criar nova seção.'
+          : 'Importe um CSV primeiro para habilitar os componentes.'));
 
-      if (!dsReady){
-        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint' },
-          'Importe um CSV primeiro para habilitar os componentes.'));
-      } else {
-        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint' },
-          'Clique para inserir num slot vazio ou criar nova seção.'));
-      }
+      // Agrupamento de tipos (definição mantida aqui localmente — B7-r2)
+      // ⚠️ Se você adicionar um componente novo em SolsticeComponents.register,
+      // adicione o id no grupo correto abaixo para aparecer no catálogo.
+      const groups = [
+        { key: 'basicos',   title: 'Básicos',   icon: '📊',
+          openByDefault: true,
+          ids: ['kpi', 'time-series', 'distribution', 'table'] },
+        { key: 'avancados', title: 'Avançados', icon: '⚡',
+          openByDefault: false,
+          ids: ['scatter', 'heatmap-cal', 'gauge', 'boxplot', 'sankey'] },
+        { key: 'texto',     title: 'Texto',     icon: '📝',
+          openByDefault: false,
+          ids: ['markdown'] }
+      ];
 
-      const grid = SolsticeUtils.el('div', { class:'solstice__cat-grid' });
-      types.forEach(def => {
-        const card = SolsticeUtils.el('button', {
-          class: 'solstice__cat-card' + (dsReady ? '' : ' is-disabled'),
-          type: 'button',
-          'aria-disabled': dsReady ? 'false' : 'true',
-          title: dsReady ? ('Adicionar ' + def.name) : 'Importe um CSV primeiro',
-          onclick: () => { if (!dsReady) return; SolsticeComponents.addByType(def.id); }
+      groups.forEach(g => {
+        const defs = g.ids.map(id => SolsticeComponents.get(id)).filter(Boolean);
+        if (!defs.length) return;
+        const section = createAccordion({
+          icon: g.icon, title: g.title, key: 'catalog.' + g.key,
+          openByDefault: g.openByDefault,
+          count: defs.length,
+          build: (body) => {
+            body.classList.add('solstice__catalog-group');
+            const grid = SolsticeUtils.el('div', { class:'solstice__cat-grid' });
+            defs.forEach(def => {
+              const card = SolsticeUtils.el('button', {
+                class: 'solstice__cat-card' + (dsReady ? '' : ' is-disabled'),
+                type: 'button',
+                'aria-disabled': dsReady ? 'false' : 'true',
+                title: dsReady ? ('Adicionar ' + def.name) : 'Importe um CSV primeiro',
+                onclick: () => { if (!dsReady) return; SolsticeComponents.addByType(def.id); }
+              });
+              card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-icon', 'aria-hidden':'true' }, def.icon));
+              card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-name' }, def.name));
+              card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-desc' },
+                def.description || ''));
+              card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-add' }, '+ Adicionar'));
+              grid.appendChild(card);
+            });
+            body.appendChild(grid);
+          }
         });
-        card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-icon', 'aria-hidden':'true' }, def.icon));
-        card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-name' }, def.name));
-        card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-desc' },
-          def.description || ''));
-        card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-add' }, '+ Adicionar'));
-        grid.appendChild(card);
+        host.appendChild(section);
       });
-      wrap.appendChild(grid);
-      host.appendChild(wrap);
+
+      // Footer com helper: "selecione no canvas para editar"
+      host.appendChild(SolsticeUtils.el('div', { class:'solstice__catalog-helper' },
+        '💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →'));
     }
 
+    /**
+     * activate(which) — B7-r2: props-panel da sidebar foi REMOVIDO.
+     * Agora só alterna entre #data-panel e #components-panel.
+     * Props vivem no inspector lateral direito (#inspector).
+     */
     function activate(which){
       active = which;
       SolsticeStore.set('ui.activeTab', which);
-      // Marca tab ativa
       const tD = document.getElementById('tab-dados');
       const tC = document.getElementById('tab-componentes');
       if (tD) tD.classList.toggle('is-active', which === 'dados');
       if (tC) tC.classList.toggle('is-active', which === 'componentes');
-      // Alterna visibilidade dos 3 painéis (ADR-040: isolamento total entre abas)
       const dataPanel = document.getElementById('data-panel');
       const compPanel = document.getElementById('components-panel');
-      const propsPanel = document.getElementById('props-panel');
       const dsReady = SolsticeStore.get('dataset.ready');
-      const selectedSlot = SolsticeStore.get('ui.selectedSlot');
       if (which === 'dados'){
         if (dataPanel && dsReady) dataPanel.classList.remove('solstice__hidden');
         if (compPanel) compPanel.classList.add('solstice__hidden');
-        if (propsPanel) propsPanel.classList.add('solstice__hidden');   // props vive na aba Componentes
       } else {
         if (dataPanel) dataPanel.classList.add('solstice__hidden');
         if (compPanel) compPanel.classList.remove('solstice__hidden');
         _renderComponentsPanel();
-        // Props só aparece se há slot selecionado; SolsticeProps.render decide
-        if (propsPanel){
-          if (selectedSlot) propsPanel.classList.remove('solstice__hidden');
-          else propsPanel.classList.add('solstice__hidden');
-        }
       }
     }
 
@@ -9015,15 +9825,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const tC = document.getElementById('tab-componentes');
       if (tD) tD.addEventListener('click', () => activate('dados'));
       if (tC) tC.addEventListener('click', () => activate('componentes'));
-      // Re-render catálogo quando dataset fica disponível (habilita cards)
       SolsticeStore.subscribe('dataset.ready', () => { if (active === 'componentes') _renderComponentsPanel(); });
-      // Quando slot muda de seleção e estamos na aba Componentes, mostra/esconde props
-      SolsticeStore.subscribe('ui.selectedSlot', () => {
-        if (active !== 'componentes') return;
-        const propsPanel = document.getElementById('props-panel');
-        const sel = SolsticeStore.get('ui.selectedSlot');
-        if (propsPanel) propsPanel.classList.toggle('solstice__hidden', !sel);
-      });
     }
 
     function current(){ return active; }
@@ -10216,7 +11018,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco7-r1',
+    version: '5.3.0-bloco7-r2',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,
@@ -10252,6 +11054,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     DashHeader:  SolsticeDashHeader,
     Dataset:     SolsticeDataset,
     Stats:       SolsticeStats,
+    Inspector:   SolsticeInspector,
+    Analysis:    SolsticeAnalysis,
+    createAccordion: createAccordion,
     LZ:          (typeof LZString !== 'undefined') ? LZString : null
   };
 

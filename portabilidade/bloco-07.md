@@ -607,3 +607,151 @@ Shim precisa adaptar shape quando o output do legado não bate com o do novo mó
 - Dicionário: o projeto Itaú provavelmente já tem mapping interno coluna→friendly — adaptar `column(name, dict)` aceitando o shape interno
 
 **ROI estimado:** 35-40h de port direto + 15h de adaptação = ~55h. Equivale a uma sprint inteira de 1 dev sênior. Em troca: capacidade analítica que hoje custa horas/semana em queries ad-hoc.
+
+---
+
+## 🏗️ Adendo Patch B7-r2 — UX Patterns (Inspector + Drawer + Accordion)
+
+3 padrões UX entregues em conjunto, todos portáveis isoladamente.
+
+### 🟡 PATTERN A — Inspector lateral direito com grid CSS
+
+**O que faz:** painel de propriedades que desliza da direita ao selecionar elemento (padrão Figma/VS Code/Power BI).
+
+**Por que vale portar:** elimina a fricção de tabs comprimidas em sidebar única. Padrão esperado em ferramentas profissionais.
+
+**Código autônomo (CSS + JS):**
+
+```css
+.app {
+  display: grid;
+  grid-template-areas: "header header header" "sidebar canvas inspector" "status status status";
+  grid-template-columns: 280px 1fr 0px;
+  grid-template-rows: auto 1fr auto;
+  transition: grid-template-columns 300ms ease;
+  min-height: 100vh;
+}
+.app.has-inspector { grid-template-columns: 280px 1fr 340px; }
+.inspector { grid-area: inspector; background: var(--surface); border-left: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; }
+.inspector-head { position: sticky; top: 0; background: var(--surface); padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+.inspector-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+.inspector-footer { position: sticky; bottom: 0; background: var(--surface); padding: 12px 16px; border-top: 1px solid var(--border); }
+
+@media (max-width: 1200px) {
+  .app.has-inspector { grid-template-columns: 280px 1fr 0px; }
+  .app.has-inspector .inspector { position: fixed; top: 64px; bottom: 32px; right: 0; width: 340px; box-shadow: -8px 0 24px rgba(0,0,0,.25); z-index: 100; }
+}
+```
+
+```javascript
+const Inspector = {
+  open(title, bodyEl) {
+    document.querySelector('.app').classList.add('has-inspector');
+    document.getElementById('inspector-title').textContent = title;
+    const body = document.getElementById('inspector-body');
+    body.innerHTML = ''; body.appendChild(bodyEl);
+  },
+  close() {
+    document.querySelector('.app').classList.remove('has-inspector');
+  }
+};
+```
+
+**Prompt para Eva:**
+```
+Eva, preciso adicionar um inspector lateral direito ao nosso dashboard.
+Padrão Figma/Power BI: 340px à direita, abre/fecha por classe CSS no app root,
+transição suave 300ms.
+[colar código acima]
+Adapta para nosso stack: <descrever>. Importante: < 1200px deve virar overlay fixed.
+```
+
+### 🟢 PATTERN B — Accordion expansível com persistência
+
+**O que faz:** seções colapsáveis que persistem estado entre re-renders. Reusável em painel de props, catálogo, FAQ etc.
+
+**Código autônomo:**
+
+```javascript
+const accordionState = {}; // { 'inspector.dados': true, 'catalog.basicos': true }
+
+function createAccordion({ icon, title, key, openByDefault = true, count, build }) {
+  const isOpen = (key in accordionState) ? accordionState[key] : openByDefault;
+  const sec = el('div', { class: 'accord' + (isOpen ? ' is-open' : '') });
+  const head = el('div', {
+    class: 'accord-head',
+    onclick: () => {
+      const now = !sec.classList.contains('is-open');
+      sec.classList.toggle('is-open', now);
+      accordionState[key] = now;
+      try { localStorage.setItem('accord.' + key, now); } catch(e) {}
+    }
+  });
+  head.appendChild(el('span', null, icon, ' ', title, count != null ? ' (' + count + ')' : ''));
+  head.appendChild(el('span', { class: 'accord-chevron' }, '▶'));
+  const body = el('div', { class: 'accord-body' });
+  build(body);
+  sec.append(head, body);
+  return sec;
+}
+```
+
+```css
+.accord { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+.accord-head { padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; background: var(--surface-2); }
+.accord-chevron { transition: transform 200ms ease; font-size: 10px; color: var(--muted); }
+.accord.is-open .accord-chevron { transform: rotate(90deg); }
+.accord-body { padding: 12px; border-top: 1px solid var(--border); display: none; }
+.accord.is-open .accord-body { display: block; }
+```
+
+### 🟡 PATTERN C — Drawer inferior contextual
+
+**O que faz:** painel inferior que sobe ao clicar em ação específica, contextual ao elemento, sem bloquear o canvas.
+
+**Código autônomo:**
+
+```css
+.drawer-bottom {
+  position: fixed;
+  bottom: 32px; left: 280px; right: 0;
+  height: 340px;
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  transform: translateY(calc(100% + 40px));
+  transition: transform 300ms ease, right 300ms ease;
+  z-index: 50;
+  pointer-events: none;
+}
+.app.has-drawer .drawer-bottom { transform: translateY(0); pointer-events: auto; }
+.app.has-inspector .drawer-bottom { right: 340px; }
+
+@media (max-width: 1200px) {
+  .app.has-inspector .drawer-bottom { right: 0; }
+}
+```
+
+```javascript
+const Drawer = {
+  open(contentEl) {
+    const body = document.getElementById('drawer-body');
+    body.innerHTML = ''; body.appendChild(contentEl);
+    document.querySelector('.app').classList.add('has-drawer');
+  },
+  close() { document.querySelector('.app').classList.remove('has-drawer'); }
+};
+```
+
+**Quando usar:** análise estatística, log de eventos, debug, comparação lado-a-lado — tudo que beneficia de "ver o canvas E ler os dados ao mesmo tempo".
+
+### Sequência recomendada (para o projeto Itaú)
+
+1. **Sprint X:** PATTERN B (Accordion) — quick win, reusável em vários lugares
+2. **Sprint X+1:** PATTERN A (Inspector) — grande mudança UX, libera espaço
+3. **Sprint X+2:** PATTERN C (Drawer) — quando precisar de espaço extra para análises/logs/debug
+
+**Pegadinhas (todos):**
+- Grid CSS com transição: cuidado com `overflow: hidden` no inspector (clipa box-shadow externo) — não foi problema mas vale lembrar
+- Esc na cascata (drawer → inspector → modal): registre handlers em ordem inversa de "frente"
+- Persistência localStorage: wrap em try/catch (modo incógnito, política corporativa Edge)
+- Responsividade < 1200px: inspector vira fixed; mas o drawer precisa de `right: 0` quando o inspector é overlay (não consome coluna do grid)

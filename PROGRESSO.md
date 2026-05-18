@@ -9,8 +9,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco7-r1** (B7 + patch r1 cap de tamanho dos componentes) |
-| Bloco corrente | **Bloco 7 — SolsticeStats + Aba Análise + Smart Defaults** ✅ COMPLETO + Patch r1 (cap de tamanho) |
+| Versão atual | **v5.3.0-bloco7-r2** (B7 + r1 cap + r2 reestruturação UX: Inspector + Drawer + Catálogo) |
+| Bloco corrente | **Bloco 7 — SolsticeStats + Aba Análise + Smart Defaults** ✅ COMPLETO + Patch r1 (cap) + Patch r2 (reestruturação UX) |
 | Próximo bloco | Bloco 8 — Insights + Narrativa + Agente + Inconsistências (Diferencial #2) |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
@@ -360,6 +360,51 @@ Lucas reportou que ao adicionar Scatter/Gauge/Box Plot/Sankey via catálogo (com
 **Resultado:** qualquer componente, em qualquer layout (1col/2col/4col/free), respeita uma altura máxima razoável. Nada estoura mais.
 
 Versão `5.3.0-bloco7-r1`. Sentinel `[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)`.
+
+### 🔧 Patch B7-r2 — Reestruturação arquitetural UX (Inspector + Drawer + Catálogo accordion)
+
+Lucas pediu reestruturação grande para resolver fricções de uso real do painel de propriedades. 3 mudanças combinadas:
+
+**1. Inspector lateral direito (ADR-063):**
+- Grid raiz expandido de 2 para 3 colunas (`280px 1fr 0|340px`), com transição CSS 300ms
+- Novo `<aside id="inspector">` com header sticky + body scrollável + footer sticky
+- Classe `.has-inspector` no `.solstice__app` abre/fecha
+- Módulo novo `SolsticeInspector` (open/close/setTitle/setFooter/getBody/isOpen/init)
+- Responsivo: `< 1200px` vira overlay `position: fixed`; `< 768px` ajustes adicionais
+
+**2. Painel de Propriedades em accordion (ADR-064):**
+- Tabs antigas (📊 Dados · ⚖️ Comparação · 🎨 Visual · 🔍 Decisões · 🔬 Origem) viram seções accordion expansíveis individualmente
+- Helper `createAccordion({ icon, title, key, openByDefault, count, build })` reutilizável
+- Persistência por `Store.ui.accordion.<key>` — re-selecionar componente preserva seções abertas/fechadas
+- Controles maiores no inspector (height 40px em vez de 36) — espaço sobra
+- Botão "🗑️ Remover componente" no rodapé do inspector (com skipKey + Toast.action Desfazer)
+- `#props-panel` REMOVIDO da sidebar esquerda
+
+**3. Drawer Análise inferior (ADR-065):**
+- A aba "📈 Análise" do B7 saiu do inspector — não pertence à construção/visual do componente
+- Vira drawer inferior `position: fixed` 340px de altura, ocupa largura entre sidebar e inspector (ajusta com `right: 0` ou `right: 340px`)
+- Acionado pelo novo botão `📈` no header da casca do componente (junto com 🔬 🔍 ⚙️ 🗑️)
+- Conteúdo em grid de cards (220px min, auto-fit) em vez de lista vertical — aproveita largura
+- Módulo novo `SolsticeAnalysis` (open/close/toggle/render/isOpen/init)
+- Esc fecha (drawer primeiro, depois inspector)
+- Cards: Distribuição central · Faixa e quartis · Forma · Outliers + contextuais (Tendência+Forecast para time-series · Correlação para scatter · Distância da meta para gauge · Por grupo para boxplot)
+
+**4. Catálogo de componentes em accordion por grupo (slidedown):**
+- `_renderComponentsPanel` agora agrupa em: 📊 **Básicos** (KPI/Série/Distribuição/Tabela · aberto por padrão) · ⚡ **Avançados** (Scatter/Heatmap/Gauge/BoxPlot/Sankey · fechado) · 📝 **Texto** (Markdown · fechado)
+- Reusa o mesmo `createAccordion` do inspector
+- Persistência por `Store.ui.accordion.catalog.<group>`
+- Footer com helper: "💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →"
+
+**5. Comportamentos novos:**
+- Tecla `Esc`: fecha drawer Análise primeiro, depois Inspector (cascata)
+- Click em área vazia do canvas: fecha Inspector
+- Click no botão 📈 da casca: abre/toggle drawer Análise
+
+**`Solstice.Inspector`, `Solstice.Analysis`, `Solstice.createAccordion` expostos.** Versão `5.3.0-bloco7-r2`. Sentinela `[Solstice] Patch B7-r2 aplicado · inspector lateral direito + drawer Análise inferior + catálogo accordion`.
+
+**Tamanho:** dashboard.html ~11.068 linhas (~479 KB).
+
+**ADRs novas:** ADR-063 (Inspector lateral 3-col) · ADR-064 (Accordion expansível em vez de tabs, com persistência) · ADR-065 (Drawer Análise separado do Inspector).
 
 ---
 

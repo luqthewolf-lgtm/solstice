@@ -1350,3 +1350,203 @@ ADR-062 estabelece dimensões máximas para componentes visuais. Sem aspect-rati
 `margin: 0 auto` adicionado em SVGs e markdown para centralização (letterboxing).
 
 **Regra de checklist para blocos futuros:** todo componente novo com SVG/canvas/embed deve declarar max-width E max-height (ou cumprir via classe `.solstice__chart-svg` herdada).
+
+---
+
+## `Solstice.Inspector` (Patch B7-r2 · ADR-063)
+
+Gerencia o painel lateral direito (`#inspector`) que abre/fecha conforme seleção de componente.
+
+```js
+open()                       // adiciona .has-inspector ao .solstice__app
+close()                      // remove .has-inspector + limpa body/footer; também chama
+                             //   SolsticeProps.deselect({skipInspector:true}) para evitar loop
+setTitle(iconText, label)    // popula #inspector-title com ícone + label
+setFooter(buttonEl)          // popula #inspector-footer; passar null/undefined esconde
+getBody()                    // → HTMLElement do #inspector-body
+isOpen()                     // → boolean
+init()                       // chamado por boot — bind do ✕
+```
+
+**Paths no Store usados:**
+
+| Path | Tipo | Setado por |
+|---|---|---|
+| `ui.inspector.open` | boolean | open/close |
+| `ui.inspector.slotId` | string \| null | Props.select / close |
+
+---
+
+## `Solstice.Analysis` (Patch B7-r2 · ADR-065)
+
+Drawer inferior com análise estatística do componente selecionado.
+
+```js
+open(slotId)                 // renderiza e mostra; .has-analysis no app
+close()                      // esconde + limpa body/footer
+toggle(slotId)               // open se fechado ou outro slot; close se mesmo slot
+render(slotId)               // re-render manual (também acionado por mudanças em canvas.sections)
+isOpen()                     // → boolean
+getCurrentSlotId()           // → string | null
+init()                       // chamado por boot — bind do ✕ + subscribe canvas.sections
+```
+
+**Conteúdo (mesma lógica do antigo _renderStatsTab do B7, agora em grid):**
+- Cabeçalho "🔬 Por que esse número? Análise calculada sobre N..."
+- Cards universais: 📊 Distribuição central · 📏 Faixa e quartis · 🔍 Forma · ⚠️ Outliers
+- Cards contextuais:
+  - `time-series` → 📈 Tendência + 🔮 Forecast linear (5)
+  - `scatter` → 🔗 Correlação (Pearson + Spearman + nota se |ρ|−|r| > 0.15)
+  - `gauge` com target → 🎯 Distância da meta
+  - `boxplot` com groupColumn → 📦 Por grupo (top 6)
+- Footer com snippet de console reproduzindo as métricas
+
+**Markdown não tem análise** — empty state explicativo.
+
+**Paths no Store:**
+
+| Path | Tipo | Setado por |
+|---|---|---|
+| `ui.analysis.open` | boolean | open/close |
+| `ui.analysis.slotId` | string \| null | open/close |
+
+---
+
+## `Solstice.createAccordion(opts)` (Patch B7-r2 · ADR-064)
+
+Helper top-level (também exposto em `Solstice.createAccordion`) para criar seção accordion expansível. Usado pelo Inspector e pelo catálogo de componentes.
+
+```js
+createAccordion({
+  icon:          string,    // emoji (opcional)
+  title:         string,    // título da seção
+  key:           string,    // chave de persistência: Store.ui.accordion.<key>
+                            //   se omitido, deriva do título (lowercased + slugified)
+  count:         number,    // opcional — mostrado entre parênteses (ex: "(5)")
+  openByDefault: boolean,   // default true
+  build:         (body) => void   // popula o body quando renderizado
+})
+                             // → HTMLElement <div class="solstice__accord">
+```
+
+**Comportamento:**
+- Lê estado em `Store.ui.accordion.<key>`; se ausente, usa `openByDefault`
+- Clique no head toggle a seção + persiste no Store
+- CSS class `is-open` controla visibilidade do body + rotação do chevron
+
+---
+
+## Refactor `SolsticeProps` (Patch B7-r2)
+
+**Mudanças nas funções existentes:**
+
+```js
+select(slotId)               // antes: renderizava em #props-panel da sidebar
+                             // agora: chama Inspector.open + setTitle + setFooter
+                             //   + popula Inspector.getBody() com accordions
+                             //   também seta Store.ui.inspector.slotId
+
+deselect(opts?)              // NOVO opts:
+                             //   { skipInspector: boolean }  — não chama Inspector.close
+                             //     quando o próprio Inspector.close já chamou deselect
+                             //   evita loop infinito
+
+render()                     // refeita: constrói 5 accordions (Dados / Comparação(KPI) /
+                             //   Visual / Decisões / Origem) reaproveitando as funções
+                             //   _renderDataTab, _renderComparisonTab, etc. como build callbacks.
+                             //   A aba "📈 Análise" do B7 NÃO está mais aqui — foi para o drawer.
+
+_renderStatsTab(...)         // ainda existe no código (dead code) — pode ser removido
+                             //   numa limpeza futura. Não é mais chamado por render().
+```
+
+**Aba "📈 Análise" removida do inspector** — agora vive em `SolsticeAnalysis` (drawer).
+
+---
+
+## Refactor `SolsticeComponents.render` casca (Patch B7-r2)
+
+Novo botão **📈** no header da casca do componente (junto com 🔬 🔍 ⚙️ 🗑️):
+
+```js
+SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'📈 Análise estatística',
+  onclick: (e) => { e.stopPropagation(); SolsticeAnalysis.toggle(slot.id); } }, '📈')
+```
+
+Total: 5 botões no hover do header da casca. Não impacta KPI/Markdown porque o botão chama `toggle` (drawer só renderiza algo se houver coluna numérica primária).
+
+---
+
+## Refactor `SolsticeSidebarTabs._renderComponentsPanel` (Patch B7-r2)
+
+Catálogo de componentes agora em **accordion por grupo**:
+
+```js
+const groups = [
+  { key: 'basicos',   title: 'Básicos',   icon: '📊', openByDefault: true,
+    ids: ['kpi', 'time-series', 'distribution', 'table'] },
+  { key: 'avancados', title: 'Avançados', icon: '⚡', openByDefault: false,
+    ids: ['scatter', 'heatmap-cal', 'gauge', 'boxplot', 'sankey'] },
+  { key: 'texto',     title: 'Texto',     icon: '📝', openByDefault: false,
+    ids: ['markdown'] }
+];
+```
+
+Cada grupo é uma seção accordion. Estado persistido em `Store.ui.accordion.catalog.<group>`.
+
+**⚠️ Manutenção:** ao adicionar componente novo em `SolsticeComponents.register`, atualize o array `groups` acima para o componente aparecer no catálogo.
+
+Footer fixo: "💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →"
+
+---
+
+## Paths novos no Store (Patch B7-r2)
+
+| Path | Tipo | Setado por |
+|---|---|---|
+| `ui.inspector.open` | boolean | `Inspector.open/close` |
+| `ui.inspector.slotId` | string \| null | `Props.select` / `Inspector.close` |
+| `ui.analysis.open` | boolean | `Analysis.open/close` |
+| `ui.analysis.slotId` | string \| null | `Analysis.open/close` |
+| `ui.accordion.<key>` | boolean | `createAccordion` (toggle de cada seção) |
+
+Convenção de keys de accordion:
+- `inspector.dados`, `inspector.comparacao`, `inspector.visual`, `inspector.decisoes`, `inspector.origem`
+- `catalog.basicos`, `catalog.avancados`, `catalog.texto`
+
+---
+
+## Estilos CSS novos (Patch B7-r2)
+
+```css
+.solstice__inspector              /* aside grid-area inspector */
+.solstice__inspector-head         /* sticky top + título + ✕ */
+.solstice__inspector-title        /* uppercase + ícone */
+.solstice__inspector-title-icon
+.solstice__inspector-body         /* scrollable */
+.solstice__inspector-footer       /* sticky bottom */
+.solstice__btn--destructive       /* rodapé do inspector (Remover) */
+
+.solstice__accord                 /* accordion wrapper */
+.solstice__accord-head            /* clicável, hover surface-3 */
+.solstice__accord-head-label
+.solstice__accord-head-count      /* "(5)" em mono pequeno */
+.solstice__accord-chevron         /* gira 90° quando is-open */
+.solstice__accord-body            /* display: none, animação solstice-accord-in 150ms */
+.solstice__accord.is-open
+
+.solstice__analysis               /* drawer fixed bottom */
+.solstice__analysis-head          /* título + meta + ✕ */
+.solstice__analysis-title
+.solstice__analysis-title-meta
+.solstice__analysis-body          /* grid auto-fit 220px */
+.solstice__analysis-card          /* surface-2 com title underline tracejado */
+.solstice__analysis-card-title
+.solstice__analysis-explain       /* card destacado accent */
+.solstice__analysis-footer        /* mono pequeno com snippet */
+
+.solstice__catalog-group          /* container do grid dentro do accordion */
+.solstice__catalog-helper         /* footer dica "→ direita" */
+```
+
+**Regra do app:** `.solstice__app` ganhou classes-toggle `.has-inspector` e `.has-analysis` que disparam as transições. CSS responsivo `< 1200px` muda inspector para `position: fixed`.

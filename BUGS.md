@@ -11,6 +11,34 @@ _Nenhum bug crítico conhecido no momento._
 
 ---
 
+### #007 — Painel de propriedades comprimido na sidebar esquerda · RESOLVIDO
+
+**Status:** RESOLVIDO em Patch B7-r2
+**Severidade:** importante (UX)
+**Módulo:** `SolsticeProps`, `SolsticeSidebarTabs`, HTML/CSS app shell
+**Bloco em que apareceu:** Acumulado desde B5
+
+**Descrição:**
+O painel de propriedades vivia dentro da sidebar esquerda (280px). Sintomas reportados pelo Lucas após uso prolongado:
+- Tabs "Dados / Comparação / Visual / Decisões / Origem" (5-6) ficavam comprimidas e ilegíveis
+- Painel competia espaço com Editor de colunas e Quality card
+- Aba "📈 Análise" do B7 ficava no mesmo espaço apertado, atrapalhando a leitura estatística
+- Catálogo de 10 componentes sem agrupamento ficava visualmente pesado
+
+**Correção (B7-r2 / ADRs 063, 064, 065):**
+1. **Inspector lateral direito** novo: grid 3-col com 340px à direita, abre via classe `.has-inspector`
+2. **Accordion** substitui tabs: 5 seções expansíveis individualmente, persistência por seção
+3. **Drawer inferior** novo para Análise estatística: separado do Inspector, ancorado ao canvas, grid de cards 220px min
+4. **Catálogo accordion** por grupo (Básicos / Avançados / Texto)
+5. **Botão 📈** na casca do componente abre o drawer
+
+**Prevenção:**
+ADR-063 + ADR-064 + ADR-065 estabelecem padrão: construção/visual no inspector lateral direito; análise/leitura em drawer inferior; tabs comprimidas viram accordion quando mais de 3 sessões disputam espaço.
+
+**Reportado por:** Lucas Cardoso, sessão 3 (2026-05-18), via prompt "REESTRUTURAÇÃO ARQUITETURAL" com especificação detalhada.
+
+---
+
 ### #006 — Componentes SVG estouram a seção verticalmente em containers largos · RESOLVIDO
 
 **Status:** RESOLVIDO em Patch B7-r1
@@ -240,6 +268,72 @@ Copie o bloco abaixo ao reportar:
 ---
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
+
+### Bloco 7 — refinamentos r2 (Inspector lateral + Drawer Análise + Catálogo accordion)
+
+- [ ] Sentinela verde `[Solstice] Patch B7-r2 aplicado · inspector lateral direito + drawer Análise inferior + catálogo accordion`
+- [ ] `[Solstice] boot OK` também aparece
+- [ ] `Solstice.version === '5.3.0-bloco7-r2'`
+- [ ] Footer mostra `v5.3 · Bloco 7 r2`
+- [ ] Banner cita `BLOCO 7 r2 · INSPECTOR LATERAL DIREITO...`
+
+**Inspector lateral:**
+- [ ] Sem componente selecionado → app em 2 colunas (sidebar + canvas), inspector com width 0
+- [ ] Adicionar componente → automaticamente seleciona e abre inspector (slide-in da direita, 300ms)
+- [ ] Inspector ocupa 340px à direita do canvas
+- [ ] Header do inspector mostra "📊 KPI CARD" (ou ícone+nome do componente)
+- [ ] Body do inspector tem accordions: 📊 Dados (aberta) · ⚖️ Comparação (só KPI, aberta) · 🎨 Visual (fechada) · 🔍 Decisões (fechada) · 🔬 Origem (fechada)
+- [ ] Click no chevron de cada accordion abre/fecha individualmente
+- [ ] Múltiplas seções podem estar abertas ao mesmo tempo
+- [ ] Estado persistido: fechar "Dados", trocar para outro componente, voltar → "Dados" continua fechada
+- [ ] Footer do inspector tem botão vermelho "🗑️ Remover componente"
+- [ ] Click no ✕ do inspector fecha — canvas volta ao tamanho integral
+- [ ] Esc fecha inspector (se não há modal aberto)
+- [ ] Click em área vazia do canvas fecha inspector
+- [ ] Trocar de componente → inspector atualiza header e body, mantém aberto
+
+**Drawer Análise:**
+- [ ] Botão 📈 no header da casca do componente (junto com 🔬 🔍 ⚙️ 🗑️)
+- [ ] Click em 📈 → drawer inferior sobe (300ms)
+- [ ] Drawer ocupa 340px de altura, largura entre sidebar (280px) e inspector (0 ou 340px)
+- [ ] Drawer mostra cards em grid: Distribuição central · Faixa e quartis · Forma · Outliers
+- [ ] Time Series: cards extras "📈 Tendência" + "🔮 Forecast linear (5 períodos)"
+- [ ] Scatter: card "🔗 Correlação" (Pearson + Spearman + nota se |ρ|−|r|>0.15)
+- [ ] Gauge com target: card "🎯 Distância da meta"
+- [ ] Box Plot agrupado: card "📦 Por grupo (top 6)"
+- [ ] Markdown: empty state explicando que não tem análise
+- [ ] Footer do drawer tem snippet de console
+- [ ] Click no ✕ fecha drawer
+- [ ] Esc fecha drawer (antes do inspector na cascata)
+- [ ] Click no 📈 do MESMO componente fecha (toggle)
+- [ ] Click no 📈 de OUTRO componente troca o conteúdo sem fechar
+- [ ] Drawer ajusta `right: 340px` quando inspector está aberto (não sobrepõe)
+
+**Catálogo accordion (slidedown):**
+- [ ] Aba "🧩 Componentes" → 3 accordions: 📊 Básicos (4 cards, aberto) · ⚡ Avançados (5 cards, fechado) · 📝 Texto (1 card, fechado)
+- [ ] Contador "(N)" ao lado de cada título
+- [ ] Click no header abre/fecha
+- [ ] Estado persistido entre re-renders
+- [ ] Footer "💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →"
+- [ ] Cards desabilitados antes de importar CSV (cinza + tooltip)
+- [ ] Após importar CSV: cards habilitados; clicar adiciona e abre inspector
+
+**Aba Dados da sidebar:**
+- [ ] Continua mostrando Resumo do Dataset + Quality + Editor de Colunas
+- [ ] NÃO tem mais props-panel embaixo
+
+**Responsividade:**
+- [ ] `< 1200px`: inspector vira overlay `position: fixed` à direita; drawer ajusta `right: 0`
+- [ ] `< 768px`: drawer vira full-width
+
+**Regressão B7-r1 e B1-B6:**
+- [ ] SVGs ainda respeitam max-height por tier (cap do r1)
+- [ ] Smart defaults dos 4 componentes ainda funcionam
+- [ ] SolsticeStats.* funções todas operacionais (47 funções)
+- [ ] Undo/Redo (B4) funcionam
+- [ ] Resize/DnD/FreeMode (B4) funcionam
+- [ ] Audit/Provenance (B5) funcionam
+- [ ] Console: `Solstice.Inspector`, `Solstice.Analysis`, `Solstice.createAccordion` expostos
 
 ### Bloco 7 — refinamentos r1 (cap de tamanho)
 

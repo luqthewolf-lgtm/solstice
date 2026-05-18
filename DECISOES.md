@@ -1103,6 +1103,93 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-063 — Inspector lateral direito (grid 3-col com .has-inspector)
+
+**Status:** Aceito · Patch B7-r2
+**Contexto:** O painel de propriedades vivia dentro da sidebar esquerda (280px). Isso comprimia tabs ilegíveis, misturava Dados + Properties na mesma coluna, e gerava scroll pesado. Padrão de mercado (Figma/VS Code/Power BI) é inspector lateral direito que abre ao selecionar.
+
+**Decisão:**
+- Grid raiz expandido: `grid-template-columns: 280px 1fr 0px` (fechado) → `280px 1fr 340px` (com `.has-inspector` no `.solstice__app`)
+- Transição CSS `grid-template-columns 300ms var(--ease)`
+- Novo `<aside id="inspector">` como grid item; header sticky com título + ✕, body scrollável, footer sticky com botão Remover
+- Módulo `SolsticeInspector` controla apenas open/close/setTitle/setFooter — conteúdo é responsabilidade do consumidor (SolsticeProps)
+- Responsividade: `< 1200px` vira overlay fixed; `< 768px` ajustes adicionais
+- Esc fecha (com cascata: drawer Análise → Inspector → modal)
+- Click em área vazia do canvas fecha
+
+**Alternativas consideradas:**
+- Modal centralizado: bloqueia interação com o gráfico (precisa ver gráfico + ajustar config lado-a-lado)
+- Painel flutuante (position: fixed): não respeita grid, sobreposições confusas, sem transição suave
+- Manter sidebar única expandida: não resolve compressão das tabs
+
+**Consequências:**
+- ✅ Mais espaço para controles (340px > 280px da sidebar)
+- ✅ Padrão UX familiar (Figma, VS Code, Tableau, Power BI)
+- ✅ Sidebar esquerda fica limpa (só Dataset + Editor + Catálogo)
+- ⚠️ `< 1200px` precisa de overlay — perde elegância em laptops 13"
+- ⚠️ Total horizontal exige ~1280px+ para experiência completa
+
+---
+
+## ADR-064 — Accordion expansível em vez de tabs
+
+**Status:** Aceito · Patch B7-r2
+**Contexto:** Inspector com tabs comprimidas (5-6 abas em 340px) ficava ilegível. Lucas reportou que precisava de "ver tudo de uma vez quando precisava". Tabs força "uma de cada vez".
+
+**Decisão:**
+- Substituir tabs por accordion: cada seção (Dados, Comparação, Visual, Decisões, Origem) abre/fecha individualmente; várias podem estar abertas simultaneamente
+- Helper top-level `createAccordion({ icon, title, key, openByDefault, count, build })` retorna `<div class="solstice__accord">` com head + body
+- Persistência por `Store.ui.accordion.<key>` — re-selecionar componente preserva quais seções estavam abertas
+- Defaults: Dados ✅ aberta · Comparação (só KPI) ✅ aberta · Visual ❌ · Decisões ❌ · Origem ❌
+- Helper reusado também no catálogo de componentes (Básicos/Avançados/Texto)
+
+**Alternativas:**
+- Tabs com scroll horizontal: feio, confunde estado ativa
+- Accordion only-one-open: força fricção desnecessária
+
+**Consequências:**
+- ✅ Múltiplas seções visíveis ao mesmo tempo
+- ✅ Estado persistido entre seleções
+- ✅ Mesmo helper serve catálogo
+- ⚠️ Scroll vertical pode ficar longo se todas abertas
+- ⚠️ Renomear seção quebra persistência (aceitável — usa `key` para insulamento)
+
+---
+
+## ADR-065 — Drawer Análise separado do Inspector
+
+**Status:** Aceito · Patch B7-r2
+**Contexto:** A aba "📈 Análise" criada no B7 vivia dentro do painel de propriedades. Lucas observou que análise estatística é "ponto estático bom para visualizar" — não pertence ao mesmo espaço de construção/visual. E ficaria "ruim de olhar" se colocada na esquerda.
+
+**Decisão:**
+- Análise vira drawer INFERIOR ancorado ao canvas, não ao inspector
+- `position: fixed; bottom: 32px; left: 280px; right: 0|340px` — ajusta com o estado do inspector via classes `.has-inspector` + `.has-analysis`
+- Transform translateY 300ms (slide-up)
+- Acionado por novo botão `📈` no header da casca do componente
+- Conteúdo em grid de cards (`auto-fit minmax(220px, 1fr)`) em vez de lista vertical — aproveita a largura do canvas
+- Esc fecha (cascata antes do Inspector)
+- Botões na casca: 📈 (novo) + 🔬 🔍 ⚙️ 🗑️ (existentes) — 5 ações
+- Markdown não tem análise (explica no empty state)
+
+**Por que separar:**
+- Análise é leitura, props é construção — domínios diferentes
+- Drawer inferior permite ver gráfico + estatística simultaneamente
+- Inspector lateral foca em config, sem competição por espaço
+
+**Alternativas:**
+- Modal grande centralizado: bloqueia gráfico — perde valor de comparação
+- Aba dentro do inspector: comprime, mistura domínios
+- Painel direito secundário: complica grid demais
+
+**Consequências:**
+- ✅ Análise visualmente espaçosa em cards de 220px min (vs lista vertical)
+- ✅ Pode ser comparada com o gráfico ao lado
+- ✅ Inspector limpo e focado em construção
+- ⚠️ Drawer ocupa altura no canvas — `padding-bottom` extra (340px) é adicionado ao canvas quando aberto
+- ⚠️ Inspector + Drawer abertos juntos consomem espaço; precisa de tela ≥ 1280×800 para conforto pleno
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

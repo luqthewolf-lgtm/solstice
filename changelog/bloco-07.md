@@ -162,3 +162,72 @@ Ao adicionar Scatter/Gauge/BoxPlot/Sankey, a seção 1col criada pelo `addByType
 - Footer dinâmico: `v5.3 · Bloco 7 r1` (via regex em `Solstice.version`)
 - `Solstice.version = '5.3.0-bloco7-r1'`
 - Sentinela console: `[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)`
+
+---
+
+## 🏗️ Patch B7-r2 — Reestruturação arquitetural UX (2026-05-18)
+
+Versão `5.3.0-bloco7-r2`. Tamanho: ~11.070 linhas (~479 KB).
+
+### Bug corrigido (#007 em BUGS.md)
+
+Painel de propriedades comprimido na sidebar esquerda (280px), tabs ilegíveis, análise estatística atrapalhada, catálogo de 10 componentes sem agrupamento.
+
+### Mudanças (ADRs 063, 064, 065)
+
+**1. Inspector lateral direito (ADR-063):**
+- Grid raiz expandido de 2 para 3 colunas com transição CSS 300ms
+- `<aside id="inspector">` com header sticky + body scrollável + footer sticky
+- Módulo novo `SolsticeInspector` (open/close/setTitle/setFooter/getBody/isOpen/init)
+- Responsivo: `< 1200px` vira overlay fixed
+
+**2. Painel em accordion (ADR-064):**
+- 5 seções accordion (Dados / Comparação(KPI) / Visual / Decisões / Origem) — múltiplas podem estar abertas
+- Helper `createAccordion({icon, title, key, openByDefault, count, build})`
+- Persistência por `Store.ui.accordion.<key>`
+- Controles maiores no inspector (height 40px em vez de 36)
+- Botão "🗑️ Remover" no rodapé do inspector
+
+**3. Drawer Análise inferior (ADR-065):**
+- Aba "📈 Análise" do B7 SAIU do inspector
+- Vira drawer `position: fixed` inferior 340px de altura
+- Acionado por botão `📈` novo no header da casca do componente
+- Conteúdo em grid de cards `auto-fit minmax(220px, 1fr)`
+- Módulo novo `SolsticeAnalysis` (open/close/toggle/render/isOpen/init)
+- Cards universais: Distribuição central · Faixa e quartis · Forma · Outliers
+- Cards contextuais: Tendência+Forecast (time-series) · Correlação (scatter) · Distância da meta (gauge) · Por grupo (boxplot)
+
+**4. Catálogo accordion (slidedown):**
+- 3 grupos: 📊 Básicos (4 cards · aberto) · ⚡ Avançados (5 cards · fechado) · 📝 Texto (1 card · fechado)
+- Reusa `createAccordion`
+- Footer com helper "💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →"
+
+**5. Comportamentos novos:**
+- Tecla `Esc`: fecha drawer Análise → Inspector (cascata)
+- Click em área vazia do canvas: fecha Inspector
+- Botão `📈` na casca: toggle drawer
+
+### Removido
+
+- `#props-panel` da sidebar esquerda (HTML + lógica em SidebarTabs.activate/init)
+- Aba "📈 Análise" do array `allTabs` em SolsticeProps.render
+- ADR-041 (forçar aba 'componentes' ao selecionar) — não faz mais sentido com inspector lateral
+
+### Mantido (dead code para limpeza futura)
+
+- Função `_renderStatsTab` em SolsticeProps — não chamada mais, mas mantida no código
+- Conteúdo da CSS `.solstice__props-tabs` — referência histórica
+
+### API exposta
+
+- `Solstice.Inspector` (open/close/setTitle/setFooter/getBody/isOpen)
+- `Solstice.Analysis` (open/close/toggle/render/isOpen/getCurrentSlotId)
+- `Solstice.createAccordion` (helper público)
+
+### Pontos de versão sincronizados (ADR-037)
+
+- Banner topo: `BLOCO 7 r2 · INSPECTOR LATERAL DIREITO + DRAWER ANÁLISE INFERIOR + CATÁLOGO ACCORDION`
+- Sidebar status: 3 linhas novas ✓ (Inspector · Drawer · Catálogo)
+- Footer dinâmico: `v5.3 · Bloco 7 r2`
+- `Solstice.version = '5.3.0-bloco7-r2'`
+- Sentinela: `[Solstice] Patch B7-r2 aplicado · inspector lateral direito + drawer Análise inferior + catálogo accordion`
