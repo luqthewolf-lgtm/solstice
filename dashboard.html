@@ -1840,6 +1840,237 @@
     transition: grid-template-columns 300ms var(--ease);
   }
 
+  /* ============================================================
+     B12-r1 — PATCH FINAL UX (ADRs 089-092)
+     ============================================================ */
+
+  /* Aba Dados — estado vazio antes de CSV (ADR-089) */
+  .solstice__data-empty {
+    padding: var(--sp-6) var(--sp-4);
+    text-align: center;
+    color: var(--c-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+  }
+  .solstice__data-empty-icon {
+    font-size: 32px;
+    margin-bottom: var(--sp-2);
+    opacity: 0.6;
+  }
+  .solstice__data-empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    margin-top: var(--sp-4);
+  }
+
+  /* Dev sections — só visíveis com debug (ADR-091) */
+  .solstice__dev-section { display: none; }
+  .solstice__app[data-debug="true"] .solstice__dev-section { display: block; }
+
+  /* Sidebar tabs: badges + borda accent na ativa (ADR-091) */
+  .solstice__sidebar-tab {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--rad-sm);
+    font-size: var(--fs-sm); color: var(--c-text-2);
+    cursor: pointer; transition: all var(--t-fast);
+    border-left: 3px solid transparent;
+  }
+  .solstice__sidebar-tab.is-active {
+    border-left-color: var(--c-accent);
+    background: var(--c-surface-3);
+    color: var(--c-text);
+    font-weight: var(--fw-semibold);
+  }
+  .solstice__sidebar-tab-badge {
+    margin-left: auto;
+    font-size: 10px;
+    background: color-mix(in srgb, var(--c-accent) 18%, transparent);
+    color: var(--c-accent);
+    padding: 1px 8px;
+    border-radius: var(--rad-full);
+    font-weight: var(--fw-bold);
+    font-family: var(--font-mono);
+    min-width: 18px;
+    text-align: center;
+  }
+  .solstice__sidebar-tab.is-active .solstice__sidebar-tab-badge {
+    background: var(--c-accent);
+    color: #fff;
+  }
+
+  /* Sidebar footer com botões de atalhos/tour */
+  .solstice__sidebar-footer-btns {
+    margin-top: auto;
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--c-border);
+  }
+
+  /* Welcome screen refeita (ADR-092) — compacto, sem scroll */
+  .solstice__welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--sp-6) var(--sp-4);
+    flex: 1;
+    width: 100%;
+    max-height: calc(100vh - 160px);
+    overflow: hidden;
+  }
+  .solstice__welcome-brand {
+    font-family: var(--font-display);
+    font-size: var(--fs-3xl);
+    font-weight: var(--fw-bold);
+    color: var(--c-text);
+    margin-bottom: 4px;
+  }
+  .solstice__welcome-sub {
+    font-size: var(--fs-md);
+    color: var(--c-muted);
+    margin-bottom: var(--sp-5);
+  }
+  .solstice__welcome-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: var(--sp-5);
+  }
+  .solstice__welcome-actions .solstice__btn {
+    width: 100%;
+    height: 44px;
+    justify-content: center;
+    font-size: var(--fs-md);
+  }
+  .solstice__welcome-divider {
+    display: flex; align-items: center;
+    width: 100%; max-width: 600px;
+    color: var(--c-muted);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: var(--sp-4);
+  }
+  .solstice__welcome-divider::before,
+  .solstice__welcome-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--c-border);
+    margin: 0 var(--sp-3);
+  }
+  .solstice__welcome-templates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--sp-2);
+    width: 100%;
+    max-width: 720px;
+  }
+  .solstice__welcome-template {
+    padding: var(--sp-3);
+    background: var(--c-surface-2);
+    border: 2px solid var(--c-border);
+    border-radius: var(--rad-md);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .solstice__welcome-template:hover {
+    border-color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 6%, var(--c-surface));
+  }
+  .solstice__welcome-template-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .solstice__welcome-template-name {
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-semibold);
+    color: var(--c-text);
+  }
+
+  /* Canvas empty: esconde toolbar e insights (ADR-092) */
+  .solstice__canvas--empty .solstice__canvas-toolbar,
+  .solstice__canvas--empty .solstice__insights,
+  .solstice__canvas--empty .solstice__filterbar {
+    display: none !important;
+  }
+
+  /* Dicionários — cards dos pré-feitos visíveis sempre (ADR-093) */
+  .solstice__dict-preset-card {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-3);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    margin-bottom: var(--sp-2);
+    transition: all var(--t-fast);
+  }
+  .solstice__dict-preset-card:hover {
+    border-color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 4%, var(--c-surface));
+  }
+  .solstice__dict-preset-icon {
+    font-size: 28px; line-height: 1;
+    flex-shrink: 0;
+  }
+  .solstice__dict-preset-body {
+    flex: 1; min-width: 0;
+  }
+  .solstice__dict-preset-name {
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--c-text);
+  }
+  .solstice__dict-preset-meta {
+    font-size: 10px;
+    color: var(--c-muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+  .solstice__dict-preset-actions {
+    display: flex; flex-direction: column; gap: 4px;
+    flex-shrink: 0;
+  }
+  .solstice__dict-preset-actions button {
+    font-size: 10px;
+    padding: 2px 8px;
+    height: 22px;
+  }
+
+  /* Análise com Inspector aberto — ajuste preciso (ADR-094) */
+  .solstice__app.has-inspector .solstice__analysis {
+    right: 340px;
+  }
+
+  /* Inspector vazio — mensagem útil quando nenhum componente selecionado (polish e) */
+  .solstice__inspector-empty {
+    padding: var(--sp-6) var(--sp-4);
+    text-align: center;
+    color: var(--c-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+  }
+  .solstice__inspector-empty-icon {
+    font-size: 32px; margin-bottom: var(--sp-2); opacity: 0.5;
+  }
+  .solstice__inspector-empty-hint {
+    margin-top: var(--sp-3);
+    padding: var(--sp-2);
+    background: color-mix(in srgb, var(--c-accent) 8%, transparent);
+    border-radius: var(--rad-sm);
+    font-size: var(--fs-xs);
+    color: var(--c-text-2);
+  }
+
   /* ===== MODAL ===== */
   .solstice__modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.55);
@@ -3500,7 +3731,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 12 · 5 MODOS + SLIDES + APRESENTADOR + COMMAND PALETTE + TOUR + POLISH
+  ☀️ SOLSTICE v5.3 · BLOCO 12 r1 · PATCH FINAL UX (9 bugs corrigidos · welcome screen · trocar componente · aba Dados sempre visível)
 </div>
 
 <!-- App shell -->
@@ -3568,10 +3799,27 @@
   <aside class="solstice__sidebar">
     <div class="solstice__sidebar-section">
       <div class="solstice__sidebar-title">Workspace</div>
-      <div class="solstice__sidebar-tab is-active" id="tab-dados"><span class="solstice__sidebar-tab-icon">📊</span> Dados</div>
-      <div class="solstice__sidebar-tab" id="tab-componentes"><span class="solstice__sidebar-tab-icon">🧩</span> Componentes</div>
-      <div class="solstice__sidebar-tab" id="tab-dicionarios"><span class="solstice__sidebar-tab-icon">🧠</span> Dicionários</div>
-      <div class="solstice__sidebar-tab" id="tab-snapshots"><span class="solstice__sidebar-tab-icon">📸</span> Snapshots</div>
+      <!-- B12-r1: tabs ganham id de badge dinâmico (preenchido por SidebarTabs.init) -->
+      <div class="solstice__sidebar-tab is-active" id="tab-dados">
+        <span class="solstice__sidebar-tab-icon">📊</span>
+        <span>Dados</span>
+        <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-dados"></span>
+      </div>
+      <div class="solstice__sidebar-tab" id="tab-componentes">
+        <span class="solstice__sidebar-tab-icon">🧩</span>
+        <span>Componentes</span>
+        <span class="solstice__sidebar-tab-badge" id="badge-componentes">10</span>
+      </div>
+      <div class="solstice__sidebar-tab" id="tab-dicionarios">
+        <span class="solstice__sidebar-tab-icon">🧠</span>
+        <span>Dicionários</span>
+        <span class="solstice__sidebar-tab-badge" id="badge-dicionarios">6</span>
+      </div>
+      <div class="solstice__sidebar-tab" id="tab-snapshots">
+        <span class="solstice__sidebar-tab-icon">📸</span>
+        <span>Snapshots</span>
+        <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-snapshots"></span>
+      </div>
 
       <!-- Bloco 2: painel de dados (popula após import/dummy) -->
       <div id="data-panel" class="solstice__hidden" style="margin-top: var(--sp-4);">
@@ -3590,19 +3838,35 @@
       <!-- B7-r2: props-panel MOVIDO para o inspector lateral direito (#inspector). -->
     </div>
 
-    <div class="solstice__sidebar-section">
-      <div class="solstice__sidebar-title">Atalhos</div>
+    <!-- B12-r1: botão compacto de atalhos no rodapé (substitui seção expandida) -->
+    <div class="solstice__sidebar-section solstice__sidebar-footer-btns">
+      <button class="solstice__btn solstice__btn--ghost"
+              id="btn-show-shortcuts"
+              title="Ver lista completa de atalhos"
+              style="width:100%;font-size:var(--fs-xs);">⌨️ Ver atalhos</button>
+      <button class="solstice__btn solstice__btn--ghost"
+              id="btn-show-tour"
+              title="Tour interativo passo-a-passo"
+              style="width:100%;font-size:var(--fs-xs);margin-top:6px;">🧭 Tour guiado</button>
+    </div>
+
+    <!-- B12-r1 / ADR-091: Atalhos e Status são dev-sections — só visíveis com debug ativo -->
+    <div class="solstice__sidebar-section solstice__dev-section">
+      <div class="solstice__sidebar-title">Atalhos (dev)</div>
       <div style="font-size: var(--fs-xs); color: var(--c-muted); line-height: 1.8;">
+        <kbd>Ctrl</kbd>+<kbd>K</kbd> · Command Palette<br>
         <kbd>Ctrl</kbd>+<kbd>P</kbd> · Pergunte ao Solstice<br>
+        <kbd>Ctrl</kbd>+<kbd>S</kbd> / <kbd>Ctrl</kbd>+<kbd>O</kbd> · Salvar/Abrir<br>
         <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> · Undo / Redo<br>
         <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> · Debug<br>
+        <kbd>F</kbd> · Modo Slides<br>
         <kbd>Esc</kbd> · Fechar painéis<br>
         <kbd>?</kbd> · Ajuda
       </div>
     </div>
 
-    <div class="solstice__sidebar-section">
-      <div class="solstice__sidebar-title">Status do bloco</div>
+    <div class="solstice__sidebar-section solstice__dev-section">
+      <div class="solstice__sidebar-title">Status do bloco (dev)</div>
       <div id="block-status" style="font-size: var(--fs-sm); color: var(--c-text-2); line-height: 1.6;">
         <strong style="color:var(--c-success)">✓</strong> Fundação (B1)<br>
         <strong style="color:var(--c-success)">✓</strong> Locale + Erros + Dicionário (B1)<br>
@@ -3643,6 +3907,7 @@
         <strong style="color:var(--c-success)">✓</strong> Command Palette · Ctrl+K · fuzzy search com 30+ ações (B12)<br>
         <strong style="color:var(--c-success)">✓</strong> Tour interativo · 9 passos · spotlight overlay (B12)<br>
         <strong style="color:var(--c-success)">✓</strong> LTTB downsampling + microinterações + a11y polish (B12)<br>
+        <strong style="color:var(--c-success)">✓</strong> Patch Final UX: 9 bugs corrigidos · aba Dados sempre visível · 🔄 trocar componente · welcome screen refeita (B12-r1)<br>
         <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 13 (Diferenciais Avançados · Comentários · Grafo de Métricas)
       </div>
     </div>
@@ -5181,6 +5446,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     const blob = new Blob([csv], { type: 'text/csv' });
     const file = new File([blob], 'vendas_br_dummy.csv', { type: 'text/csv' });
     await _runIngestFile(file);
+    // B12-r1 (polish b): toast educativo de boas-vindas
+    setTimeout(() => {
+      SolsticeToast.action({
+        title: '📊 Dados de exemplo carregados!',
+        msg: '200 linhas de vendas BR. Clique para gerar dashboard automaticamente.',
+        kind: 'info',
+        duration: 8000,
+        actionLabel: '🪄 Auto-Dashboard',
+        actionFn: () => SolsticeAutoDashboard && SolsticeAutoDashboard.run({ force: true })
+      });
+    }, 600);
   }
 
   function boot(){
@@ -5307,10 +5583,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     SolsticeCommandPalette.init();
     SolsticeTour.init();
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 12','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 12 (r1)','color:#4D9FFF;font-size:14px;font-weight:bold;');
     console.log('Atalhos: Ctrl+K palette · Ctrl+P ask · Ctrl+S save · Ctrl+O open · Ctrl+Z/Shift+Z undo/redo · Esc · F slides');
     console.log('5 modos: edit/analyze/review/present/slides · Command Palette + Tour interativo carregados');
-    console.log('%c[Solstice] Bloco 12 aplicado · 5 modos + Slides + Apresentador + Command Palette + Tour + Polish','color:#4ADE80;font-weight:bold;');
+    console.log('%c[Solstice] Patch Final UX aplicado (B12-r1) · 9 bugs corrigidos · welcome refeita · 🔄 trocar componente · aba Dados sempre visível','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -7911,6 +8187,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     const foot   = () => document.getElementById('analysis-footer');
 
     function open(slotId){
+      // B12-r1 (ADR-094): em viewport estreito, fecha Inspector primeiro
+      if (window.innerWidth < 1400 && SolsticeInspector && SolsticeInspector.isOpen()){
+        SolsticeInspector.close();
+        SolsticeToast.info('Inspector fechado', 'Para dar espaço à Análise Estatística');
+      }
       currentSlotId = slotId;
       render(slotId);
       const a = app(); if (a) a.classList.add('has-analysis');
@@ -8220,18 +8501,66 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         def.icon + '  ' + dynamicTitle));
       const acts = SolsticeUtils.el('div', { class:'solstice__comp-actions' });
       acts.append(
-        // B7-r2: novo botão 📈 abre drawer de análise estatística no rodapé do canvas
-        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'📈 Análise estatística',
+        // B7-r2: 📈 abre drawer de análise estatística
+        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'Ver análise estatística',
           onclick: (e) => { e.stopPropagation(); SolsticeAnalysis.toggle(slot.id); } }, '📈'),
-        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'🔬 De onde vem esse número?',
+        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'Ver origem dos dados (Provenance Trail)',
           onclick: (e) => { e.stopPropagation(); SolsticeAudit.openProvenance(slot.id); } }, '🔬'),
-        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'🔍 Decisões deste componente',
+        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'Ver histórico de decisões',
           onclick: (e) => { e.stopPropagation(); SolsticeAudit.openModal({ componentId: slot.id }); } }, '🔍'),
-        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'Configurar',
+        // B12-r1 (ADR-090): novo botão 🔄 trocar tipo de componente
+        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'Trocar tipo de componente',
+          onclick: async (e) => {
+            e.stopPropagation();
+            const opts = SolsticeComponents.list().map(c => ({
+              value: c.id, label: c.name, icon: c.icon,
+              desc: c.description || c.id
+            }));
+            const choice = await SolsticeModal.select({
+              title: 'Trocar componente',
+              message: 'Escolha o novo tipo. A configuração atual será substituída por defaults.',
+              options: opts,
+              defaultValue: slot.type,
+              confirmLabel: 'Trocar',
+              searchable: 'auto'
+            });
+            if (!choice || choice === slot.type) return;
+            const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
+            for (const s of sections) for (const r of s.rows){
+              const sl = r.slots.find(x => x.id === slot.id);
+              if (sl){
+                const fromType = sl.type;
+                sl.type = choice;
+                const newDef = SolsticeComponents.get(choice);
+                const ingest = SolsticeStore.get('ingest');
+                const allRows = (ingest && ingest.rows) || [];
+                const filteredRows = (typeof SolsticeFilters !== 'undefined') ? SolsticeFilters.apply(allRows) : allRows;
+                const ctx = {
+                  rows: filteredRows, rowsAll: allRows,
+                  columns: (ingest && ingest.columns) || [],
+                  types: (ingest && ingest.types) || {},
+                  dictionary: SolsticeStore.get('dictionary'),
+                  L: SolsticeLocale
+                };
+                sl.config = newDef && newDef.defaultConfig ? newDef.defaultConfig(ctx) : {};
+                SolsticeStore.set('canvas.sections', sections);
+                SolsticeAudit.record({
+                  action: 'change_component_type', target: slot.id,
+                  details: { from: fromType, to: choice }
+                });
+                SolsticeToast.info('Componente trocado',
+                  (def ? def.name : fromType) + ' → ' + newDef.name);
+                setTimeout(() => SolsticeProps.select(slot.id), 80);
+                return;
+              }
+            }
+          }
+        }, '🔄'),
+        SolsticeUtils.el('button', { class:'solstice__comp-btn', title:'Configurar (abre inspector)',
           onclick: (e) => { e.stopPropagation(); SolsticeProps.select(slot.id); } }, '⚙️'),
         SolsticeUtils.el('button', {
           class:'solstice__comp-btn solstice__comp-btn--danger',
-          title:'🗑️ Remover componente',
+          title:'Remover componente',
           onclick: async (e) => {
             e.stopPropagation();
             const ok = await SolsticeModal.confirm({
@@ -11029,6 +11358,32 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           ids: ['markdown'] }
       ];
 
+      // B12-r1 (ADR-095): se há slot selecionado, cards viram "🔄 Substituir selecionado"
+      const selectedSlotId = SolsticeStore.get('ui.inspector.slotId') || SolsticeStore.get('ui.selectedSlot');
+      const selectedSlot = (function(){
+        if (!selectedSlotId) return null;
+        const secs = SolsticeStore.get('canvas.sections') || [];
+        for (const s of secs) for (const r of s.rows){
+          const sl = r.slots.find(x => x.id === selectedSlotId);
+          if (sl) return sl;
+        }
+        return null;
+      })();
+      const inReplaceMode = !!selectedSlot && selectedSlot.type && selectedSlot.type !== 'empty';
+
+      if (inReplaceMode){
+        // Banner explicativo no topo do catálogo
+        const banner = SolsticeUtils.el('div', {
+          style: 'background:color-mix(in srgb, var(--c-accent) 14%, transparent);' +
+                 'border:1px solid var(--c-accent);border-radius:var(--rad-sm);padding:var(--sp-2) var(--sp-3);' +
+                 'margin-bottom:var(--sp-3);font-size:var(--fs-xs);color:var(--c-text);line-height:1.5;'
+        });
+        const def = SolsticeComponents.get(selectedSlot.type);
+        banner.appendChild(SolsticeUtils.el('strong', null, '🔄 Modo Substituir'));
+        banner.appendChild(document.createTextNode(' — componente selecionado: ' + (def ? def.icon + ' ' + def.name : selectedSlot.type) + '. Clique em outro para trocar.'));
+        host.appendChild(banner);
+      }
+
       groups.forEach(g => {
         const defs = g.ids.map(id => SolsticeComponents.get(id)).filter(Boolean);
         if (!defs.length) return;
@@ -11040,18 +11395,48 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             body.classList.add('solstice__catalog-group');
             const grid = SolsticeUtils.el('div', { class:'solstice__cat-grid' });
             defs.forEach(def => {
+              const isSelf = inReplaceMode && selectedSlot.type === def.id;
               const card = SolsticeUtils.el('button', {
-                class: 'solstice__cat-card' + (dsReady ? '' : ' is-disabled'),
+                class: 'solstice__cat-card' + (dsReady ? '' : ' is-disabled') + (isSelf ? ' is-selected' : ''),
                 type: 'button',
                 'aria-disabled': dsReady ? 'false' : 'true',
-                title: dsReady ? ('Adicionar ' + def.name) : 'Importe um CSV primeiro',
-                onclick: () => { if (!dsReady) return; SolsticeComponents.addByType(def.id); }
+                title: !dsReady ? 'Importe um CSV primeiro'
+                     : inReplaceMode ? (isSelf ? 'Já é este tipo' : 'Substituir selecionado por ' + def.name)
+                     : ('Adicionar ' + def.name),
+                onclick: async () => {
+                  if (!dsReady) return;
+                  if (inReplaceMode){
+                    if (isSelf) return;
+                    // Reusa o fluxo de troca do botão 🔄
+                    const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
+                    for (const s of sections) for (const r of s.rows){
+                      const sl = r.slots.find(x => x.id === selectedSlotId);
+                      if (sl){
+                        const fromType = sl.type;
+                        sl.type = def.id;
+                        const ingest = SolsticeStore.get('ingest');
+                        const allRows = (ingest && ingest.rows) || [];
+                        const filteredRows = (typeof SolsticeFilters !== 'undefined') ? SolsticeFilters.apply(allRows) : allRows;
+                        const ctx = { rows: filteredRows, rowsAll: allRows, columns: (ingest && ingest.columns) || [], types: (ingest && ingest.types) || {}, dictionary: SolsticeStore.get('dictionary'), L: SolsticeLocale };
+                        sl.config = def.defaultConfig ? def.defaultConfig(ctx) : {};
+                        SolsticeStore.set('canvas.sections', sections);
+                        SolsticeAudit.record({ action:'change_component_type', target: selectedSlotId, details: { from: fromType, to: def.id, source: 'catalog-replace' } });
+                        SolsticeToast.info('Componente trocado', fromType + ' → ' + def.name);
+                        setTimeout(() => SolsticeProps.select(selectedSlotId), 80);
+                        return;
+                      }
+                    }
+                  } else {
+                    SolsticeComponents.addByType(def.id);
+                  }
+                }
               });
               card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-icon', 'aria-hidden':'true' }, def.icon));
               card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-name' }, def.name));
               card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-desc' },
                 def.description || ''));
-              card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-add' }, '+ Adicionar'));
+              card.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-card-add' },
+                inReplaceMode ? (isSelf ? '✓ Atual' : '🔄 Substituir') : '+ Adicionar'));
               grid.appendChild(card);
             });
             body.appendChild(grid);
@@ -11060,13 +11445,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         host.appendChild(section);
       });
 
-      // Footer com helper: "selecione no canvas para editar"
+      // Footer com helper
       host.appendChild(SolsticeUtils.el('div', { class:'solstice__catalog-helper' },
-        '💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →'));
+        inReplaceMode
+          ? '💡 Clique fora ou em ✕ do Inspector para sair do modo substituir.'
+          : '💡 Selecione um componente no canvas para editar suas propriedades no painel da direita →'));
     }
 
     /**
      * activate(which) — B7-r2 + B11: alterna entre Dados/Componentes/Dicionários/Snapshots.
+     */
+    /**
+     * activate(which) — Patch B12-r1 (ADR-089):
+     * Aba "Dados" agora SEMPRE mostra conteúdo. Antes de CSV mostra estado
+     * vazio com botões "Importar CSV" e "Dados de exemplo".
      */
     function activate(which){
       active = which;
@@ -11083,11 +11475,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const compPanel = document.getElementById('components-panel');
       const dictsPanel = document.getElementById('dicionarios-panel');
       const snapsPanel = document.getElementById('snapshots-panel');
-      const dsReady = SolsticeStore.get('dataset.ready');
-      // Esconde tudo
       [dataPanel, compPanel, dictsPanel, snapsPanel].forEach(p => p && p.classList.add('solstice__hidden'));
-      if (which === 'dados' && dataPanel && dsReady){
+      if (which === 'dados' && dataPanel){
+        // B12-r1: aba Dados sempre visível
         dataPanel.classList.remove('solstice__hidden');
+        _renderDataPanel();
       } else if (which === 'componentes' && compPanel){
         compPanel.classList.remove('solstice__hidden');
         _renderComponentsPanel();
@@ -11100,7 +11492,57 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
     }
 
-    /** B11: render painel de Dicionários. */
+    /**
+     * B12-r1 (ADR-089): render do painel Dados.
+     * Quando dataset não está pronto, mostra estado vazio com botões.
+     * Quando pronto, garante visibilidade dos sub-painéis (Quality, Editor).
+     */
+    function _renderDataPanel(){
+      const host = document.getElementById('data-panel');
+      if (!host) return;
+      const dsReady = SolsticeStore.get('dataset.ready');
+      // Estado vazio (sem CSV)
+      const existingEmpty = host.querySelector('.solstice__data-empty');
+      if (!dsReady){
+        // Esconde sub-painéis (mas mantém no DOM, B2 manipula direto)
+        const summary = host.querySelector('#dataset-summary');
+        const quality = host.querySelector('#quality-card');
+        const editor = host.querySelector('#editor-panel');
+        [summary, quality, editor].forEach(el => el && el.classList.add('solstice__hidden'));
+        if (existingEmpty) return; // já tá lá
+        const empty = SolsticeUtils.el('div', { class:'solstice__data-empty' });
+        empty.appendChild(SolsticeUtils.el('div', { class:'solstice__data-empty-icon' }, '📊'));
+        empty.appendChild(SolsticeUtils.el('div', { style:'font-weight:var(--fw-semibold);color:var(--c-text);margin-bottom:4px;' },
+          'Nenhum dataset carregado'));
+        empty.appendChild(SolsticeUtils.el('div', null,
+          'Importe um CSV ou carregue dados de exemplo para começar.'));
+        const acts = SolsticeUtils.el('div', { class:'solstice__data-empty-actions' });
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--primary',
+          onclick: () => document.getElementById('file-input').click()
+        }, '📁 Importar CSV'));
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn',
+          onclick: () => _loadDummyDataset()
+        }, '📊 Dados de exemplo'));
+        empty.appendChild(acts);
+        host.appendChild(empty);
+      } else {
+        // Remove estado vazio se existia
+        if (existingEmpty) existingEmpty.remove();
+        // Garante visibilidade dos sub-painéis
+        const summary = host.querySelector('#dataset-summary');
+        const quality = host.querySelector('#quality-card');
+        const editor = host.querySelector('#editor-panel');
+        [summary, quality, editor].forEach(el => el && el.classList.remove('solstice__hidden'));
+      }
+    }
+
+    /**
+     * B12-r1 (ADR-093): painel de Dicionários refeito.
+     * Os 6 pré-feitos SEMPRE visíveis como cards grandes. Antes era escondido
+     * em lista pequena depois dos salvos.
+     */
     function _renderDictsPanel(){
       const host = document.getElementById('dicionarios-panel');
       if (!host) return;
@@ -11108,74 +11550,130 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const wrap = SolsticeUtils.el('div', { class:'solstice__dicts-panel' });
       wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__editor-title' },
         '🧠 Dicionários semânticos'));
-      wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint' },
-        'Dicionários salvos podem ser aplicados a CSVs similares.'));
 
-      // Dicionário ativo
+      // Dicionário ativo (card destacado)
       const active = SolsticeStore.get('dictionary');
       if (active){
         const card = SolsticeUtils.el('div',
-          { style:'background:color-mix(in srgb,var(--c-accent) 10%, transparent);border:1px solid var(--c-accent);border-radius:var(--rad-sm);padding:var(--sp-2);margin-top:var(--sp-2);font-size:var(--fs-xs);color:var(--c-text-2);' },
-          '🟢 Dicionário ativo: ',
-          SolsticeUtils.el('strong', null, active.name || 'sem nome'),
-          active.coverage != null ? document.createTextNode(' · cobertura ' + Math.round(active.coverage * 100) + '%') : document.createTextNode('')
-        );
+          { style:'background:color-mix(in srgb,var(--c-accent) 12%, transparent);border:2px solid var(--c-accent);border-radius:var(--rad-md);padding:var(--sp-3);margin-bottom:var(--sp-3);' });
+        card.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-accent);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;' },
+          '🟢 ATIVO'));
+        card.appendChild(SolsticeUtils.el('div', { style:'font-size:var(--fs-sm);font-weight:var(--fw-semibold);color:var(--c-text);' },
+          active.name || 'Dicionário sem nome'));
+        if (active.coverage != null){
+          card.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-text-2);margin-top:2px;font-family:var(--font-mono);' },
+            'Cobertura ' + Math.round(active.coverage * 100) + '%'));
+        }
+        const exportBtn = SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--ghost',
+          style:'font-size:10px;padding:4px 10px;height:24px;margin-top:8px;width:100%;',
+          onclick: () => {
+            const blob = new Blob([JSON.stringify(active, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'dicionario-' + (active.name || 'solstice').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            SolsticeToast.success('Dicionário exportado');
+          }
+        }, '⬇️ Exportar JSON');
+        card.appendChild(exportBtn);
         wrap.appendChild(card);
-      } else {
-        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint',
-          style:'background:var(--c-surface-2);padding:var(--sp-2);border-radius:var(--rad-sm);margin-top:var(--sp-2);' },
-          'Nenhum dicionário ativo. Importe um CSV para ver a sugestão automática.'));
       }
 
-      // Dicionários salvos
+      // Dicionários salvos (se houver)
       const saved = SolsticeDictionary.listSaved();
-      wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);text-transform:uppercase;letter-spacing:0.04em;' },
-        'SALVOS (' + saved.length + ')'));
-      const list = SolsticeUtils.el('div', { class:'solstice__dicts-list' });
-      if (!saved.length){
-        list.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-empty' },
-          'Nenhum dicionário salvo. Quando você ajustar um dicionário ao importar CSV, ele aparece aqui.'));
+      if (saved.length){
+        wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);font-weight:var(--fw-semibold);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--sp-2);' },
+          '💾 Meus salvos (' + saved.length + ')'));
+        saved.forEach(name => {
+          const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
+          item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, '💾'));
+          const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
+          body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, name));
+          body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' }, 'localStorage'));
+          item.appendChild(body);
+          const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
+          acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar', onclick: () => {
+            const d = SolsticeDictionary.load(name);
+            if (d){ SolsticeStore.set('dictionary', d); SolsticeToast.success('Dicionário aplicado', name); _renderDictsPanel(); }
+          }}, '✓'));
+          item.appendChild(acts);
+          wrap.appendChild(item);
+        });
       }
-      saved.forEach(name => {
-        const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
-        item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, '🧠'));
-        const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
-        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, name));
-        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' }, 'localStorage'));
-        item.appendChild(body);
-        const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
-        acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar ao dataset atual', onclick: () => {
-          const d = SolsticeDictionary.load(name);
-          if (d){ SolsticeStore.set('dictionary', d); SolsticeToast.success('Dicionário aplicado', name); _renderDictsPanel(); }
-        }}, '✓'));
-        item.appendChild(acts);
-        list.appendChild(item);
-      });
-      wrap.appendChild(list);
 
-      // Botões pré-feitos
-      wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);text-transform:uppercase;letter-spacing:0.04em;' },
-        'PRÉ-FEITOS'));
-      const preset = SolsticeUtils.el('div', { class:'solstice__dicts-list' });
+      // 6 PRÉ-FEITOS como cards grandes — SEMPRE visíveis (ADR-093)
+      wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);font-weight:var(--fw-semibold);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:var(--sp-2);' },
+        '✨ Pré-feitos (6 domínios)'));
+      wrap.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);margin-bottom:var(--sp-2);line-height:1.4;' },
+        'Aplicar ajuda a detectar automaticamente friendlyName + higherIsBetter ao importar CSV.'));
+
       const presets = SolsticeDictionary.presets || {};
       Object.entries(presets).forEach(([key, p]) => {
         if (key === 'generico') return;
-        const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
-        item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, p.emoji || '🧠'));
-        const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
-        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, p.name || key));
-        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' },
-          (Object.keys(p.columns || {}).length) + ' colunas mapeadas'));
-        item.appendChild(body);
-        const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
-        acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar ao dataset atual', onclick: () => {
-          SolsticeStore.set('dictionary', { ...p, name: p.name }); SolsticeToast.success('Dicionário aplicado', p.name); _renderDictsPanel();
-        }}, '✓'));
-        item.appendChild(acts);
-        preset.appendChild(item);
+        const card = SolsticeUtils.el('div', { class:'solstice__dict-preset-card' });
+        card.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-preset-icon' }, p.emoji || '🧠'));
+        const body = SolsticeUtils.el('div', { class:'solstice__dict-preset-body' });
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-preset-name' }, p.name || key));
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-preset-meta' },
+          (Object.keys(p.columns || {}).length) + ' colunas mapeadas' + (p.domain ? ' · ' + p.domain : '')));
+        card.appendChild(body);
+        const acts = SolsticeUtils.el('div', { class:'solstice__dict-preset-actions' });
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--primary', title:'Aplicar ao dataset',
+          onclick: () => {
+            SolsticeStore.set('dictionary', { ...p, name: p.name });
+            SolsticeToast.success('Dicionário aplicado', p.name);
+            _renderDictsPanel();
+          }
+        }, 'Aplicar'));
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--ghost', title:'Ver colunas mapeadas',
+          onclick: () => _openDictPreview(p)
+        }, 'Ver'));
+        card.appendChild(acts);
+        wrap.appendChild(card);
       });
-      wrap.appendChild(preset);
+
       host.appendChild(wrap);
+    }
+
+    /** B12-r1 (ADR-093): modal preview das colunas de um dicionário. */
+    async function _openDictPreview(p){
+      await SolsticeModal.show({
+        title: (p.emoji || '🧠') + ' ' + (p.name || 'Dicionário'),
+        size: 'lg',
+        body: () => {
+          const wrap = SolsticeUtils.el('div');
+          wrap.appendChild(SolsticeUtils.el('p', { style:'color:var(--c-muted);font-size:var(--fs-xs);margin-bottom:var(--sp-3);' },
+            'Colunas mapeadas — quando o CSV importado tiver essas colunas (por nome técnico ou sinônimo), o friendlyName/unit/higherIsBetter são aplicados automaticamente.'));
+          const list = SolsticeUtils.el('div', { style:'max-height:380px;overflow-y:auto;' });
+          Object.entries(p.columns || {}).forEach(([techKey, def]) => {
+            const row = SolsticeUtils.el('div', { style:'display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px dashed var(--c-border);font-size:var(--fs-xs);' });
+            const tech = SolsticeUtils.el('div');
+            tech.appendChild(SolsticeUtils.el('span', { style:'font-family:var(--font-mono);color:var(--c-muted);' }, techKey));
+            const friendly = SolsticeUtils.el('div');
+            friendly.appendChild(SolsticeUtils.el('strong', null, def.friendlyName || techKey));
+            const meta = [];
+            if (def.unit) meta.push(def.unit);
+            if (def.higherIsBetter === true) meta.push('↑ melhor');
+            if (def.higherIsBetter === false) meta.push('↓ melhor');
+            if (meta.length){
+              friendly.appendChild(SolsticeUtils.el('span', { style:'color:var(--c-muted);margin-left:6px;' }, '· ' + meta.join(' · ')));
+            }
+            row.append(tech, friendly);
+            list.appendChild(row);
+          });
+          wrap.appendChild(list);
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn',
+            onclick: () => { SolsticeStore.set('dictionary', { ...p, name: p.name }); SolsticeToast.success('Aplicado', p.name); close(null); _renderDictsPanel(); }
+          }, '✓ Aplicar este'),
+          SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary', onclick: () => close(null) }, 'Fechar')
+        ]
+      });
     }
 
     /** B11: render painel de Snapshots. */
@@ -11233,6 +11731,35 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       host.appendChild(wrap);
     }
 
+    /** B12-r1: atualiza badges das tabs com contagens dinâmicas. */
+    function _updateBadges(){
+      const ingest = SolsticeStore.get('ingest');
+      const bd = document.getElementById('badge-dados');
+      const bc = document.getElementById('badge-componentes');
+      const bdi = document.getElementById('badge-dicionarios');
+      const bsn = document.getElementById('badge-snapshots');
+      if (bd){
+        if (ingest && ingest.columns && ingest.columns.length){
+          bd.textContent = ingest.columns.length;
+          bd.classList.remove('solstice__hidden');
+        } else { bd.classList.add('solstice__hidden'); }
+      }
+      if (bc) bc.textContent = SolsticeComponents.list().length;
+      if (bdi){
+        // 6 pré-feitos + salvos
+        const presets = Object.keys(SolsticeDictionary.presets || {}).filter(k => k !== 'generico').length;
+        const saved = SolsticeDictionary.listSaved().length;
+        bdi.textContent = (presets + saved);
+      }
+      if (bsn){
+        const snaps = (SolsticeSnapshots && SolsticeSnapshots.list) ? SolsticeSnapshots.list().length : 0;
+        if (snaps > 0){
+          bsn.textContent = snaps;
+          bsn.classList.remove('solstice__hidden');
+        } else { bsn.classList.add('solstice__hidden'); }
+      }
+    }
+
     function init(){
       const tD = document.getElementById('tab-dados');
       const tC = document.getElementById('tab-componentes');
@@ -11242,8 +11769,64 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (tC) tC.addEventListener('click', () => activate('componentes'));
       if (tDi) tDi.addEventListener('click', () => activate('dicionarios'));
       if (tSn) tSn.addEventListener('click', () => activate('snapshots'));
-      SolsticeStore.subscribe('dataset.ready', () => { if (active === 'componentes') _renderComponentsPanel(); });
-      SolsticeStore.subscribe('dictionary', () => { if (active === 'dicionarios') _renderDictsPanel(); });
+      // B12-r1: subscribers reativos
+      SolsticeStore.subscribe('dataset.ready', () => {
+        if (active === 'componentes') _renderComponentsPanel();
+        if (active === 'dados') _renderDataPanel();
+        _updateBadges();
+      });
+      SolsticeStore.subscribe('dictionary', () => {
+        if (active === 'dicionarios') _renderDictsPanel();
+        _updateBadges();
+      });
+      SolsticeStore.subscribe('ingest', _updateBadges);
+      // B12-r1 (ADR-095): re-render catálogo quando seleção muda — para Modo Substituir
+      SolsticeStore.subscribe('ui.inspector.slotId', () => {
+        if (active === 'componentes') _renderComponentsPanel();
+      });
+      // Render inicial do data panel (estado vazio aparece na primeira pintura)
+      _renderDataPanel();
+      _updateBadges();
+
+      // B12-r1: botões no rodapé da sidebar
+      const btnShortcuts = document.getElementById('btn-show-shortcuts');
+      if (btnShortcuts) btnShortcuts.addEventListener('click', _openShortcutsModal);
+      const btnTour = document.getElementById('btn-show-tour');
+      if (btnTour) btnTour.addEventListener('click', () => SolsticeTour.start());
+    }
+
+    /** B12-r1: modal de atalhos compacto. */
+    async function _openShortcutsModal(){
+      await SolsticeModal.show({
+        title: '⌨️ Atalhos do Solstice',
+        body: () => {
+          const wrap = SolsticeUtils.el('div');
+          const kbds = [
+            ['Ctrl + K',           'Command Palette (busca de ações)'],
+            ['Ctrl + P',           'Pergunte ao Solstice (NL parser)'],
+            ['Ctrl + S',           'Salvar snapshot rápido'],
+            ['Ctrl + O',           'Abrir snapshots'],
+            ['Ctrl + Z',           'Desfazer'],
+            ['Ctrl + Shift + Z',   'Refazer'],
+            ['Ctrl + Shift + D',   'Inspector de debug'],
+            ['F',                  'Entrar/sair modo Slides'],
+            ['← →',                'Navegar slides ou tour'],
+            ['Espaço',             'Próximo slide'],
+            ['Esc',                'Fechar painel/modal/modo'],
+            ['?',                  'Abrir Onboarding/ajuda']
+          ];
+          kbds.forEach(([k, desc]) => {
+            const row = SolsticeUtils.el('div', { style:'display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--c-border);' });
+            row.appendChild(SolsticeUtils.el('span', { style:'font-family:var(--font-mono);font-size:var(--fs-xs);background:var(--c-surface-2);padding:2px 8px;border-radius:var(--rad-xs);' }, k));
+            row.appendChild(SolsticeUtils.el('span', { style:'font-size:var(--fs-sm);color:var(--c-text-2);text-align:right;flex:1;margin-left:var(--sp-3);' }, desc));
+            wrap.appendChild(row);
+          });
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary', onclick: () => close(null) }, 'Fechar')
+        ]
+      });
     }
 
     function current(){ return active; }
@@ -11875,24 +12458,27 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const canvas = document.querySelector('.solstice__canvas');
       if (!canvas) return;
       const sections = _get();
+      const dsReady = SolsticeStore.get('dataset.ready');
       canvas.innerHTML = '';
+
+      // B12-r1 (ADR-092): marca canvas como empty para CSS esconder toolbar/insights/filterbar
+      const isEmpty = sections.length === 0;
+      canvas.classList.toggle('solstice__canvas--empty', isEmpty);
 
       // Patch B5-r4 / ADR-046: cabeçalho customizável acima da toolbar
       if (typeof SolsticeDashHeader !== 'undefined') SolsticeDashHeader.renderInto(canvas);
 
-      // Toolbar do canvas (sempre presente)
+      // Toolbar do canvas (sempre presente no DOM; CSS esconde quando empty)
       canvas.appendChild(_renderToolbar(sections.length));
 
-      // B9: Barra do Cross-filter (acima dos filtros)
-      if (typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.renderInto(canvas);
+      // B12-r1: Cross-filter / Filtros / Insights só renderizam se há sections E dataset
+      if (!isEmpty && dsReady){
+        if (typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.renderInto(canvas);
+        if (typeof SolsticeFilters !== 'undefined') SolsticeFilters.renderInto(canvas);
+        if (typeof SolsticeInsights !== 'undefined') SolsticeInsights.renderInto(canvas);
+      }
 
-      // B9: Barra de Filtros Globais (acima de Insights)
-      if (typeof SolsticeFilters !== 'undefined') SolsticeFilters.renderInto(canvas);
-
-      // B8: Painel de Insights Executivos (entre toolbar e sections) — só renderiza se há insights
-      if (typeof SolsticeInsights !== 'undefined') SolsticeInsights.renderInto(canvas);
-
-      if (sections.length === 0){
+      if (isEmpty){
         canvas.appendChild(_renderEmptyState());
         return;
       }
@@ -11974,34 +12560,68 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       );
     }
 
+    /**
+     * Welcome screen B12-r1 (ADR-092):
+     * Layout compacto — brand grande + 2 botões primários + divisor + templates inline.
+     * Nunca causa scroll na tela (max-height calc(100vh - 160px) + overflow hidden).
+     */
     function _renderEmptyState(){
-      const wrap = SolsticeUtils.el('div', { class:'solstice__canvas-empty' });
+      const wrap = SolsticeUtils.el('div', { class:'solstice__canvas-empty solstice__welcome' });
       const ds = SolsticeStore.get('dataset.ready');
       if (!ds){
-        wrap.appendChild(SolsticeUtils.el('h1', { 'data-i18n':'canvas.title' }, 'Bem-vindo ao Solstice'));
-        wrap.appendChild(SolsticeUtils.el('p', { 'data-i18n':'canvas.subtitle' },
-          'A fundação está montada. Carregue um CSV ou explore o dataset dummy de vendas BR para conhecer o Dicionário Semântico.'));
-        const acts = SolsticeUtils.el('div', { class:'solstice__canvas-empty-actions' });
+        wrap.appendChild(SolsticeUtils.el('div', { style:'font-size:48px;line-height:1;margin-bottom:var(--sp-2);' }, '☀️'));
+        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-brand' }, 'Solstice'));
+        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-sub' }, 'Dashboard Studio v5.3'));
+
+        const acts = SolsticeUtils.el('div', { class:'solstice__welcome-actions' });
         acts.appendChild(SolsticeUtils.el('button', {
           class:'solstice__btn solstice__btn--primary',
-          onclick: () => _loadDummyDataset()
-        }, '📊 Carregar CSV dummy de vendas BR'));
+          onclick: () => document.getElementById('file-input').click()
+        }, '📁 Importar meu CSV'));
         acts.appendChild(SolsticeUtils.el('button', {
           class:'solstice__btn',
-          onclick: () => document.getElementById('file-input').click()
-        }, '📁 Importar CSV'));
+          onclick: () => _loadDummyDataset()
+        }, '📊 Explorar dados de exemplo'));
         wrap.appendChild(acts);
-        wrap.appendChild(SolsticeUtils.el('p',
-          { style:'margin-top: var(--sp-6); font-size: var(--fs-xs); color: var(--c-muted);' },
-          'Pressione Ctrl+Shift+D para abrir o inspector de debug.'));
+
+        // Divisor + templates rápidos (mostra ÍCONES dos 6 dicionários pré-feitos como CTAs)
+        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-divider' },
+          SolsticeUtils.el('span', null, 'ou comece com um domínio')));
+
+        const grid = SolsticeUtils.el('div', { class:'solstice__welcome-templates' });
+        const presets = SolsticeDictionary.presets || {};
+        Object.entries(presets).slice(0, 6).forEach(([key, p]) => {
+          if (key === 'generico') return;
+          const card = SolsticeUtils.el('button', {
+            class:'solstice__welcome-template', type:'button',
+            title:'Carrega exemplo + aplica dicionário ' + (p.name || key),
+            onclick: () => {
+              // Carrega dummy E aplica dicionário pré-feito
+              _loadDummyDataset();
+              setTimeout(() => {
+                SolsticeStore.set('dictionary', { ...p, name: p.name });
+                SolsticeToast.info('Dicionário aplicado', p.name);
+              }, 300);
+            }
+          });
+          card.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-template-icon' }, p.emoji || '🧠'));
+          card.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-template-name' }, (p.name || key).split('—')[0].trim()));
+          grid.appendChild(card);
+        });
+        wrap.appendChild(grid);
+
+        wrap.appendChild(SolsticeUtils.el('div',
+          { style:'margin-top: var(--sp-4); font-size: var(--fs-xs); color: var(--c-muted);' },
+          '⌨️ Atalho: Ctrl+K abre a Command Palette · ? abre ajuda · 🧭 botão Tour na sidebar'));
         return wrap;
       }
+      // Com dataset, sem sections → cards de templates do B3
       wrap.appendChild(SolsticeUtils.el('h1', null, 'Comece com um template'));
-      wrap.appendChild(SolsticeUtils.el('p', null, 'Escolha uma estrutura pronta — ela vira sua base e você ajusta depois.'));
+      wrap.appendChild(SolsticeUtils.el('p', null, 'Escolha uma estrutura pronta — ela vira sua base e você ajusta depois. Ou use 🪄 Auto-Dashboard.'));
       const grid = SolsticeUtils.el('div', { class:'solstice__empty-templates' });
       SolsticeTemplates.list().forEach(t => grid.appendChild(_renderTemplateCard(t)));
       wrap.appendChild(grid);
-      wrap.appendChild(SolsticeUtils.el('p', { style:'margin-top:var(--sp-6);font-size:var(--fs-sm);color:var(--c-muted);' },
+      wrap.appendChild(SolsticeUtils.el('p', { style:'margin-top:var(--sp-4);font-size:var(--fs-sm);color:var(--c-muted);' },
         'Ou clique em + Seção acima para começar do zero.'));
       return wrap;
     }
@@ -16365,7 +16985,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco12',
+    version: '5.3.0-bloco12-r1',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,

@@ -269,6 +269,116 @@ Copie o bloco abaixo ao reportar:
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
 
+### #008 — 9 bugs de UX consolidados · RESOLVIDO
+
+**Status:** RESOLVIDO em Patch B12-r1
+**Severidade:** importante (UX bloqueava acesso a features existentes)
+**Módulo:** múltiplos (SidebarTabs, Canvas, Components, Analysis, Inspector)
+**Bloco em que apareceu:** acumulado de B7-B12
+
+**Descrição (resumo dos 9 bugs):**
+1. Aba "Dados" vazia antes de CSV
+2. Empty state "afundando" no canvas
+3. Sem botão de trocar tipo de componente
+4. Sidebar com seções de dev visíveis (Atalhos, Status do bloco)
+5. Dicionários pré-feitos invisíveis (enterrados em lista)
+6. Drawer Análise sobrepondo Inspector em viewport estreito
+7. Catálogo de componentes sem opção de substituir o selecionado
+8. Welcome screen sendo cortada/exigindo scroll
+9. Verificar ⚙️ abre Inspector corretamente
+
+**Correção (ADRs 089-095):**
+- Aba Dados sempre visível com estado vazio (ADR-089)
+- 🔄 trocar componente na casca + Modo Substituir no catálogo (ADR-090, ADR-095)
+- Dev sections via classe + tabs com badges + borda accent (ADR-091)
+- Welcome compacta + canvas--empty oculta toolbar/insights (ADR-092)
+- Dicionários como cards grandes + preview + export (ADR-093)
+- Análise auto-fecha Inspector em viewport < 1400px (ADR-094)
+
+**Prevenção:**
+- Tabs sempre devem ter render-content mesmo sem dataset
+- Empty states devem ser self-contained (não dependem de outros elementos)
+- Botões da casca devem cobrir o ciclo completo (CRUD): add/edit/REPLACE/remove
+- Seções de dev/debug marcadas com class + CSS condicional
+
+**Reportado por:** Lucas Cardoso, sessão 3 (2026-05-18), via análise profunda do UX antes do B13.
+
+---
+
+### Bloco 12 — refinamentos r1 (Patch Final UX · 9 bugs corrigidos)
+
+- [ ] Sentinela `[Solstice] Patch Final UX aplicado (B12-r1) · 9 bugs corrigidos · welcome refeita · 🔄 trocar componente · aba Dados sempre visível` verde
+- [ ] `Solstice.version === '5.3.0-bloco12-r1'`
+- [ ] Footer mostra `v5.3 · Bloco 12 r1`
+- [ ] Banner cita `BLOCO 12 r1 · PATCH FINAL UX`
+
+**Bug 1 (Aba Dados vazia):**
+- [ ] SEM CSV importado → clique em "📊 Dados" → painel mostra: ícone 📊 + "Nenhum dataset carregado" + botões 📁 Importar / 📊 Exemplo
+- [ ] Clicar "📊 Dados de exemplo" → dummy carrega + painel troca para Quality + Editor (estado normal)
+- [ ] Recarregar → aba Dados ainda mostra Quality/Editor (não volta a vazio se há dataset)
+
+**Bug 2 (Empty state):**
+- [ ] SEM dataset → canvas NÃO tem toolbar nem barra de filtros nem painel de insights
+- [ ] Apenas welcome screen visível, centralizado no viewport
+- [ ] Sem scroll vertical necessário para ver tudo
+
+**Bug 3 (Trocar componente):**
+- [ ] Adicionar KPI → hover no header da casca → ver 6 botões: 📈 🔬 🔍 🔄 ⚙️ 🗑️
+- [ ] Tooltip do 🔄 = "Trocar tipo de componente"
+- [ ] Click 🔄 → Modal.select com 10 opções, busca ativa
+- [ ] Escolher "Série Temporal" → KPI vira série; toast informa troca
+- [ ] Console: `Solstice.Audit.list({action:'change_component_type'}).length > 0`
+
+**Bug 4 (Sidebar):**
+- [ ] Sidebar mostra 4 tabs com badges: Dados (cols), Componentes (10), Dicionários (6+), Snapshots
+- [ ] Tab ativa: borda esquerda accent 3px + background mais escuro + bold
+- [ ] Seções "Atalhos" e "Status do bloco" NÃO visíveis normalmente
+- [ ] Ctrl+Shift+D → debug overlay abre · `.solstice__app[data-debug="true"]` aplicado · seções dev aparecem
+- [ ] Rodapé tem botões "⌨️ Ver atalhos" e "🧭 Tour guiado"
+- [ ] Click "Ver atalhos" → modal com lista completa de 12 atalhos
+- [ ] Click "Tour guiado" → tour interativo abre (9 passos)
+
+**Bug 5 (Dicionários):**
+- [ ] Aba 🧠 Dicionários → 6 cards grandes pré-feitos sempre visíveis
+- [ ] Cada card: ícone 28px + nome + meta + botões "Aplicar" + "Ver"
+- [ ] Click "Ver" → modal com lista técnico-key → friendlyName (+ unit + ↑↓)
+- [ ] Click "Aplicar" → dicionário aplicado + toast + painel atualiza
+- [ ] Com dicionário ativo → card destacado com border accent 2px + botão "⬇️ Exportar JSON"
+
+**Bug 6 (Análise vs Inspector):**
+- [ ] Em viewport < 1400px: abrir Inspector → abrir Análise → Inspector fecha automaticamente + toast "Inspector fechado para dar espaço à Análise Estatística"
+- [ ] Em viewport ≥ 1400px: ambos abertos simultaneamente, Análise com `right: 340px`
+
+**Bug 7 (Catálogo substituir):**
+- [ ] Adicionar KPI → selecionar → aba 🧩 Componentes → banner azul "🔄 Modo Substituir — componente selecionado: 📊 KPI Card. Clique em outro para trocar."
+- [ ] Cards com texto "🔄 Substituir" em vez de "+ Adicionar"
+- [ ] Card do KPI mostra "✓ Atual" (não clicável)
+- [ ] Click em Scatter → KPI vira Scatter + toast
+- [ ] Fechar Inspector → banner some, cards voltam a "+ Adicionar"
+
+**Bug 8 (Welcome screen):**
+- [ ] SEM CSV → canvas mostra: ☀️ + "Solstice" grande + "Dashboard Studio v5.3" + 2 botões primary + divisor + 6 cards de domínios
+- [ ] Sem scroll necessário (max-height calc(100vh - 160px))
+- [ ] Click num card de domínio → carrega dummy + aplica dicionário do domínio (toast info)
+- [ ] Click "📁 Importar meu CSV" → file picker abre
+- [ ] Click "📊 Explorar dados de exemplo" → dummy carrega + toast educativo "📊 Dados de exemplo carregados!" com botão 🪄 Auto-Dashboard inline
+
+**Bug 9 (⚙️ Inspector):**
+- [ ] Componente no canvas → hover → click ⚙️ → Inspector lateral abre com seção Dados expandida
+- [ ] Tooltip do ⚙️ = "Configurar (abre inspector)"
+- [ ] Click novamente em outro componente → Inspector atualiza header + accordions
+
+**Polish:**
+- [ ] Tooltips dos 6 botões da casca: 📈 "Ver análise estatística" · 🔬 "Ver origem dos dados (Provenance Trail)" · 🔍 "Ver histórico de decisões" · 🔄 "Trocar tipo de componente" · ⚙️ "Configurar (abre inspector)" · 🗑️ "Remover componente"
+- [ ] Toast educativo após dummy: "📊 Dados de exemplo carregados! 200 linhas de vendas BR. Clique para gerar dashboard automaticamente." com action button
+- [ ] Focus visível em tabs (outline accent)
+
+**Regressão B1-B12:**
+- [ ] Auto-Dashboard, Wizard, Snapshots, Inspector, Drawer Análise — tudo operacional
+- [ ] Modos, Slides, Apresentador, Command Palette, Tour — tudo operacional
+- [ ] 10 componentes renderizam, smart defaults funcionam
+- [ ] Filtros, cross-filter, params operacionais
+
 ### Bloco 12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish
 
 - [ ] Sentinela `[Solstice] Bloco 12 aplicado · 5 modos + Slides + Apresentador + Command Palette + Tour + Polish` verde

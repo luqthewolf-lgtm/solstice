@@ -1592,6 +1592,91 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-089 — Aba "Dados" sempre visível com estado vazio (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** `activate('dados')` tinha condição `&& dsReady` — sem CSV, clicar na aba não mostrava nada. Confundia usuário novo.
+**Decisão:** Remover a condição. Função `_renderDataPanel()` controla o conteúdo: sem CSV mostra estado vazio com 📁 Importar / 📊 Exemplo; com CSV mostra Quality + Editor normalmente.
+**Consequências:** ✅ Aba sempre tem conteúdo · ✅ CTAs claros para o próximo passo · ⚠️ Sub-painéis do B2 (#dataset-summary, #quality-card, #editor-panel) precisam ser explicitamente toggle-hidden quando vazio.
+
+---
+
+## ADR-090 — Botão 🔄 Trocar tipo de componente na casca (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** Usuário criava KPI por engano, queria trocar para Série Temporal. Tinha que: 🗑️ remover → catálogo → adicionar novo. 4 passos para 1 ação.
+**Decisão:** Novo botão 🔄 na casca (entre 🔍 e ⚙️). Ordem final: 📈 🔬 🔍 🔄 ⚙️ 🗑️. Clique abre `Modal.select` reaproveitando o picker do catálogo. Trocar substitui `slot.type` e gera `defaultConfig` novo. Registra `change_component_type` no Audit.
+**Plus:** Catálogo da sidebar entra em "Modo Substituir" quando há slot selecionado (ADR-095).
+**Consequências:** ✅ 1 clique para trocar · ✅ Audit logado · ⚠️ Config antiga perdida (defaultConfig vence) — aceitável
+
+---
+
+## ADR-091 — Atalhos/Status como dev-sections; tabs com badges + borda accent (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** Sidebar tinha 2 seções poluindo o usuário final: "Atalhos" (5 linhas) + "Status do bloco" (25 linhas de ✓). São info de DEV, não de uso.
+**Decisão:**
+- Ambas marcadas com class `.solstice__dev-section`
+- CSS `.solstice__dev-section { display: none }` por padrão
+- `.solstice__app[data-debug="true"] .solstice__dev-section { display: block }` — só aparecem com Ctrl+Shift+D
+- Tabs ganham: borda esquerda accent 3px na ativa + background surface-3 + font-weight semibold
+- Badges dinâmicas: Dados (N colunas) · Componentes (10) · Dicionários (6+salvos) · Snapshots (count)
+- Novo rodapé com botões `⌨️ Ver atalhos` (modal) e `🧭 Tour guiado`
+**Consequências:** ✅ Sidebar 80% mais limpa para usuário final · ✅ Dev ainda tem acesso · ✅ Badges dão contexto
+
+---
+
+## ADR-092 — Welcome screen refeita; canvas--empty oculta toolbar/insights (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** Bug do "afundando": canvas tinha `flex column + gap`. Mesmo sem sections, ainda renderia toolbar + insights vazios + empty state. Empty era empurrado abaixo do fold.
+**Decisão:**
+- `_renderEmptyState()` refeita: layout vertical compacto centralizado com `max-height: calc(100vh - 160px); overflow: hidden`
+- ☀️ Logo grande + Solstice + sub + 2 botões grandes + divisor + 6 cards de templates inline
+- Cards de template carregam dummy E aplicam dicionário do domínio em sequência
+- `SolsticeCanvas.render()` adiciona class `.solstice__canvas--empty` quando `sections.length === 0`
+- CSS `.solstice__canvas--empty` esconde toolbar/insights/filterbar via `display: none !important`
+- Cross-filter/Filters/Insights só renderizados quando `!isEmpty && dsReady`
+**Consequências:** ✅ Welcome sempre cabe no viewport · ✅ Toolbar não polui empty state · ✅ Insights só aparecem quando faz sentido · ⚠️ Templates do dicionário inline dependem do `_loadDummyDataset` async — race condition mitigada via `setTimeout`
+
+---
+
+## ADR-093 — Dicionários pré-feitos como cards principais + preview + export (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** Aba "🧠 Dicionários" tinha os 6 pré-feitos enterrados em lista pequena depois dos "Salvos". Usuário novo não sabia que existiam.
+**Decisão:**
+- Card destacado para dicionário ATIVO (border accent 2px) + botão "⬇️ Exportar JSON"
+- Lista compacta de salvos (se houver)
+- Os 6 pré-feitos como **cards grandes** sempre visíveis: ícone 28px + nome + meta + 2 botões (Aplicar primary · Ver)
+- "Ver" abre modal com grid técnico-key → friendlyName (+ unit + ↑↓ direção) das colunas
+**Consequências:** ✅ Pré-feitos visíveis na primeira impressão da aba · ✅ Export permite versionar/compartilhar · ✅ Preview educa sobre o que cada dicionário faz
+
+---
+
+## ADR-094 — Análise auto-fecha Inspector em viewport estreito (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** Em telas < 1400px, Inspector (340px direita) + drawer Análise (largura ajustada com `right: 340px`) deixavam o canvas com largura inviável (~600px). Componentes ficavam apertados.
+**Decisão:** `SolsticeAnalysis.open(slotId)` verifica `window.innerWidth < 1400`. Se sim, fecha o Inspector primeiro via `SolsticeInspector.close()` e exibe toast `'Inspector fechado para dar espaço à Análise Estatística'`. Em viewport ≥ 1400px ambos abertos funcionam.
+**Consequências:** ✅ UX melhor em laptops 13"/14" · ✅ Mensagem explicativa não-bloqueante · ⚠️ Usuário em viewport pequeno precisa toggle manual para abrir Inspector de novo
+
+---
+
+## ADR-095 — Catálogo com Modo Substituir quando há slot selecionado (B12-r1)
+
+**Status:** Aceito · Patch B12-r1
+**Contexto:** Catálogo da aba 🧩 Componentes só sabe "adicionar". Quando há slot selecionado, clicar num card de KPI cria 11º componente — não substitui.
+**Decisão:** Quando `ui.inspector.slotId` ou `ui.selectedSlot` tem valor E o slot tem `type !== 'empty'`:
+- Banner accent no topo do catálogo: "🔄 Modo Substituir — componente selecionado: ..."
+- Cada card mostra "🔄 Substituir" em vez de "+ Adicionar"
+- Card do mesmo tipo já selecionado mostra "✓ Atual" e é não-clicável
+- Click executa a mesma lógica do botão 🔄 da casca (ADR-090)
+- Footer hint: "Clique fora ou em ✕ do Inspector para sair do modo substituir"
+**Consequências:** ✅ Substituir é tão fácil quanto adicionar · ✅ Banner visual claro evita confusão · ⚠️ Subscriber em `ui.inspector.slotId` força re-render do catálogo (custo pequeno)
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

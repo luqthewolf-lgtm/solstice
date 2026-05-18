@@ -9,8 +9,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco12** (B12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish) |
-| Bloco corrente | **Bloco 12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish** ✅ COMPLETO |
+| Versão atual | **v5.3.0-bloco12-r1** (B12 + Patch Final UX · 9 bugs corrigidos · welcome refeita) |
+| Bloco corrente | **Bloco 12 — 5 Modos + Slides + Apresentador + Command Palette + Tour + Polish** ✅ COMPLETO + Patch r1 (Final UX) |
 | Próximo bloco | Bloco 13 — Diferenciais Avançados (Comentários + Grafo de Métricas + 10+ features) |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
@@ -687,6 +687,53 @@ Templates aparecem no picker do `SolsticeTemplates` (B3) quando `dictKey === 'ba
 **Tamanho:** dashboard.html ~16.437 linhas (~712 KB).
 
 **ADRs novas:** ADR-084 (5 modos via `data-mode` no app shell + dropdown header) · ADR-085 (Modo Slides reusa sections existentes sem editor próprio) · ADR-086 (Apresentador single-window dual-pane em vez de window.open dual-screen) · ADR-087 (Command Palette com catálogo hardcoded + fuzzy match simples · Ctrl+K) · ADR-088 (Tour spotlight via clip-path + posicionamento dinâmico do tooltip).
+
+### 🔧 Patch B12-r1 — Final UX (9 bugs + polish consolidados)
+
+Lucas pediu consolidação de UX antes do B13. Análise profunda identificou 9 bugs críticos que tornavam features existentes inacessíveis. Bugs corrigidos:
+
+| # | Bug | Correção (ADR) |
+|---|---|---|
+| 1 | Aba "Dados" vazia antes de CSV | `_renderDataPanel()` mostra estado vazio com 📁 Importar / 📊 Exemplo (ADR-089) |
+| 2 | Empty state "afundando" | Insights/Filterbar/CrossFilter só renderizam quando há sections E dataset (ADR-092) |
+| 3 | Sem botão de trocar componente | Novo 🔄 na casca + Modo Substituir no catálogo (ADR-090, ADR-095) |
+| 4 | Sidebar não harmônica | Atalhos/Status viraram dev-section (só com debug); tabs com borda accent + badges dinâmicas (ADR-091) |
+| 5 | Dicionários pré-feitos invisíveis | 6 pré-feitos como cards grandes + ver colunas + exportar JSON (ADR-093) |
+| 6 | Análise vs Inspector conflitavam | Auto-close Inspector em viewport < 1400px com toast (ADR-094) |
+| 7 | Catálogo sem trocar | Quando há slot selecionado, cards viram "🔄 Substituir" com banner explicativo (ADR-095) |
+| 8 | Welcome layout cortado/scroll | Welcome refeita: brand + 2 botões + divisor + 6 templates inline (ADR-092) |
+| 9 | ⚙️ abre Inspector | Verificado e operacional |
+
+**Sidebar transformada:**
+- Tabs com badges dinâmicas: 📊 Dados (cols) · 🧩 Componentes (10) · 🧠 Dicionários (6 + salvos) · 📸 Snapshots (count)
+- Borda accent à esquerda na aba ativa + background surface-3
+- Seções "Atalhos" e "Status do bloco" viram `.solstice__dev-section` (visíveis só com `data-debug="true"` no app)
+- Novo rodapé com botões `⌨️ Ver atalhos` (modal) e `🧭 Tour guiado`
+
+**Welcome screen refeita:**
+- ☀️ Logo grande + "Solstice" + "Dashboard Studio v5.3"
+- 2 botões grandes: 📁 Importar meu CSV (primary) + 📊 Explorar dados de exemplo
+- Divisor "ou comece com um domínio"
+- Grid de 6 cards menores — cada card carrega dummy + aplica dicionário do domínio
+- `max-height: calc(100vh - 160px)` + `overflow: hidden` — nunca causa scroll
+
+**Toolbar do canvas:** oculta no estado empty via CSS class `.solstice__canvas--empty` (junto com filterbar/insights).
+
+**Tooltips melhorados** nos 6 botões da casca:
+- 📈 "Ver análise estatística"
+- 🔬 "Ver origem dos dados (Provenance Trail)"
+- 🔍 "Ver histórico de decisões"
+- 🔄 "Trocar tipo de componente" (NOVO B12-r1)
+- ⚙️ "Configurar (abre inspector)"
+- 🗑️ "Remover componente"
+
+**Toast educativo** ao carregar dummy: "📊 Dados de exemplo carregados! 200 linhas. Clique para gerar dashboard automaticamente." com botão `🪄 Auto-Dashboard` inline.
+
+Versão `5.3.0-bloco12-r1`. Sentinela `[Solstice] Patch Final UX aplicado (B12-r1) · 9 bugs corrigidos · welcome refeita · 🔄 trocar componente · aba Dados sempre visível`.
+
+**Tamanho:** dashboard.html ~17.057 linhas (~739 KB).
+
+**ADRs novas:** ADR-089 (Aba Dados sempre visível) · ADR-090 (Botão 🔄 trocar componente na casca) · ADR-091 (Atalhos/Status como dev-sections; tabs com badges + borda accent) · ADR-092 (Welcome screen refeita; canvas--empty oculta toolbar/insights) · ADR-093 (Dicionários pré-feitos como cards principais + ver colunas + exportar) · ADR-094 (Análise auto-fecha Inspector em viewport estreito) · ADR-095 (Catálogo com Modo Substituir quando há slot selecionado).
 
 ---
 
