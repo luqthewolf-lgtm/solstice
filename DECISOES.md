@@ -1333,6 +1333,86 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-075 — ColumnScore com 8 critérios compostos
+
+**Status:** Aceito · Bloco 10
+**Contexto:** Auto-Dashboard precisa decidir QUAIS colunas merecem visualização. Sem score, escolhe alfabeticamente — não faz sentido.
+**Decisão:** Score 0-100 via 8 critérios ponderados (coverage 18%, variation 16%, cardinalidade 12%, higherIsBetter 14%, dictMatch 12%, typeImportance 10%, position 8%, synonymBonus 10%). Cada critério normaliza para 0-1; pesos somam 1.0.
+**Pesos calibrados na intuição:**
+- Coverage primeiro: dado vazio não importa
+- higherIsBetter forte sinal de KPI
+- typeImportance: numeric > temporal > categorical (na ordem de "valor analítico")
+- Position só conta um pouco (datasets bem feitos têm KPI na 1ª coluna)
+**Consequências:**
+- ✅ Score auditável (rodar `Solstice.ColumnScore.rank(ctx)` mostra ranking)
+- ✅ Pesos ajustáveis em código (mudar `WEIGHTS`)
+- ⚠️ Calibração intuitiva — datasets de domínios específicos podem precisar pesos diferentes (futuro: pesos por domínio do dicionário)
+- ⚠️ Não considera correlação entre colunas — só atributos isolados
+
+---
+
+## ADR-076 — Recommender declarativo com 15 regras e confidence
+
+**Status:** Aceito · Bloco 10
+**Contexto:** Recomendar visualização precisa cobrir muitos cenários sem virar árvore de if/else gigante.
+**Decisão:** Array `RULES` de objetos `{ id, label, build(ctx) → recomendação | null }`. Cada `build` decide se a regra aplica e retorna `{ componentType, config, confidence, reasoning }`. Confidence 0-100 calibrada na intuição.
+**15 regras** cobrem KPI/Série/Scatter/Box Plot/Distribuição/Sankey/Gauge/Heatmap/Tabela/Markdown × cenários típicos. Cada regra independente — adicionar nova = appendar ao array.
+**Mapa `INTENT_RULES`** liga 11 intenções do Wizard a subsets de regras (ex: "comparar" → ['boxplot-grouped', 'top-categorical', 'sankey-two-cats', 'kpi-from-hib', 'kpi-from-top-numeric']).
+**Confidence math:**
+- Hard-coded para a maioria (75-90)
+- Calculada para scatter: `50 + abs(r) * 50` — quanto maior correlação, maior confiança
+- Calculada para outliers: `60 + pct * 200` (cap 85)
+**Consequências:**
+- ✅ Auditável, testável regra-a-regra
+- ✅ Confidence dá ao usuário sinal claro de "isso é certeiro" vs "talvez"
+- ✅ Sem ML, sem black box
+- ⚠️ 15 regras pode escalar para 50+ se cobertura aumentar — em algum ponto vira módulo próprio
+
+---
+
+## ADR-077 — Auto-Dashboard confirma se confidence média < 70%
+
+**Status:** Aceito · Bloco 10
+**Contexto:** Auto-Dashboard pode tomar decisões erradas. Aplicar sem confirmação irrita; confirmar sempre frustra.
+**Decisão:** Pipeline:
+1. Filtra recomendações com `confidence ≥ 60`, top 8
+2. Calcula confidence média (`avgConf`)
+3. Se `avgConf >= 70 && !opts.force`: aplica direto (toast informativo)
+4. Senão: modal com lista checkmarcável — usuário desmarca o que não quer
+5. `opts.force = true` sempre confirma (botão "🪄 Auto-Dashboard" da toolbar passa force)
+**Layout das sections geradas:**
+- KPIs/Gauges primeiros (até 3 em layout 3-col)
+- Resto distribuído em sections de 2 componentes em layout 2-col-equal
+- Máximo 4 sections (4ª vira "Detalhamento")
+**Consequências:**
+- ✅ Confiança alta → execução rápida (1 click)
+- ✅ Confiança baixa → controle ao usuário
+- ✅ `opts.force` é semântico: o botão "Auto-Dashboard" SEMPRE pergunta, mas API programática pode pular
+- ⚠️ Heurística do 70% pode ser ajustada com uso real
+
+---
+
+## ADR-078 — Wizard com 11 intenções mapeadas a subsets de regras
+
+**Status:** Aceito · Bloco 10
+**Contexto:** Auto-Dashboard é "automático demais" — alguns usuários querem direção semântica ("quero ver evolução no tempo"). Wizard preenche esse gap.
+**Decisão:** Modal 3-step:
+1. **Step 1 — Intenção:** grid de 11 cards com ícone, título, descrição, badge (agnóstico/analítico/custom)
+2. **Step 2 — Revisar:** lista checkmarcável das recomendações filtradas pela intenção (passa `opts.intent` ao Recommender)
+3. **Step 3 — Aplicar:** preview final + botão "✓ Aplicar" reutiliza `AutoDashboard._buildSections`
+**Intenções dividem em:**
+- **7 agnósticas** cobrem perguntas universais ("comparar", "distribuir", etc.)
+- **4 analíticas** demandam Stats avançado (forecast, outliers, pareto, períodos)
+- **+1 customizada** = sem filtro de regra
+**Implementação:** `INTENT_RULES` mapeia intent → array de ruleIds aceitos. Recommender filtra durante `recommend(ctx, { intent })`.
+**Consequências:**
+- ✅ Usuário guia com intenção semântica → resultado mais útil que Auto-Dashboard puro
+- ✅ Reusa todo pipeline do Auto-Dashboard (sem código duplicado)
+- ✅ INTENT_RULES é editável (adicionar regra = ajustar array)
+- ⚠️ 11 intenções podem confundir — mas badges (agnóstico/analítico/custom) ajudam
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

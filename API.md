@@ -1861,3 +1861,102 @@ init()                         // no-op (Store-based)
 | `crossfilter` | `{ column, value } \| null` | `CrossFilter.activate / clear` |
 | `params` | `{ name: { type, value } }` | `Params.set / remove / openModal` |
 | `ui.filters.collapsed` | boolean | toggle do header da barra |
+
+---
+
+## `Solstice.ColumnScore` (Bloco 10 · ADR-075)
+
+Score de importância de coluna 0-100 via 8 critérios.
+
+```js
+scoreImportance(col, ctx)      // → number 0-100
+rank(ctx)                      // → array<{col, score}> ordenado desc
+top(ctx, n=8)                  // → top N do rank
+WEIGHTS                        // → { coverage:.18, variation:.16, ... }
+```
+
+**8 critérios:** coverage · variation · cardinalidade · higherIsBetter · dictMatch · typeImportance · position · synonymBonus.
+
+## `Solstice.Recommender` (Bloco 10 · ADR-076)
+
+Recomendações de visualização para o dataset atual.
+
+```js
+recommend(ctx, opts)           // → array<{componentType, config, confidence, reasoning, ruleId, label}>
+                               //   opts: { intent: 'comparar' | 'tendencia' | ... | null }
+                               //   ordenado por confidence desc
+listRules()                    // → array<{id, label}> (15 regras)
+listIntents()                  // → array de intent ids (11+1 custom)
+INTENT_RULES                   // → mapa intent → ruleIds aceitos
+RULES                          // → array bruto das regras (debug)
+```
+
+**Confidence:** 0-100. Hard-coded na maioria; calculado para scatter (50 + |r|·50) e outliers (60 + pct·200).
+
+**15 regras incluídas:** kpi-from-hib, kpi-from-top-numeric, time-series, scatter-correlated, boxplot-grouped, distribution-single-num, sankey-two-cats, gauge-pct, gauge-from-hib, heatmap-cal, top-categorical, table-fallback, forecast-series, outlier-hunt, markdown-narrative.
+
+## `Solstice.AutoDashboard` (Bloco 10 · ADR-077)
+
+Pipeline automático.
+
+```js
+run(opts)                      // opts: { intent?, force? }
+                               //   force=true sempre mostra modal de confirmação
+                               //   sem force: pula confirmação se avgConf ≥ 70%
+_buildSections(recs)           // → array de sections com slots configurados
+                               //   KPIs/Gauges primeiros em 3-col, resto em 2-col-equal
+                               //   até 4 sections (4ª = "Detalhamento")
+```
+
+**Modal de confirmação:** lista checkmarcável com nome do componente + ícone + reasoning + badge de confidence (high ≥75 / med ≥60 / low <60).
+
+**Audit:** `action: 'auto_dashboard'` com `details: { intent, count, avgConfidence, recIds }`.
+
+## `Solstice.Wizard` (Bloco 10 · ADR-078)
+
+Wizard modal multi-step.
+
+```js
+open()                         // → Promise — modal 3-step
+listIntents()                  // → array<Intent>
+INTENTS                        // → array<Intent> (11+1)
+```
+
+**Intent shape:** `{ id, icon, title, desc, kind: 'agnostico'|'analitico'|'custom' }`.
+
+**11 intenções:**
+
+| ID | Kind | Title |
+|---|---|---|
+| comparar | agnóstico | Comparar |
+| distribuir | agnóstico | Distribuir |
+| tendencia | agnóstico | Tendência |
+| ranking | agnóstico | Ranking |
+| composicao | agnóstico | Composição |
+| correlacao | agnóstico | Correlação |
+| tabular | agnóstico | Tabular |
+| forecast | analítico | Forecast |
+| outlier | analítico | Caça outliers |
+| pareto | analítico | Pareto 80/20 |
+| periodos | analítico | Comparar períodos |
+| custom | custom | Personalizado |
+
+## Estilos CSS novos (Bloco 10)
+
+```css
+.solstice__wizard / -steps / -step / -step.is-current / .is-done / -step-num / -content
+.solstice__intents-grid
+.solstice__intent-card / .is-selected / -icon / -title / -desc / -badge / -badge--analytic
+.solstice__recs-list / .solstice__rec-item / -body / -title / -icon / -reason
+.solstice__rec-item-confidence (variantes --high / --med / --low)
+.solstice__recs-summary
+```
+
+## Botões novos na toolbar do canvas (Bloco 10)
+
+| Botão | Aciona |
+|---|---|
+| 🪄 Auto-Dashboard | `SolsticeAutoDashboard.run({ force: true })` |
+| 🧙 Wizard | `SolsticeWizard.open()` |
+
+Ambos só aparecem com dataset carregado (`dataset.ready`).

@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco9** (B8 + r1 empty-state + B9: Filtros + CrossFilter + Params) |
-| Bloco corrente | **Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros** ✅ COMPLETO |
-| Próximo bloco | Bloco 10 — Auto-Dashboard + Wizard Expandido + Recomendações |
+| Versão atual | **v5.3.0-bloco10** (B10 — Auto-Dashboard + Wizard + Recomendações) |
+| Bloco corrente | **Bloco 10 — Auto-Dashboard contextual + Wizard expandido + Recomendações ampliadas** ✅ COMPLETO |
+| Próximo bloco | Bloco 11 — Snapshots + Templates + Export HTML standalone |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
 | Tempo total estimado restante | ~5-7 sessões |
@@ -499,6 +499,66 @@ Lucas reportou: "Comece com um template + lista de componentes" vai afundando a 
 
 **ADRs novas:** ADR-071 (Canvas flex-column · empty state flex:1) · ADR-072 (Filtros aplicam via _ctx() — transparente para componentes) · ADR-073 (Cross-filter como destaque temporário, distinto de filtros globais) · ADR-074 (Parâmetros como K/V tipados substituídos antes de Store paths).
 
+### 🟪 Bloco 10 — Auto-Dashboard + Wizard expandido + Recomendações (15+ tipos)
+
+**Entregue em:** 2026-05-18 · Sessão 3 (cont.)
+
+**4 módulos novos:**
+
+| Módulo | API pública | Função |
+|---|---|---|
+| `SolsticeColumnScore` | scoreImportance/rank/top/WEIGHTS | Score 0-100 de relevância de coluna via 8 critérios compostos |
+| `SolsticeRecommender` | recommend/listRules/listIntents/INTENT_RULES/RULES | 15 regras declarativas com confidence |
+| `SolsticeAutoDashboard` | run/_buildSections | Pipeline 4-etapas com confirmação interativa |
+| `SolsticeWizard` | open/listIntents/INTENTS | Modal 3-step com 11 intenções |
+
+**ColumnScore — 8 critérios:** coverage (18%) · variation (16%) · cardinalidade (12%) · higherIsBetter (14%) · dictMatch (12%) · typeImportance (10%) · position (8%) · synonymBonus (10%).
+
+**Recommender — 15 regras declarativas** com confidence calibrada:
+
+| Regra | componentType | Confidence |
+|---|---|---|
+| `kpi-from-hib` | kpi | 90 |
+| `kpi-from-top-numeric` | kpi | 75 |
+| `time-series` | time-series | 85 |
+| `scatter-correlated` | scatter | 50 + abs(r)*50 |
+| `boxplot-grouped` | boxplot | 80 |
+| `distribution-single-num` | distribution | 65 |
+| `sankey-two-cats` | sankey | 75 |
+| `gauge-pct` | gauge | 85 |
+| `gauge-from-hib` | gauge | 70 |
+| `heatmap-cal` | heatmap-cal | 70 |
+| `top-categorical` | table | 60 |
+| `table-fallback` | table | 50 |
+| `forecast-series` | time-series | 78 |
+| `outlier-hunt` | boxplot | 60-85 |
+| `markdown-narrative` | markdown | 55 |
+
+**Auto-Dashboard pipeline:**
+1. `ColumnScore.rank(ctx)` ordena colunas
+2. `Recommender.recommend(ctx)` gera array
+3. Filtra `confidence ≥ 60`; top 8
+4. Se média < 70% → modal com checkboxes; senão aplica direto
+5. `_buildSections` distribui em até 4 sections (KPIs primeiro em 3-col, resto em 2-col)
+6. `Audit.record('auto_dashboard')` com `recIds`
+
+**Wizard 11 intenções (3 grupos):**
+- **7 agnósticas:** Comparar · Distribuir · Tendência · Ranking · Composição · Correlação · Tabular
+- **4 analíticas:** Forecast · Caça outliers · Pareto · Comparar períodos
+- **+ Customizada** (todas as regras sem filtro)
+
+Cada intenção mapeia para subset de regras via `INTENT_RULES`. Wizard tem 3 steps: 1) Intenção · 2) Revisar (checkboxes) · 3) Aplicar.
+
+**Botões na toolbar do canvas:**
+- 🪄 **Auto-Dashboard** (`solstice__btn--primary`) — accionado por click; só aparece com dataset carregado
+- 🧙 **Wizard** — modal multi-step
+
+**`Solstice.ColumnScore / Recommender / AutoDashboard / Wizard` expostos.** Versão `5.3.0-bloco10`. Sentinela `[Solstice] Bloco 10 aplicado · Auto-Dashboard + Wizard expandido + Recomendações (15+ tipos)`.
+
+**Tamanho:** dashboard.html ~14.423 linhas (~623 KB).
+
+**ADRs novas:** ADR-075 (ColumnScore 8 critérios compostos · pesos calibrados na intuição) · ADR-076 (Recommender declarativo com 15 regras · confidence 0-100) · ADR-077 (AutoDashboard com confirmação se conf média < 70%) · ADR-078 (Wizard 3-step com 11 intenções mapeadas a subsets de regras).
+
 ---
 
 ## 📅 Roadmap
@@ -512,7 +572,7 @@ Lucas reportou: "Comece com um template + lista de componentes" vai afundando a 
 - [x] **Bloco 7** — Módulo Estatístico `SolsticeStats` + Aba Análise + Smart Defaults
 - [x] **Bloco 8** — Insights + Narrativa + Agente + Inconsistências + Ask (Diferencial #2)
 - [x] **Bloco 9** — Filtros Globais + Cross-Filter + Parâmetros
-- [ ] **Bloco 10** — Auto-Dashboard + Wizard Expandido + Recomendações
+- [x] **Bloco 10** — Auto-Dashboard + Wizard Expandido + Recomendações (15+ tipos · 11 intenções)
 - [ ] **Bloco 11** — Snapshots + Templates + Export + File System
 - [ ] **Bloco 12** — 5 Modos + Atalhos + Polish (Modo Slides + Apresentador)
 - [ ] **Bloco 13** — Diferenciais Avançados (Modo Comentário + Grafo de Métricas) + `portabilidade/INDICE.md`

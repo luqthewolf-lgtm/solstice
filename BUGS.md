@@ -269,6 +269,62 @@ Copie o bloco abaixo ao reportar:
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
 
+### Bloco 10 — Auto-Dashboard + Wizard + Recomendações (15+ tipos · 11 intenções)
+
+- [ ] Sentinela verde `[Solstice] Bloco 10 aplicado · Auto-Dashboard + Wizard expandido + Recomendações (15+ tipos)`
+- [ ] `[Solstice] boot OK` aparece
+- [ ] `Solstice.version === '5.3.0-bloco10'`
+- [ ] Footer mostra `v5.3 · Bloco 10`
+- [ ] Banner cita `BLOCO 10 · AUTO-DASHBOARD`
+- [ ] Console: `Solstice.ColumnScore`, `Solstice.Recommender`, `Solstice.AutoDashboard`, `Solstice.Wizard` expostos
+
+**ColumnScore:**
+- [ ] Console: `Solstice.ColumnScore.rank(Solstice.Components.list && Solstice.Store.get('ingest') ? {rows: Solstice.Store.get('ingest').rows, columns: Solstice.Store.get('ingest').columns, types: Solstice.Store.get('ingest').types, dictionary: Solstice.Store.get('dictionary')} : {})` retorna array de {col, score}
+- [ ] Scores estão entre 0 e 100
+- [ ] Colunas com `higherIsBetter` no dicionário aparecem entre as top 3
+- [ ] Coluna 100% nula recebe score baixo (< 30)
+
+**Recommender:**
+- [ ] Console: `Solstice.Recommender.recommend(ctx)` retorna array ordenado por confidence desc
+- [ ] `Solstice.Recommender.listRules().length === 15`
+- [ ] `Solstice.Recommender.listIntents().length >= 12` (11 + custom)
+- [ ] Filtrar por intent: `recommend(ctx, {intent: 'tendencia'})` só inclui regras de tendência
+- [ ] Confidence calibrada: KPI com higherIsBetter = 90, Tabela fallback = 50
+
+**Auto-Dashboard:**
+- [ ] Carregar CSV dummy → toolbar tem botão "🪄 Auto-Dashboard" primary (accent)
+- [ ] Click → modal "🪄 Auto-Dashboard sugerido" abre (force: true sempre confirma)
+- [ ] Modal mostra summary "Confiança média: X%" + lista checkmarcável
+- [ ] Cada item: checkbox · ícone · nome · reasoning · badge confidence (verde/amarelo/cinza)
+- [ ] Desmarcar item → "Aplicar" cria só os marcados
+- [ ] Click "Aplicar selecionados" → sections criadas no canvas
+- [ ] Toast sucesso com N componentes / N sections
+- [ ] Console: `Solstice.Audit.list({action:'auto_dashboard'}).length > 0` após uso
+- [ ] Sem dataset: botão NÃO aparece
+- [ ] Console: `Solstice.AutoDashboard.run({intent:'tendencia'})` filtra por intent
+
+**Wizard:**
+- [ ] Toolbar tem botão "🧙 Wizard"
+- [ ] Click → modal "🧙 Wizard de criação" abre no step 1
+- [ ] Step indicator no topo: ① Intenção (atual) → ② Revisar → ③ Aplicar
+- [ ] Step 1: grid 2-3 col com 12 cards (7 agnósticos + 4 analíticos + 1 custom)
+- [ ] Cards têm ícone grande, título, descrição, badge (📊/🔬/🛠️)
+- [ ] Click num card → seleciona (border accent) + avança auto para step 2
+- [ ] Step 2: lista checkmarcável com recomendações filtradas pela intenção
+- [ ] Botão "← Voltar" volta para step 1 mantendo seleção
+- [ ] Botão "Próximo →" avança para step 3 se há ≥ 1 marcado
+- [ ] Step 3: lista final de aplicação (✓ verdes em vez de checkboxes)
+- [ ] Botão "✓ Aplicar" → componentes criados + modal fecha + toast sucesso
+- [ ] Sem dataset: botão dispara toast "Importe um CSV primeiro" e modal não abre
+- [ ] Console: `Solstice.Audit.list({action:'wizard_apply'}).length > 0` após uso
+- [ ] Intenção "Personalizado" → step 2 mostra TODAS as recomendações (sem filtro de intent)
+
+**Regressão B1-B9:**
+- [ ] Filtros/Cross-filter/Params continuam funcionando
+- [ ] Insights/Narrative/Agent/Inconsistências/Ask operacionais
+- [ ] 10 componentes renderizam normalmente
+- [ ] Inspector lateral, Drawer Análise, Catálogo accordion — operacionais
+
 ### Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros (+ patch B8-r1 empty-state)
 
 - [ ] Sentinela verde `[Solstice] Bloco 9 aplicado · Filtros Globais + Cross-Filter + Parâmetros · (+ patch B8-r1 empty-state)`
