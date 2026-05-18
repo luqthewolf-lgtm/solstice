@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco7-r2** (B7 + r1 cap + r2 reestruturação UX: Inspector + Drawer + Catálogo) |
-| Bloco corrente | **Bloco 7 — SolsticeStats + Aba Análise + Smart Defaults** ✅ COMPLETO + Patch r1 (cap) + Patch r2 (reestruturação UX) |
-| Próximo bloco | Bloco 8 — Insights + Narrativa + Agente + Inconsistências (Diferencial #2) |
+| Versão atual | **v5.3.0-bloco8** (B8 — Insights + Narrativa + Agente + Inconsistências + Ask · Diferencial #2) |
+| Bloco corrente | **Bloco 8 — Diferencial #2 (Narrativa Automática)** ✅ COMPLETO |
+| Próximo bloco | Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
 | Tempo total estimado restante | ~5-7 sessões |
@@ -406,6 +406,42 @@ Lucas pediu reestruturação grande para resolver fricções de uso real do pain
 
 **ADRs novas:** ADR-063 (Inspector lateral 3-col) · ADR-064 (Accordion expansível em vez de tabs, com persistência) · ADR-065 (Drawer Análise separado do Inspector).
 
+### 🟩 Bloco 8 — Insights + Narrativa + Agente + Inconsistências + Ask (Diferencial #2)
+
+**Entregue em:** 2026-05-18 · Sessão 3
+
+**5 módulos novos** consumindo `SolsticeStats` do B7:
+
+| Módulo | API pública | O que faz |
+|---|---|---|
+| `SolsticeInsights` | compute/list/renderInto/init | Painel topo do canvas com 0-8 cards de insight priorizados (tendência/outliers/Pareto/sazonalidade/mudança recente/categoria dominante) |
+| `SolsticeNarrative` | build/openModal/setTone/setDepth | Narrativa pt-BR · 3 tons × 3 profundidades · export markdown/email |
+| `SolsticeAgent` | init/status/_reset | Toasts contextuais com cap 3/sessão; reseta no import novo |
+| `SolsticeInconsistencies` | catalog/checkSlot/RULES | 15 regras declarativas (sum-of-pct, sum-of-id, gauge-meta-fora-range, etc.) |
+| `SolsticeAsk` | open/close/parse/init | Ctrl+P command palette · parser regex pt-BR com 7 padrões |
+
+**6 tipos de insight detectados** ordenados por score:
+1. **Tendência** (magnitude > 10% + R² > 0.30) → cor segue `higherIsBetter`
+2. **Outliers** (>2% via IQR 1.5×)
+3. **Pareto 80/20** em cat × num
+4. **Sazonalidade** (autocorrelação lag 12 > 0.4 · ≥24 meses necessários)
+5. **Mudança recente** (1ª metade vs 2ª metade, |Δ| > 20%)
+6. **Categoria dominante** (>40% do total)
+
+**Narrativa Automática (Diferencial #2)** — botão "📖 Gerar narrativa" no rodapé do inspector. Modal com 3 tons (👔 Executivo / 🔬 Analítico / 💬 Casual) × 3 profundidades. Botões Copiar · Markdown · Email.
+
+**Agente** — após import, analisa insights, dispara até 3 toasts contextuais por sessão. Toast tem botão de ação ("Ver insights" / "Criar Box Plot").
+
+**Inconsistências** — accordion "⚠️ Avisos" no topo do inspector (só se houver hits). 15 regras: avg-of-avg, sum-of-pct, sum-of-id, count-vs-sum-confusion, high-null-col, gauge-meta-fora-range, sankey-same-cols, distrib-bins-extremos, boxplot-grupos-demais, scatter-poucos-pontos, monovalor, comparison-no-temporal, time-series-poucos-pontos, agg-incompat-comparison, tabela-sem-filtro-grande.
+
+**Ask (Ctrl+P)** — palette overlay Spotlight. Parser regex pt-BR com 7 padrões: média/mediana/soma/máx/min/std de X · outliers em X · correlação X e Y · top N em X por Y · tendência de X · quantos registros · quantas categorias em X. Resolve coluna por friendlyName OU técnico (case-insensitive, partial).
+
+**Solstice.Insights / Narrative / Agent / Inconsistencies / Ask exposed.** Versão `5.3.0-bloco8`. Sentinela `[Solstice] Bloco 8 aplicado · Insights + Narrativa + Agente + Inconsistências (Diferencial #2)`.
+
+**Tamanho:** dashboard.html ~12.485 linhas (~542 KB).
+
+**ADRs novas:** ADR-066 (Insights priorizados por score) · ADR-067 (Narrativa template-based pt-BR) · ADR-068 (Agent cap 3/sessão) · ADR-069 (Inconsistencies declarativas) · ADR-070 (Ask parser regex, não LLM).
+
 ---
 
 ## 📅 Roadmap
@@ -417,7 +453,7 @@ Lucas pediu reestruturação grande para resolver fricções de uso real do pain
 - [x] **Bloco 5** — 4 Componentes Base + Auditoria + Integração Dicionário (Diferencial #1)
 - [x] **Bloco 6** — 6 Componentes Avançados + Box Plot + Sankey
 - [x] **Bloco 7** — Módulo Estatístico `SolsticeStats` + Aba Análise + Smart Defaults
-- [ ] **Bloco 8** — Insights + Narrativa + Agente + Inconsistências (Diferencial #2)
+- [x] **Bloco 8** — Insights + Narrativa + Agente + Inconsistências + Ask (Diferencial #2)
 - [ ] **Bloco 9** — Filtros Globais + Cross-Filter + Parâmetros
 - [ ] **Bloco 10** — Auto-Dashboard + Wizard Expandido + Recomendações
 - [ ] **Bloco 11** — Snapshots + Templates + Export + File System

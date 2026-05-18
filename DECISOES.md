@@ -1190,6 +1190,89 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-066 — Insights priorizados por score (top 8)
+
+**Status:** Aceito · Bloco 8
+**Contexto:** Painel automático de insights pode gerar 30+ achados num dataset rico. Mostrar tudo confunde; mostrar pouco perde sinal.
+**Decisão:** Cada insight tem `score` 0-100 calculado por heurística específica (magnitude × R² para tendência, % outliers × 3 para outliers, concentração × 100 para Pareto etc.). Ordena por score desc, mostra top 8. Severity (success/warn/error/info) respeita `higherIsBetter` do dicionário.
+**Alternativas:** mostrar todos com filtro · severity-only ordering · ML para ranking.
+**Consequências:**
+- ✅ Usuário vê o mais relevante primeiro
+- ✅ Card pode ser clicado para "Ver insights" (drilldown futuro)
+- ⚠️ Score heurístico — calibração pode precisar ajuste com uso real
+- ⚠️ Cap 8 pode esconder padrão #9-10 interessante
+
+---
+
+## ADR-067 — Narrativa template-based pt-BR (sem LLM)
+
+**Status:** Aceito · Bloco 8
+**Contexto:** SEÇÃO 7 do PROMPT pede "Narrativa Automática" como Diferencial #2. Opções: (1) integrar LLM externo, (2) templates locais.
+**Decisão:** Templates pt-BR hardcoded com slots `{friendly}`, `{value}`, `{pct}`, `{r2}` etc. 3 tons × 3 profundidades. Substituição via regex `\{(\w+)\}`. Texto resultante é determinístico, offline, zero custo.
+**Por que não LLM:**
+- ADR-005 (single-file, sem deps externas)
+- Custo por request, latência, dependência de chave API
+- Determinismo > criatividade no contexto de relatório executivo
+**Quando vale evoluir para LLM:** B13+ ou via integração opcional usuário-provê-key.
+**Consequências:**
+- ✅ Funciona offline, instantâneo, zero custo
+- ✅ Texto reproduzível (mesmo input = mesmo output)
+- ✅ Auditável (templates visíveis no código)
+- ⚠️ Só pt-BR; EN/ES fica para B12
+- ⚠️ Templates são "engessados" — narrativa pode soar repetitiva em uso intenso
+
+---
+
+## ADR-068 — Agente proativo com cap 3 toasts/sessão
+
+**Status:** Aceito · Bloco 8
+**Contexto:** Agent que dispara toast a cada padrão detectado vira spam (5-10 toasts ao importar CSV → usuário fecha tudo na irritação).
+**Decisão:** Cap absoluto de 3 toasts por sessão de uso. Cada toast tem `key` único; mesma key não dispara 2x. Reseta ao importar novo CSV (sessão analítica nova). Cada toast com botão de ação ("Ver insights" / "Criar Box Plot").
+**Alternativas:** cap configurável · agrupar em painel "central de notificações" · throttle por minuto.
+**Consequências:**
+- ✅ Notificação parecida com app moderno (alertas pontuais, não barulho)
+- ✅ Usuário aprende a confiar (toast = algo importante)
+- ⚠️ Pode segurar insights úteis em sessão longa — usar painel de insights para ver todos
+
+---
+
+## ADR-069 — Inconsistências como catálogo declarativo
+
+**Status:** Aceito · Bloco 8
+**Contexto:** Validações analíticas (sum de %, gauge fora do range) precisam ser facilmente expansíveis SEM tocar em fluxo crítico.
+**Decisão:** Array `RULES` de objetos `{ id, label, severity, description, hint, when(ctx) → bool }`. Função pura `checkSlot(slotId)` itera regras, devolve hits. Inspector renderiza accordion "⚠️ Avisos" se `hits.length > 0`. `try/catch` ao redor de cada `when` — regra que dá erro falha silenciosa.
+**Padrão:** dados → regras → resultado. Sem state, sem subscribe.
+**Consequências:**
+- ✅ Adicionar nova regra = adicionar objeto ao array (1 PR)
+- ✅ Regras testáveis isoladamente
+- ✅ Não bloqueia ação — só avisa
+- ⚠️ 15 regras pode escalar para 50+ — em algum ponto vira módulo próprio
+- ⚠️ Regras complexas (Simpson's paradox, viés de seleção) não cabem nesse pattern
+
+---
+
+## ADR-070 — Ask via regex parser (não LLM)
+
+**Status:** Aceito · Bloco 8
+**Contexto:** "Pergunte ao Solstice" do PROMPT poderia ser implementado com LLM, mas mesmas razões da ADR-067 se aplicam.
+**Decisão:** Parser regex pt-BR reconhece **7 padrões** mapeando para `SolsticeStats.*`. Resolver de coluna aceita nome técnico OU friendlyName (case-insensitive, partial). Resposta inclui `formula` explicativa.
+**Padrões reconhecidos:**
+1. Agregação (`média/mediana/soma/máx/min/std de X`)
+2. Outliers (`quantos outliers em X`)
+3. Correlação (`correlação entre X e Y`)
+4. Ranking (`top N em X [por Y]`)
+5. Tendência (`tendência de X`)
+6. Total (`quantos registros`)
+7. Distinctos (`quantas categorias em X`)
+**Falha gentilmente:** queries fora dos padrões recebem mensagem + sugestões.
+**Consequências:**
+- ✅ Offline, instantâneo, zero custo
+- ✅ Determinístico, fácil de testar
+- ⚠️ Cobre ~70% das perguntas executivas, não 100%
+- ⚠️ Não entende variações criativas (ex: "tem outlier?" em vez de "quantos outliers em X")
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

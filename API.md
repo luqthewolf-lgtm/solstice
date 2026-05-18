@@ -1550,3 +1550,205 @@ Convenção de keys de accordion:
 ```
 
 **Regra do app:** `.solstice__app` ganhou classes-toggle `.has-inspector` e `.has-analysis` que disparam as transições. CSS responsivo `< 1200px` muda inspector para `position: fixed`.
+
+---
+
+## `Solstice.Insights` (Bloco 8 · ADR-066)
+
+Painel de Insights Executivos automáticos no topo do canvas. Analisa o dataset e gera 0-8 cards ordenados por score.
+
+```js
+compute()                      // → array<Insight> com até 8 itens ordenados por score desc
+                               //   Insight = { id, kind, icon, title, text, severity, score, meta }
+                               //   kind: 'trend' | 'outliers' | 'pareto' | 'seasonality' | 'recency' | 'top'
+                               //   severity: 'success' | 'warn' | 'error' | 'info'
+                               //   score: 0-100
+
+renderInto(parentEl)           // anexa painel colapsável ao parentEl (canvas)
+                               //   Só renderiza se há insights (≥ 1)
+list()                         // → cópia do cache de insights computados
+init()                         // chamado por boot — subscribe em ingest + dictionary
+```
+
+**6 tipos detectados:**
+
+| Kind | Quando dispara |
+|---|---|
+| `trend` | magnitude > 10% + R² > 0.30 numa numérica |
+| `outliers` | > 2% via IQR 1.5× |
+| `pareto` | cat (3-30 distintos) × num · concentração detectada |
+| `seasonality` | autocorrelação no lag 12 > 0.4 · ≥ 24 meses |
+| `recency` | 1ª metade vs 2ª metade dos registros, \|Δ\| > 20% |
+| `top` | categoria dominante > 40% do total |
+
+**Severity** respeita `higherIsBetter` do dicionário (trend up + good = success; trend up + bad = error).
+
+---
+
+## `Solstice.Narrative` (Bloco 8 · ADR-067 · Diferencial #2)
+
+Gerador de narrativa automática pt-BR template-based. Botão "📖 Gerar narrativa" no rodapé do inspector.
+
+```js
+build(slotId)                  // → string com narrativa em parágrafos (\n\n separa)
+openModal(slotId)              // → Promise — modal interativo com export
+setTone(tone)                  // tone: 'executivo' | 'analitico' | 'casual'
+setDepth(depth)                // depth: 'short' | 'medium' | 'long'
+getTone() / getDepth()         // getters
+_T                             // → templates internos (debug)
+```
+
+**Templates internos** (`_T`):
+- `intro` (sempre)
+- `trend_up/trend_down/trend_flat` (medium+)
+- `directional_good/directional_bad` (se higherIsBetter conhecido)
+- `outliers_present` (long only)
+- `comparison` (KPI com config.comparison)
+
+**Modal opcoes:**
+- Pills de Tom (3) e Profundidade (3) — atualiza preview em tempo real
+- 📋 Copiar (navigator.clipboard)
+- ⬇️ Markdown (download .md)
+- ✉️ Email (mailto:)
+
+---
+
+## `Solstice.Agent` (Bloco 8 · ADR-068)
+
+Observa mudanças do `ingest` e dispara toast contextual proativo. Cap 3/sessão.
+
+```js
+init()                         // chamado por boot — subscribe ingest
+status()                       // → { fired, cap, keys }   — debug
+_reset()                       // zera contagem + keys
+```
+
+**Gatilhos:** após import, computa `Insights.compute()` e analisa top 1:
+- `kind === 'trend'` → toast "📈 Tendência detectada" + botão "Ver insights"
+- `kind === 'outliers'` (severity warn/error) → toast "⚠️ Outliers detectados" + botão "Criar Box Plot"
+- `kind === 'pareto'` → toast "🎯 Concentração de Pareto" + botão "Ver insights"
+
+Cada toast tem `duration: 6000ms`, `actionLabel`, `actionFn`.
+
+---
+
+## `Solstice.Inconsistencies` (Bloco 8 · ADR-069)
+
+Catálogo de 15 regras analíticas declarativas. Cada regra: `{ id, label, severity, description, hint, when(ctx) → bool }`.
+
+```js
+catalog()                      // → array com metadados das 15 regras
+                               //   { id, label, severity, description, hint }
+checkSlot(slotId)              // → array<Hit> com regras que disparam para o slot
+                               //   Hit = { id, label, severity, description, hint }
+RULES                          // → array bruto das regras (debug/extensão)
+```
+
+**15 regras catalogadas:**
+
+| ID | Severity | Detecta |
+|---|---|---|
+| `avg-of-avg` | warn | KPI com média em coluna já agregada |
+| `sum-of-pct` | warn | Soma de percentual |
+| `sum-of-id` | error | Soma de IDs/CPF/CNPJ |
+| `count-vs-sum-confusion` | info | Soma com poucos registros (<30) — confirme intenção |
+| `high-null-col` | warn | Coluna selecionada com >50% nulos |
+| `gauge-meta-fora-range` | warn | Meta fora do min/max do gauge |
+| `sankey-same-cols` | error | source === target |
+| `distrib-bins-extremos` | info | bins < 6 ou > 60 |
+| `boxplot-grupos-demais` | warn | groupColumn com > 8 distintos |
+| `scatter-poucos-pontos` | info | < 10 pares válidos |
+| `monovalor` | warn | Coluna com 1 distinct |
+| `comparison-no-temporal` | warn | "previous-period" sem coluna temporal |
+| `time-series-poucos-pontos` | info | < 5 pontos no bin |
+| `agg-incompat-comparison` | warn | Baseline estatisticamente inválida |
+| `tabela-sem-filtro-grande` | info | > 500 linhas |
+
+Avisos aparecem como **accordion "⚠️ Avisos"** no topo do inspector lateral (`createAccordion`).
+
+---
+
+## `Solstice.Ask` (Bloco 8 · ADR-070)
+
+"Pergunte ao Solstice" via **Ctrl+P**. Command palette estilo Spotlight com parser regex pt-BR.
+
+```js
+open()                         // mostra overlay com input focused
+close()                        // remove overlay
+isOpen()                       // → boolean
+init()                         // chamado por boot — bind Ctrl+P + intercept print
+
+parse(query)                   // → { ok: bool, title?, value?, formula?, error? }
+                               //   Sem state — função pura, testável
+```
+
+**7 padrões reconhecidos:**
+
+```
+"qual a média de receita"               → Stats.mean
+"qual a mediana de margem_bruta"        → Stats.median
+"quantos outliers em ticket_medio"      → Stats.outliersIQR
+"correlação entre receita e quantidade" → Stats.correlation (Pearson)
+"top 5 em regiao por receita"           → group + sort
+"tendência de receita"                  → Stats.trend
+"quantos registros"                     → rows.length
+"quantas categorias em canal"           → Stats.distinctCount
+```
+
+**Resolver de coluna** aceita:
+- Nome técnico exato (case-insensitive)
+- friendlyName do dicionário (case-insensitive)
+- Match parcial (startsWith) em qualquer dos dois
+
+Resposta inclui campo `formula` explicando matematicamente o cálculo.
+
+---
+
+## Estilos CSS novos (Bloco 8)
+
+```css
+.solstice__insights              /* gradient accent · border · radius */
+.solstice__insights-head         /* sticky · cursor pointer · uppercase */
+.solstice__insights-title
+.solstice__insights-count        /* badge mono pequeno */
+.solstice__insights-actions
+.solstice__insights-toggle       /* chevron 200ms */
+.solstice__insights.is-collapsed
+.solstice__insights-body         /* grid auto-fit minmax 260px */
+.solstice__insight-card
+.solstice__insight-card--{success/warn/error/info}  /* border-left 3px */
+.solstice__insight-icon / -title / -text / -meta
+
+.solstice__narrative-body        /* whitespace pre-wrap · max-height 360px scroll */
+.solstice__narrative-controls    /* flex pills */
+.solstice__narrative-pill        /* + is-active variant */
+.solstice__narrative-label       /* uppercase letter-spacing */
+
+.solstice__inconsist             /* badge inline warn */
+
+.solstice__ask-overlay           /* fixed z-400 + backdrop blur */
+.solstice__ask-panel             /* max-width 640px */
+.solstice__ask-input-wrap / -input / -kbd / -body
+.solstice__ask-suggestion        /* mono pequeno surface-2 */
+.solstice__ask-result            /* destacado accent · result-value 18px bold mono */
+.solstice__ask-result-formula
+.solstice__ask-error             /* warn surface */
+```
+
+---
+
+## Paths novos no Store (Bloco 8)
+
+| Path | Tipo | Setado por |
+|---|---|---|
+| `ui.insights.collapsed` | boolean | toggle do header do painel |
+
+(Insights, Narrative, Agent, Inconsistencies, Ask são em sua maioria stateless — computam sob demanda.)
+
+---
+
+## Atalho global novo (Bloco 8)
+
+| Tecla | Ação |
+|---|---|
+| `Ctrl + P` / `Cmd + P` | Toggle do "Pergunte ao Solstice" (intercepta print do browser quando foco não está em input) |

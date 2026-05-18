@@ -269,6 +269,77 @@ Copie o bloco abaixo ao reportar:
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
 
+### Bloco 8 — Insights + Narrativa + Agente + Inconsistências + Ask
+
+- [ ] Sentinela verde `[Solstice] Bloco 8 aplicado · Insights + Narrativa + Agente + Inconsistências (Diferencial #2)`
+- [ ] `[Solstice] boot OK` também aparece
+- [ ] `Solstice.version === '5.3.0-bloco8'`
+- [ ] Footer mostra `v5.3 · Bloco 8`
+- [ ] Banner cita `BLOCO 8 · INSIGHTS EXECUTIVOS + NARRATIVA AUTOMÁTICA...`
+- [ ] Console: 5 módulos novos expostos — `Solstice.Insights / Narrative / Agent / Inconsistencies / Ask`
+
+**SolsticeInsights:**
+- [ ] Carregar CSV dummy → painel "💡 Insights executivos" aparece no topo do canvas (entre toolbar e sections)
+- [ ] Cards mostram 1-8 insights priorizados por score
+- [ ] Cada card tem ícone + título + texto + border-left colorido por severity
+- [ ] Click no header → painel colapsa/expande (estado persistido em Store.ui.insights.collapsed)
+- [ ] Console: `Solstice.Insights.compute()` retorna array com `kind/title/text/severity/score/meta`
+- [ ] Tipos verificáveis: trend, outliers, pareto, top — sazonalidade e recency dependem de dados
+
+**SolsticeNarrative:**
+- [ ] Selecionar componente (KPI/Série/etc) → inspector lateral abre
+- [ ] Rodapé do inspector tem botão "📖 Gerar narrativa" (acima do Remover)
+- [ ] Click → modal com pills de Tom (👔 / 🔬 / 💬) e Profundidade (📄 / 📑 / 📚)
+- [ ] Trocar tom → preview atualiza em tempo real
+- [ ] Trocar profundidade short → 1 parágrafo · medium → 2-3 · long → 4+ com outliers
+- [ ] Botão "📋 Copiar" → texto no clipboard + toast sucesso
+- [ ] Botão "⬇️ Markdown" → baixa arquivo .md com timestamp
+- [ ] Botão "✉️ Email" → abre mailto: com subject e body
+- [ ] Markdown selecionado: botão Gerar narrativa NÃO aparece no rodapé (componente sem narrativa)
+- [ ] Console: `Solstice.Narrative.build(slotId)` retorna string
+
+**SolsticeAgent:**
+- [ ] Importar CSV → após ~1.2s aparece toast contextual (se houver insight relevante)
+- [ ] Toast tem título · msg · botão de ação ("Ver insights" / "Criar Box Plot")
+- [ ] Click no botão → ação correspondente executada
+- [ ] Importar SEGUNDO CSV → cap reseta, novo toast pode disparar
+- [ ] Max 3 toasts por sessão (cap)
+- [ ] Console: `Solstice.Agent.status()` retorna `{ fired, cap: 3, keys: [...] }`
+
+**SolsticeInconsistencies:**
+- [ ] Console: `Solstice.Inconsistencies.catalog().length === 15`
+- [ ] Carregar dummy → criar KPI com agg='sum' em coluna de % (ex: margem_bruta) → inspector mostra accordion "⚠️ Avisos" com regra `sum-of-pct`
+- [ ] Criar Sankey, forçar source=target → accordion mostra `sankey-same-cols` (error)
+- [ ] Gauge com target fora do range → `gauge-meta-fora-range`
+- [ ] Accordion "Avisos" só aparece se há ≥ 1 hit
+- [ ] Console: `Solstice.Inconsistencies.checkSlot(slotId)` retorna array de hits
+
+**SolsticeAsk (Ctrl+P):**
+- [ ] `Ctrl+P` (ou `Cmd+P` no Mac) abre overlay tipo Spotlight
+- [ ] Foco automático no input após 50ms
+- [ ] Lista de exemplos sugeridos aparece embaixo
+- [ ] Click numa sugestão → preenche input + executa
+- [ ] Digitar "qual a média de receita" + Enter → card com valor formatado + fórmula
+- [ ] Digitar "correlação entre receita e ticket_medio" → r ∈ [-1, 1] + forte/moderada/fraca
+- [ ] Digitar "top 5 em regiao por receita" → top 5 categorias com somas
+- [ ] Digitar "tendência de receita" → 🔼/🔽/➡️ + magnitude %
+- [ ] Digitar "quantos registros" → total formatado pt-BR
+- [ ] Digitar pergunta fora dos padrões → mensagem amigável + sugestões
+- [ ] Esc fecha · click no backdrop fecha · Ctrl+P novamente fecha (toggle)
+- [ ] Ctrl+P NÃO abre print do browser (intercept)
+- [ ] Ctrl+P NÃO intercepta quando foco está em input/textarea (deixa usuário digitar 'p' normalmente)
+- [ ] Sidebar tem `Ctrl+P · Pergunte ao Solstice` na lista de atalhos
+
+**Sidebar atalhos:**
+- [ ] Lista mostra: Ctrl+P · Pergunte ao Solstice / Ctrl+Z/Shift+Z · Undo/Redo / Ctrl+Shift+D · Debug / Esc · Fechar painéis / ? · Ajuda
+
+**Regressão B1-B7-r2:**
+- [ ] Inspector lateral, Drawer Análise, Catálogo accordion continuam funcionando
+- [ ] SolsticeStats todas as 47 funções operacionais
+- [ ] Smart defaults dos 4 componentes ainda funcionam
+- [ ] SVGs respeitam cap de tamanho do B7-r1
+- [ ] Undo/Redo, DnD, FreeMode, Audit, Provenance — todos operacionais
+
 ### Bloco 7 — refinamentos r2 (Inspector lateral + Drawer Análise + Catálogo accordion)
 
 - [ ] Sentinela verde `[Solstice] Patch B7-r2 aplicado · inspector lateral direito + drawer Análise inferior + catálogo accordion`

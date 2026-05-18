@@ -712,6 +712,220 @@
     .solstice__app.has-inspector .solstice__analysis { right: 0; }
   }
 
+  /* ============================================================
+     BLOCO 8 — INSIGHTS · NARRATIVA · AGENTE · INCONSISTÊNCIAS · ASK
+     ============================================================ */
+
+  /* Painel de Insights Executivos no topo do canvas (colapsável) */
+  .solstice__insights {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--c-accent) 8%, var(--c-surface)),
+      var(--c-surface));
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    margin-bottom: var(--sp-4);
+    overflow: hidden;
+  }
+  .solstice__insights-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-2) var(--sp-4);
+    background: color-mix(in srgb, var(--c-accent) 6%, var(--c-surface-2));
+    border-bottom: 1px solid var(--c-border);
+    cursor: pointer; user-select: none;
+  }
+  .solstice__insights-title {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .solstice__insights-count {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    background: var(--c-surface-3); padding: 2px 6px;
+    border-radius: var(--rad-full);
+  }
+  .solstice__insights-actions {
+    display: flex; align-items: center; gap: var(--sp-2);
+  }
+  .solstice__insights-toggle {
+    font-size: 10px; color: var(--c-muted);
+    transition: transform 200ms var(--ease);
+  }
+  .solstice__insights.is-collapsed .solstice__insights-toggle { transform: rotate(-90deg); }
+  .solstice__insights-body {
+    padding: var(--sp-3) var(--sp-4);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--sp-3);
+  }
+  .solstice__insights.is-collapsed .solstice__insights-body { display: none; }
+  .solstice__insights-empty {
+    padding: var(--sp-3) var(--sp-4);
+    color: var(--c-muted); font-size: var(--fs-xs);
+    text-align: center;
+  }
+  .solstice__insight-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-sm);
+    padding: var(--sp-3);
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color var(--t-fast);
+  }
+  .solstice__insight-card:hover { border-color: var(--c-accent); }
+  .solstice__insight-card--success { border-left: 3px solid var(--c-success); }
+  .solstice__insight-card--warn    { border-left: 3px solid var(--c-warn); }
+  .solstice__insight-card--error   { border-left: 3px solid var(--c-error); }
+  .solstice__insight-card--info    { border-left: 3px solid var(--c-accent); }
+  .solstice__insight-icon {
+    font-size: 18px; line-height: 1;
+  }
+  .solstice__insight-title {
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+  }
+  .solstice__insight-text {
+    font-size: var(--fs-xs); color: var(--c-text-2);
+    line-height: 1.5;
+  }
+  .solstice__insight-meta {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+  }
+
+  /* Narrativa — modal style */
+  .solstice__narrative-body {
+    font-size: var(--fs-sm); line-height: 1.7; color: var(--c-text);
+    padding: var(--sp-3);
+    background: var(--c-surface-2);
+    border-radius: var(--rad-sm);
+    max-height: 360px; overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: var(--font-sans);
+  }
+  .solstice__narrative-controls {
+    display: flex; align-items: center; gap: var(--sp-3);
+    margin-bottom: var(--sp-3); flex-wrap: wrap;
+  }
+  .solstice__narrative-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--c-surface-2); border: 1px solid var(--c-border);
+    border-radius: var(--rad-full);
+    font-size: var(--fs-xs); color: var(--c-text-2);
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .solstice__narrative-pill.is-active {
+    background: var(--c-accent); color: #fff; border-color: var(--c-accent);
+  }
+  .solstice__narrative-pill:hover:not(.is-active) {
+    background: var(--c-surface-3); color: var(--c-text);
+  }
+  .solstice__narrative-label {
+    font-size: var(--fs-xs); color: var(--c-muted);
+    font-weight: var(--fw-semibold); text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Inconsistências — warn inline */
+  .solstice__inconsist {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--c-warn) 18%, transparent);
+    color: var(--c-warn);
+    border: 1px solid color-mix(in srgb, var(--c-warn) 35%, transparent);
+    border-radius: var(--rad-full);
+    font-size: 10px; font-weight: var(--fw-medium);
+    cursor: help;
+    transition: all var(--t-fast);
+  }
+  .solstice__inconsist:hover {
+    background: color-mix(in srgb, var(--c-warn) 25%, transparent);
+  }
+
+  /* "Pergunte ao Solstice" — Command palette tipo Spotlight */
+  .solstice__ask-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 400;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding-top: 12vh;
+    animation: solstice-fade-in var(--t-fast) var(--ease-out);
+  }
+  .solstice__ask-panel {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-lg);
+    box-shadow: var(--sh-3);
+    width: 100%; max-width: 640px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .solstice__ask-input-wrap {
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--c-border);
+  }
+  .solstice__ask-input {
+    flex: 1; border: 0; background: transparent;
+    font-size: var(--fs-md); color: var(--c-text);
+    outline: none;
+    font-family: var(--font-sans);
+  }
+  .solstice__ask-kbd {
+    font-family: var(--font-mono); font-size: 10px;
+    background: var(--c-surface-2); border: 1px solid var(--c-border);
+    padding: 2px 6px; border-radius: var(--rad-xs);
+    color: var(--c-muted);
+  }
+  .solstice__ask-body {
+    padding: var(--sp-3) var(--sp-4);
+    max-height: 380px; overflow-y: auto;
+    font-size: var(--fs-sm);
+  }
+  .solstice__ask-suggestion {
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--c-surface-2);
+    border-radius: var(--rad-sm);
+    margin-bottom: 4px;
+    cursor: pointer; color: var(--c-text-2);
+    font-family: var(--font-mono); font-size: var(--fs-xs);
+    transition: all var(--t-fast);
+  }
+  .solstice__ask-suggestion:hover {
+    background: var(--c-surface-3); color: var(--c-text);
+  }
+  .solstice__ask-result {
+    padding: var(--sp-3);
+    background: color-mix(in srgb, var(--c-accent) 8%, transparent);
+    border-left: 3px solid var(--c-accent);
+    border-radius: var(--rad-sm);
+    margin-bottom: var(--sp-2);
+    line-height: 1.6;
+  }
+  .solstice__ask-result-value {
+    font-size: var(--fs-lg); font-weight: var(--fw-bold);
+    color: var(--c-accent);
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .solstice__ask-result-formula {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    margin-top: 4px;
+  }
+  .solstice__ask-error {
+    padding: var(--sp-3);
+    background: color-mix(in srgb, var(--c-warn) 12%, transparent);
+    border-left: 3px solid var(--c-warn);
+    border-radius: var(--rad-sm);
+    color: var(--c-text-2);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+  }
+
   /* ===== MODAL ===== */
   .solstice__modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.55);
@@ -2372,7 +2586,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 7 r2 · INSPECTOR LATERAL DIREITO + DRAWER ANÁLISE INFERIOR + CATÁLOGO ACCORDION
+  ☀️ SOLSTICE v5.3 · BLOCO 8 · INSIGHTS EXECUTIVOS + NARRATIVA AUTOMÁTICA + AGENTE PROATIVO + INCONSISTÊNCIAS (DIFERENCIAL #2)
 </div>
 
 <!-- App shell -->
@@ -2461,8 +2675,10 @@
     <div class="solstice__sidebar-section">
       <div class="solstice__sidebar-title">Atalhos</div>
       <div style="font-size: var(--fs-xs); color: var(--c-muted); line-height: 1.8;">
+        <kbd>Ctrl</kbd>+<kbd>P</kbd> · Pergunte ao Solstice<br>
+        <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> · Undo / Redo<br>
         <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> · Debug<br>
-        <kbd>Ctrl</kbd>+<kbd>K</kbd> · Command (B12)<br>
+        <kbd>Esc</kbd> · Fechar painéis<br>
         <kbd>?</kbd> · Ajuda
       </div>
     </div>
@@ -2485,7 +2701,12 @@
         <strong style="color:var(--c-success)">✓</strong> Inspector lateral direito (320px · accordion · grid 3-col) (B7-r2)<br>
         <strong style="color:var(--c-success)">✓</strong> Drawer Análise inferior (📈 estatística separada do Inspector) (B7-r2)<br>
         <strong style="color:var(--c-success)">✓</strong> Catálogo de componentes em accordion (Básicos/Avançados/Texto) (B7-r2)<br>
-        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 8 (Insights + Narrativa + Agente + Inconsistências)
+        <strong style="color:var(--c-success)">✓</strong> Painel de Insights Executivos automáticos · 6 tipos detectados (B8)<br>
+        <strong style="color:var(--c-success)">✓</strong> Narrativa Automática · 3 tons · export markdown (Diferencial #2) (B8)<br>
+        <strong style="color:var(--c-success)">✓</strong> Agente Proativo · toasts contextuais com cap 3/sessão (B8)<br>
+        <strong style="color:var(--c-success)">✓</strong> SolsticeInconsistencies · 15 regras analíticas (B8)<br>
+        <strong style="color:var(--c-success)">✓</strong> "Pergunte ao Solstice" · Ctrl+P · parser NL simples (B8)<br>
+        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 9 (Filtros Globais + Cross-Filter + Parâmetros)
       </div>
     </div>
   </aside>
@@ -4128,10 +4349,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 7 (r2)','color:#4D9FFF;font-size:14px;font-weight:bold;');
-    console.log('Atalhos: Ctrl+Z desfaz · Ctrl+Shift+Z refaz · Ctrl+Shift+D debug · Esc fecha inspector/análise · window.Solstice expõe a API.');
-    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções · '+SolsticeComponents.list().length+' componentes · Inspector lateral direito + Drawer Análise inferior + Catálogo accordion');
-    console.log('%c[Solstice] Patch B7-r2 aplicado · inspector lateral direito + drawer Análise inferior + catálogo accordion','color:#4ADE80;font-weight:bold;');
+    // B8: inicializa Insights/Narrative/Agent/Inconsistencies/Ask
+    SolsticeInsights.init();
+    SolsticeAgent.init();
+    SolsticeAsk.init();
+
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 8','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('Atalhos: Ctrl+Z desfaz · Ctrl+Shift+Z refaz · Ctrl+Shift+D debug · Esc fecha · Ctrl+P "Pergunte ao Solstice"');
+    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções · '+SolsticeComponents.list().length+' componentes · Insights/Narrative/Agent/Inconsistencies/Ask carregados');
+    console.log('%c[Solstice] Bloco 8 aplicado · Insights + Narrativa + Agente + Inconsistências (Diferencial #2)','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -8475,6 +8701,33 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Cada seção reutiliza as funções de render existentes do B5/B6/B7.
       // Aba "Comparação" só para KPI. "📈 Análise" não está aqui — vai pro drawer.
 
+      // ⚠️ Avisos (B8) — só aparece se há inconsistências detectadas
+      if (typeof SolsticeInconsistencies !== 'undefined'){
+        const hits = SolsticeInconsistencies.checkSlot(slot.id);
+        if (hits.length){
+          host.appendChild(createAccordion({
+            icon: '⚠️', title: 'Avisos', key: 'inspector.avisos',
+            openByDefault: true,
+            count: hits.length,
+            build: (body) => {
+              hits.forEach(h => {
+                const card = SolsticeUtils.el('div', {
+                  style: 'padding:8px 10px;margin-bottom:6px;border-radius:var(--rad-sm);' +
+                         'background:color-mix(in srgb, var(--c-' + (h.severity === 'error' ? 'error' : h.severity === 'warn' ? 'warn' : 'accent') + ') 12%, transparent);' +
+                         'border-left:3px solid var(--c-' + (h.severity === 'error' ? 'error' : h.severity === 'warn' ? 'warn' : 'accent') + ');'
+                });
+                card.appendChild(SolsticeUtils.el('div', { style:'font-size:var(--fs-xs);font-weight:var(--fw-semibold);color:var(--c-text);' }, h.label));
+                card.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-text-2);margin-top:4px;line-height:1.5;' }, h.description));
+                if (h.hint){
+                  card.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-accent);margin-top:6px;line-height:1.5;' }, '💡 ' + h.hint));
+                }
+                body.appendChild(card);
+              });
+            }
+          }));
+        }
+      }
+
       // 📊 Dados — sempre aberta
       host.appendChild(createAccordion({
         icon: '📊', title: 'Dados', key: 'inspector.dados',
@@ -8512,7 +8765,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         build: (body) => _renderProvenanceTab(body, slot, def)
       }));
 
-      // 3) Footer com botão destrutivo de Remover componente
+      // 3) Footer com botão Narrativa (B8) + botão destrutivo Remover componente
+      const footerWrap = SolsticeUtils.el('div', { style:'display:flex;gap:8px;flex-direction:column;' });
+      if (slot.type !== 'markdown'){
+        const narrativeBtn = SolsticeUtils.el('button',
+          { class:'solstice__btn',
+            style:'width:100%;justify-content:center;',
+            onclick: () => SolsticeNarrative.openModal(slot.id)
+          }, '📖 Gerar narrativa');
+        footerWrap.appendChild(narrativeBtn);
+      }
       const removeBtn = SolsticeUtils.el('button',
         { class:'solstice__btn solstice__btn--destructive', title:'Remover componente',
           onclick: async () => {
@@ -8547,7 +8809,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
         }, '🗑️ Remover componente'
       );
-      SolsticeInspector.setFooter(removeBtn);
+      footerWrap.appendChild(removeBtn);
+      SolsticeInspector.setFooter(footerWrap);
     }
 
     function _renderDataTab(host, slot, def){
@@ -10465,6 +10728,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Toolbar do canvas (sempre presente)
       canvas.appendChild(_renderToolbar(sections.length));
 
+      // B8: Painel de Insights Executivos (entre toolbar e sections) — só renderiza se há insights
+      if (typeof SolsticeInsights !== 'undefined') SolsticeInsights.renderInto(canvas);
+
       if (sections.length === 0){
         canvas.appendChild(_renderEmptyState());
         return;
@@ -11015,10 +11281,1156 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
+     BLOCO 8 — SolsticeInsights
+     Painel de Insights Executivos no topo do canvas. Analisa o dataset
+     e gera entre 0 e 8 insights priorizados por importância. Cada
+     insight tem { id, kind, icon, title, text, severity, score, meta }.
+     Kinds suportados:
+       trend, outliers, pareto, seasonality, recency, top, concentration
+     Renderiza dentro do canvas (acima dos sections). Colapsável.
+     ============================================================ */
+  const SolsticeInsights = (function(){
+    let insightsCache = [];
+    let containerEl = null;
+
+    /**
+     * Computa insights a partir do dataset atual. Função pura — devolve
+     * array de objetos { id, kind, icon, title, text, severity, score, meta }
+     * severity: 'success' | 'warn' | 'error' | 'info'
+     * score: 0-100 (usado para ordenar e limitar a top 8)
+     */
+    function compute(){
+      const ingest = SolsticeStore.get('ingest');
+      const dict = SolsticeStore.get('dictionary');
+      if (!ingest || !ingest.rows || !ingest.rows.length) return [];
+      const rows = ingest.rows;
+      const cols = ingest.columns || [];
+      const types = ingest.types || {};
+      const insights = [];
+
+      const numericCols = cols.filter(c => SolsticeTypes.group(types[c] && types[c].type) === 'numeric');
+      const tempCols = cols.filter(c => SolsticeTypes.group(types[c] && types[c].type) === 'temporal');
+      const catCols = cols.filter(c => SolsticeTypes.group(types[c] && types[c].type) === 'categorical');
+
+      // Helper: higherIsBetter de uma coluna
+      function hib(col){
+        const d = dict && dict.columns && dict.columns[col];
+        return d && d.higherIsBetter;
+      }
+      function friendly(col){ return SolsticeHumanize.column(col, dict); }
+
+      // === INSIGHT 1: TENDÊNCIA forte numa numérica ===
+      // Para cada numérica, calcula trend; se magnitude > 10% e |r²| > 0.4, é insight
+      numericCols.slice(0, 6).forEach(col => {
+        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        if (values.length < 10) return;
+        const t = SolsticeStats.trend(values);
+        if (!t || t.direction === 'flat') return;
+        if (t.magnitude < 0.10 || (t.r2 != null && t.r2 < 0.30)) return;
+        const isUp = t.direction === 'up';
+        const isGood = hib(col) === true ? isUp : hib(col) === false ? !isUp : null;
+        const sev = isGood === true ? 'success' : isGood === false ? 'error' : 'info';
+        const icon = isUp ? '📈' : '📉';
+        const dirTxt = isUp ? 'subindo' : 'caindo';
+        insights.push({
+          id: 'trend-' + col,
+          kind: 'trend', icon,
+          title: 'Tendência ' + (isUp ? 'de alta' : 'de queda') + ': ' + friendly(col),
+          text: friendly(col) + ' está ' + dirTxt + ' — variação total ' +
+                (t.totalChange > 0 ? '+' : '') + SolsticeLocale.decimal(t.totalChange, 1) +
+                ' (' + SolsticeLocale.decimal(t.magnitude * 100, 1) + '% da média)' +
+                (t.r2 != null ? ' · R² = ' + SolsticeLocale.decimal(t.r2, 2) : ''),
+          severity: sev,
+          score: Math.min(100, t.magnitude * 100 * (t.r2 || 0.5) * 2),
+          meta: { column: col, trend: t }
+        });
+      });
+
+      // === INSIGHT 2: OUTLIERS significativos ===
+      numericCols.slice(0, 6).forEach(col => {
+        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        if (values.length < 10) return;
+        const ou = SolsticeStats.outliersIQR(values, 1.5);
+        const pct = ou.values.length / values.length;
+        if (pct < 0.02) return; // <2% não interessa
+        const sev = pct > 0.10 ? 'error' : pct > 0.05 ? 'warn' : 'info';
+        insights.push({
+          id: 'outliers-' + col,
+          kind: 'outliers', icon: '⚠️',
+          title: 'Outliers em ' + friendly(col),
+          text: ou.values.length + ' valor' + (ou.values.length === 1 ? '' : 'es') +
+                ' fora da faixa típica (' + SolsticeLocale.decimal(pct * 100, 1) + '% do total). ' +
+                'IQR 1.5×: faixa válida ' + SolsticeLocale.decimal(ou.fences.lo, 1) +
+                ' a ' + SolsticeLocale.decimal(ou.fences.hi, 1),
+          severity: sev,
+          score: Math.min(100, pct * 100 * 3),
+          meta: { column: col, count: ou.values.length, pct }
+        });
+      });
+
+      // === INSIGHT 3: PARETO 80/20 em categórica × numérica ===
+      // Pega primeira cat com 3-30 distintos × primeira numérica
+      if (catCols.length && numericCols.length){
+        const catCol = catCols.find(c => {
+          const d = SolsticeStats.distinctCount(rows.map(r => r[c]));
+          return d >= 3 && d <= 30;
+        });
+        const numCol = numericCols[0];
+        if (catCol && numCol){
+          const agg = new Map();
+          for (const r of rows){
+            const k = String(r[catCol] || '—');
+            const v = parseFloat(r[numCol]); if (isNaN(v)) continue;
+            agg.set(k, (agg.get(k) || 0) + v);
+          }
+          const sorted = Array.from(agg.entries()).sort((a, b) => b[1] - a[1]);
+          const total = sorted.reduce((s, [, v]) => s + v, 0);
+          if (total > 0 && sorted.length >= 3){
+            let cumulative = 0;
+            let topN = 0;
+            for (const [, v] of sorted){
+              cumulative += v; topN++;
+              if (cumulative / total >= 0.80) break;
+            }
+            const pctTop = (topN / sorted.length) * 100;
+            const topNames = sorted.slice(0, Math.min(topN, 3)).map(([k]) => k).join(', ');
+            insights.push({
+              id: 'pareto-' + catCol + '-' + numCol,
+              kind: 'pareto', icon: '🎯',
+              title: 'Concentração Pareto em ' + friendly(catCol),
+              text: SolsticeLocale.decimal(pctTop, 0) + '% das categorias (' + topN + ' de ' + sorted.length +
+                    ') concentram 80% de ' + friendly(numCol) + '. Top: ' + topNames +
+                    (topN < sorted.length ? '…' : ''),
+              severity: pctTop < 30 ? 'warn' : 'info',
+              score: Math.min(100, (100 - pctTop) * 1.2),
+              meta: { catColumn: catCol, numColumn: numCol, topN, totalGroups: sorted.length }
+            });
+          }
+        }
+      }
+
+      // === INSIGHT 4: SAZONALIDADE detectada em série temporal ===
+      if (tempCols.length && numericCols.length){
+        const tempCol = tempCols[0];
+        const numCol = numericCols[0];
+        // Agrega por mês — se autocorrelação no lag 12 > 0.5, sazonal anual
+        const byMonth = new Map();
+        for (const r of rows){
+          const d = new Date(r[tempCol]); if (isNaN(d)) continue;
+          const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+          const v = parseFloat(r[numCol]); if (isNaN(v)) continue;
+          byMonth.set(k, (byMonth.get(k) || 0) + v);
+        }
+        const monthly = Array.from(byMonth.entries()).sort().map(([, v]) => v);
+        if (monthly.length >= 24){
+          const ac = SolsticeStats.autocorrelation(monthly, 12);
+          if (ac != null && ac > 0.4){
+            insights.push({
+              id: 'season-' + numCol,
+              kind: 'seasonality', icon: '🔄',
+              title: 'Sazonalidade anual em ' + friendly(numCol),
+              text: 'Autocorrelação anual (lag 12 meses) = ' + SolsticeLocale.decimal(ac, 2) +
+                    '. Padrão sazonal forte — repete a cada ~12 meses.',
+              severity: 'info',
+              score: 60 + (ac * 30),
+              meta: { column: numCol, autocorr: ac }
+            });
+          }
+        }
+      }
+
+      // === INSIGHT 5: MUDANÇA RECENTE — primeira metade vs segunda ===
+      numericCols.slice(0, 3).forEach(col => {
+        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        if (values.length < 20) return;
+        const half = Math.floor(values.length / 2);
+        const m1 = SolsticeStats.mean(values.slice(0, half));
+        const m2 = SolsticeStats.mean(values.slice(half));
+        if (m1 == null || m2 == null || m1 === 0) return;
+        const pct = (m2 - m1) / Math.abs(m1);
+        if (Math.abs(pct) < 0.20) return; // <20% não é interessante
+        const isUp = pct > 0;
+        const isGood = hib(col) === true ? isUp : hib(col) === false ? !isUp : null;
+        const sev = isGood === true ? 'success' : isGood === false ? 'error' : 'info';
+        insights.push({
+          id: 'recency-' + col,
+          kind: 'recency', icon: isUp ? '🔼' : '🔽',
+          title: 'Mudança recente em ' + friendly(col),
+          text: 'Comparando primeira metade dos registros com segunda: ' +
+                (isUp ? '+' : '') + SolsticeLocale.decimal(pct * 100, 1) + '%' +
+                ' (' + SolsticeLocale.decimal(m1, 1) + ' → ' + SolsticeLocale.decimal(m2, 1) + ')',
+          severity: sev,
+          score: Math.min(100, Math.abs(pct) * 100),
+          meta: { column: col, pct, m1, m2 }
+        });
+      });
+
+      // === INSIGHT 6: TOP CATEGORIA dominante ===
+      catCols.slice(0, 3).forEach(col => {
+        const counts = new Map();
+        rows.forEach(r => { const k = String(r[col] || '—'); counts.set(k, (counts.get(k) || 0) + 1); });
+        const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+        if (sorted.length < 2) return;
+        const total = rows.length;
+        const topPct = sorted[0][1] / total;
+        if (topPct < 0.40) return;
+        insights.push({
+          id: 'top-' + col,
+          kind: 'top', icon: '👑',
+          title: 'Categoria dominante em ' + friendly(col),
+          text: '"' + sorted[0][0] + '" representa ' +
+                SolsticeLocale.decimal(topPct * 100, 0) + '% dos registros (' +
+                sorted[0][1] + ' de ' + total + '). ' +
+                (sorted[1] ? 'Próxima: "' + sorted[1][0] + '" com ' + SolsticeLocale.decimal(sorted[1][1]/total * 100, 0) + '%.' : ''),
+          severity: topPct > 0.80 ? 'warn' : 'info',
+          score: topPct * 100,
+          meta: { column: col, top: sorted[0][0], pct: topPct }
+        });
+      });
+
+      // Ordena por score desc, limita a 8
+      insights.sort((a, b) => b.score - a.score);
+      return insights.slice(0, 8);
+    }
+
+    function _renderCard(insight){
+      const card = SolsticeUtils.el('div', {
+        class: 'solstice__insight-card solstice__insight-card--' + insight.severity,
+        'data-insight-id': insight.id
+      });
+      const head = SolsticeUtils.el('div', { style:'display:flex;align-items:flex-start;gap:8px;' });
+      head.appendChild(SolsticeUtils.el('div', { class:'solstice__insight-icon' }, insight.icon));
+      const titleWrap = SolsticeUtils.el('div', { style:'flex:1;min-width:0;' });
+      titleWrap.appendChild(SolsticeUtils.el('div', { class:'solstice__insight-title' }, insight.title));
+      titleWrap.appendChild(SolsticeUtils.el('div', { class:'solstice__insight-text' }, insight.text));
+      head.appendChild(titleWrap);
+      card.appendChild(head);
+      return card;
+    }
+
+    /**
+     * Renderiza o painel no topo do canvas (acima das sections).
+     * Chamado por SolsticeCanvas.render quando insights existem.
+     */
+    function renderInto(parentEl){
+      if (!parentEl) return;
+      const insights = compute();
+      insightsCache = insights;
+      if (!insights.length) return; // não renderiza painel quando vazio
+
+      const isCollapsed = !!SolsticeStore.get('ui.insights.collapsed');
+      const wrap = SolsticeUtils.el('div', {
+        class: 'solstice__insights' + (isCollapsed ? ' is-collapsed' : '')
+      });
+      const head = SolsticeUtils.el('div', {
+        class: 'solstice__insights-head',
+        onclick: () => {
+          wrap.classList.toggle('is-collapsed');
+          SolsticeStore.set('ui.insights.collapsed', wrap.classList.contains('is-collapsed'));
+        }
+      });
+      const titleEl = SolsticeUtils.el('div', { class:'solstice__insights-title' });
+      titleEl.appendChild(SolsticeUtils.el('span', null, '💡'));
+      titleEl.appendChild(SolsticeUtils.el('span', null, 'Insights executivos'));
+      titleEl.appendChild(SolsticeUtils.el('span', { class:'solstice__insights-count' }, String(insights.length)));
+      head.appendChild(titleEl);
+      const actions = SolsticeUtils.el('div', { class:'solstice__insights-actions' });
+      actions.appendChild(SolsticeUtils.el('span', { class:'solstice__insights-toggle' }, '▼'));
+      head.appendChild(actions);
+      wrap.appendChild(head);
+
+      const body = SolsticeUtils.el('div', { class:'solstice__insights-body' });
+      insights.forEach(i => body.appendChild(_renderCard(i)));
+      wrap.appendChild(body);
+      parentEl.appendChild(wrap);
+      containerEl = wrap;
+    }
+
+    function list(){ return insightsCache.slice(); }
+
+    function init(){
+      // Re-render do canvas dispara renderInto naturalmente
+      SolsticeStore.subscribe('ingest', () => SolsticeCanvas && SolsticeCanvas.render && SolsticeCanvas.render());
+      SolsticeStore.subscribe('dictionary', () => SolsticeCanvas && SolsticeCanvas.render && SolsticeCanvas.render());
+    }
+
+    return { compute, renderInto, list, init };
+  })();
+
+  /* ============================================================
+     BLOCO 8 — SolsticeNarrative
+     Gerador de narrativa automática para componente selecionado.
+     3 tons: executivo (objetivo, decisor) · analítico (preciso, números) · casual (acessível).
+     3 profundidades: short, medium, long.
+     Templates pt-BR com slots para friendlyName + valores formatados.
+     Exporta markdown / copia / e-mail.
+     ============================================================ */
+  const SolsticeNarrative = (function(){
+    let currentTone = 'executivo';
+    let currentDepth = 'medium';
+
+    /** Frases-base por contexto + tom. */
+    const T = {
+      // Sumário do componente
+      intro: {
+        executivo: 'Indicador {friendly} ({agg_label}) atingiu {value} sobre {n_records}.',
+        analitico: 'A coluna {friendly} ({agg_label}) atingiu o valor {value} considerando {n_records} válidos (nulos descartados).',
+        casual:    'O valor de {friendly} é {value}, calculado a partir de {n_records}.'
+      },
+      trend_up: {
+        executivo: 'Tendência clara de alta nos últimos períodos ({pct}%, R²={r2}).',
+        analitico: 'Regressão linear indica tendência ascendente com inclinação positiva (variação total {totalChange}, R²={r2}).',
+        casual:    'Está subindo de forma consistente ({pct}%).'
+      },
+      trend_down: {
+        executivo: 'Atenção: tendência consistente de queda ({pct}%).',
+        analitico: 'Regressão linear indica tendência descendente (variação total {totalChange}, R²={r2}).',
+        casual:    'Está caindo ao longo do período ({pct}%).'
+      },
+      trend_flat: {
+        executivo: 'Indicador estável no período.',
+        analitico: 'A série é aproximadamente estacionária (magnitude < 2% da média).',
+        casual:    'Sem grandes mudanças no período.'
+      },
+      outliers_present: {
+        executivo: 'Identificados {n} valores fora do padrão ({pct}% do total) — investigar.',
+        analitico: 'Detecção de outliers via IQR 1.5×: {n} pontos fora de [{lo}, {hi}], {pct}% do total.',
+        casual:    'Tem {n} valores bem fora do normal ({pct}%).'
+      },
+      directional_good: {
+        executivo: 'Movimento favorável dado o objetivo (maior é melhor).',
+        analitico: 'A direção do movimento está alinhada com higherIsBetter=true do dicionário.',
+        casual:    'Boa notícia — quanto mais, melhor!'
+      },
+      directional_bad: {
+        executivo: 'Movimento desfavorável dado o objetivo.',
+        analitico: 'A direção do movimento contraria higherIsBetter do dicionário.',
+        casual:    'Atenção — esse indicador deveria estar indo no sentido oposto.'
+      },
+      comparison: {
+        executivo: 'Variação vs {baseline_label}: {delta}.',
+        analitico: 'Delta em relação a {baseline_label} = {delta} ({baseline_value} → {value}).',
+        casual:    'Comparado com {baseline_label}: {delta}.'
+      }
+    };
+
+    function _phrase(key, vars){
+      const tplGroup = T[key];
+      if (!tplGroup) return '';
+      const tpl = tplGroup[currentTone] || tplGroup.executivo;
+      return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] != null ? String(vars[k]) : '');
+    }
+
+    /** Helper de tradução agg → label pt-BR via Humanize (já existe). */
+    function _aggLabel(agg){ return SolsticeHumanize.aggregation(agg) || agg; }
+
+    /**
+     * Gera narrativa para slot. Retorna string com parágrafos separados por \n\n.
+     */
+    function build(slotId){
+      const sec = SolsticeStore.get('canvas.sections') || [];
+      let slot = null;
+      for (const s of sec) for (const r of s.rows){
+        const sl = r.slots.find(x => x.id === slotId);
+        if (sl){ slot = sl; break; }
+      }
+      if (!slot) return 'Componente não encontrado.';
+      const def = SolsticeComponents.get(slot.type);
+      if (!def) return 'Tipo de componente desconhecido.';
+      if (slot.type === 'markdown') return 'Markdown não possui narrativa estatística — é um componente puramente textual.';
+
+      const ingest = SolsticeStore.get('ingest');
+      const dict = SolsticeStore.get('dictionary');
+      const rows = (ingest && ingest.rows) || [];
+      const cfg = slot.config || {};
+
+      // Resolve coluna primária e agg
+      let col, agg;
+      if (def.id === 'kpi'){ col = cfg.column; agg = cfg.agg || 'sum'; }
+      else if (def.id === 'distribution') { col = cfg.column; agg = 'count'; }
+      else if (def.id === 'gauge') { col = cfg.column; agg = cfg.agg || 'avg'; }
+      else if (def.id === 'time-series') { col = cfg.yColumn; agg = 'sum'; }
+      else if (def.id === 'scatter') { col = cfg.yColumn; agg = 'avg'; }
+      else if (def.id === 'boxplot') { col = cfg.valueColumn; agg = 'median'; }
+      else if (def.id === 'heatmap-cal') { col = cfg.valueColumn || null; agg = cfg.agg || 'sum'; }
+      else if (def.id === 'sankey') { col = cfg.valueColumn; agg = 'sum'; }
+      if (!col){ return 'Configure ao menos uma coluna numérica para gerar narrativa.'; }
+      const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      if (!values.length) return 'Sem valores válidos para gerar narrativa.';
+
+      const dictCol = dict && dict.columns && dict.columns[col];
+      const friendly = SolsticeHumanize.column(col, dict);
+      const higherIsBetter = dictCol && dictCol.higherIsBetter;
+
+      // Computa valor agregado
+      let value;
+      if (agg === 'sum')        value = SolsticeStats.sum(values);
+      else if (agg === 'avg' || agg === 'mean') value = SolsticeStats.mean(values);
+      else if (agg === 'median')value = SolsticeStats.median(values);
+      else if (agg === 'min')   value = SolsticeStats.min(values);
+      else if (agg === 'max')   value = SolsticeStats.max(values);
+      else if (agg === 'count') value = SolsticeStats.count(values);
+      else                       value = SolsticeStats.sum(values);
+
+      const typeDef = SolsticeTypes.getType((ingest.types || {})[col] && ingest.types[col].type);
+      const formatted = typeDef && typeDef.format
+        ? (function(){ try { return typeDef.format(value, SolsticeLocale); } catch(e){ return SolsticeLocale.decimal(value, 2); }})()
+        : SolsticeLocale.decimal(value, 2);
+
+      const paragraphs = [];
+
+      // Parágrafo 1: introdução
+      paragraphs.push(_phrase('intro', {
+        friendly, agg_label: _aggLabel(agg),
+        value: formatted,
+        n_records: SolsticeHumanize.recordCount(values.length)
+      }));
+
+      // Parágrafo 2: tendência (se aplicável)
+      if (currentDepth !== 'short'){
+        const t = SolsticeStats.trend(values);
+        if (t){
+          const key = t.direction === 'up' ? 'trend_up' : t.direction === 'down' ? 'trend_down' : 'trend_flat';
+          const sentence = _phrase(key, {
+            pct: SolsticeLocale.decimal(t.magnitude * 100, 1),
+            r2: t.r2 != null ? SolsticeLocale.decimal(t.r2, 2) : '—',
+            totalChange: SolsticeLocale.decimal(t.totalChange, 1)
+          });
+          paragraphs.push(sentence);
+          // Direcional se higherIsBetter conhecido
+          if (higherIsBetter === true && t.direction === 'up') paragraphs.push(_phrase('directional_good', {}));
+          else if (higherIsBetter === false && t.direction === 'up') paragraphs.push(_phrase('directional_bad', {}));
+          else if (higherIsBetter === true && t.direction === 'down') paragraphs.push(_phrase('directional_bad', {}));
+          else if (higherIsBetter === false && t.direction === 'down') paragraphs.push(_phrase('directional_good', {}));
+        }
+      }
+
+      // Parágrafo 3: outliers (se long)
+      if (currentDepth === 'long'){
+        const ou = SolsticeStats.outliersIQR(values, 1.5);
+        if (ou.values.length > 0){
+          paragraphs.push(_phrase('outliers_present', {
+            n: ou.values.length,
+            pct: SolsticeLocale.decimal(ou.values.length / values.length * 100, 1),
+            lo: SolsticeLocale.decimal(ou.fences.lo, 1),
+            hi: SolsticeLocale.decimal(ou.fences.hi, 1)
+          }));
+        }
+      }
+
+      // Parágrafo 4: comparação (KPI com config.comparison)
+      if (def.id === 'kpi' && cfg.comparison && cfg.comparison.type !== 'none'){
+        const ci = SolsticeKPI.calculateDelta(values, cfg);
+        if (ci){
+          const deltaInfo = SolsticeHumanize.delta(ci.pct, higherIsBetter, ci.baselineLabel);
+          paragraphs.push(_phrase('comparison', {
+            baseline_label: ci.baselineLabel || 'baseline',
+            delta: deltaInfo.text,
+            baseline_value: SolsticeLocale.decimal(ci.baseline, 1),
+            value: formatted
+          }));
+        }
+      }
+
+      return paragraphs.filter(Boolean).join('\n\n');
+    }
+
+    function setTone(tone){ if (['executivo', 'analitico', 'casual'].includes(tone)) currentTone = tone; }
+    function setDepth(d){ if (['short', 'medium', 'long'].includes(d)) currentDepth = d; }
+    function getTone(){ return currentTone; }
+    function getDepth(){ return currentDepth; }
+
+    /**
+     * Abre modal com narrativa do slot. Permite trocar tom/profundidade
+     * ao vivo, copiar para clipboard, baixar markdown ou abrir email.
+     */
+    async function openModal(slotId){
+      let text = '';
+      function refresh(bodyEl){
+        text = build(slotId);
+        bodyEl.textContent = text;
+      }
+
+      await SolsticeModal.show({
+        title: '📖 Narrativa automática',
+        size: 'lg',
+        body: (close) => {
+          const wrap = SolsticeUtils.el('div');
+
+          // Controls
+          const ctrl = SolsticeUtils.el('div', { class:'solstice__narrative-controls' });
+          ctrl.appendChild(SolsticeUtils.el('span', { class:'solstice__narrative-label' }, 'Tom:'));
+          const tones = [['executivo','👔 Executivo'], ['analitico','🔬 Analítico'], ['casual','💬 Casual']];
+          tones.forEach(([v, label]) => {
+            const pill = SolsticeUtils.el('span',
+              { class:'solstice__narrative-pill' + (currentTone === v ? ' is-active' : ''),
+                onclick: () => { setTone(v); refresh(body); ctrl.querySelectorAll('.solstice__narrative-pill').forEach(p => p.dataset.kind === 'tone' && p.classList.toggle('is-active', p.dataset.value === v)); },
+                'data-kind': 'tone', 'data-value': v }, label);
+            ctrl.appendChild(pill);
+          });
+          ctrl.appendChild(SolsticeUtils.el('span', { class:'solstice__narrative-label' }, 'Profundidade:'));
+          const depths = [['short', '📄 Curta'], ['medium','📑 Média'], ['long','📚 Longa']];
+          depths.forEach(([v, label]) => {
+            const pill = SolsticeUtils.el('span',
+              { class:'solstice__narrative-pill' + (currentDepth === v ? ' is-active' : ''),
+                onclick: () => { setDepth(v); refresh(body); ctrl.querySelectorAll('.solstice__narrative-pill').forEach(p => p.dataset.kind === 'depth' && p.classList.toggle('is-active', p.dataset.value === v)); },
+                'data-kind': 'depth', 'data-value': v }, label);
+            ctrl.appendChild(pill);
+          });
+          wrap.appendChild(ctrl);
+
+          // Body
+          const body = SolsticeUtils.el('div', { class:'solstice__narrative-body' });
+          refresh(body);
+          wrap.appendChild(body);
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            onclick: async () => {
+              try { await navigator.clipboard.writeText(text); SolsticeToast.success('Copiado', 'Narrativa no clipboard'); }
+              catch(e){ SolsticeToast.warn('Falhou', 'Use Ctrl+A → Ctrl+C manualmente.'); }
+            }
+          }, '📋 Copiar'),
+          SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            onclick: () => {
+              const blob = new Blob([text], { type: 'text/markdown' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = 'narrativa-solstice-' + Date.now() + '.md';
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }
+          }, '⬇️ Markdown'),
+          SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            onclick: () => {
+              const subj = encodeURIComponent('Narrativa Solstice');
+              const bod = encodeURIComponent(text);
+              window.open('mailto:?subject=' + subj + '&body=' + bod);
+            }
+          }, '✉️ Email'),
+          SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary', onclick: () => close(null) }, 'Fechar')
+        ]
+      });
+    }
+
+    return { build, openModal, setTone, setDepth, getTone, getDepth, _T: T };
+  })();
+
+  /* ============================================================
+     BLOCO 8 — SolsticeAgent
+     Agente proativo. Observa mudanças e dispara TOAST contextual quando
+     detecta padrão interessante. Cap de 3 toasts por sessão (evita spam).
+     Lista de gatilhos:
+       1. CSV importado → 1º insight de tendência ou outlier
+       2. Componente adicionado → smart-hint do B7 (já existe, não duplica)
+       3. Outlier extremo no dataset → sugere Box Plot
+       4. Correlação forte → sugere Scatter
+       5. Variável temporal + sazonal → sugere Série Temporal mensal
+       6. Dataset com >50% nulos numa coluna → sugere remover
+     ============================================================ */
+  const SolsticeAgent = (function(){
+    let toastsFired = 0;
+    const CAP_PER_SESSION = 3;
+    const firedKeys = new Set(); // evita disparar mesmo toast 2x
+
+    function _fire(key, opts){
+      if (toastsFired >= CAP_PER_SESSION) return false;
+      if (firedKeys.has(key)) return false;
+      firedKeys.add(key);
+      toastsFired++;
+      SolsticeToast.action(opts);
+      return true;
+    }
+
+    function _analyzeDataset(){
+      const ingest = SolsticeStore.get('ingest');
+      const dict = SolsticeStore.get('dictionary');
+      if (!ingest || !ingest.rows || !ingest.rows.length) return;
+      const insights = SolsticeInsights.compute();
+      const top = insights[0];
+      if (!top) return;
+
+      // Gatilho 1: maior insight do dataset
+      if (top.kind === 'trend'){
+        _fire('trend-' + top.meta.column, {
+          title: '📈 Tendência detectada',
+          msg: top.text,
+          kind: 'info', duration: 6000,
+          actionLabel: 'Ver insights',
+          actionFn: () => {
+            const wrap = document.querySelector('.solstice__insights');
+            if (wrap && wrap.classList.contains('is-collapsed')) wrap.classList.remove('is-collapsed');
+            if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+        return;
+      }
+      if (top.kind === 'outliers' && top.severity !== 'info'){
+        _fire('outliers-' + top.meta.column, {
+          title: '⚠️ Outliers detectados',
+          msg: top.text,
+          kind: 'warn', duration: 6000,
+          actionLabel: 'Criar Box Plot',
+          actionFn: () => SolsticeComponents.addByType('boxplot')
+        });
+        return;
+      }
+      if (top.kind === 'pareto'){
+        _fire('pareto-' + top.meta.catColumn, {
+          title: '🎯 Concentração de Pareto',
+          msg: top.text,
+          kind: 'info', duration: 6000,
+          actionLabel: 'Ver insights',
+          actionFn: () => {
+            const wrap = document.querySelector('.solstice__insights');
+            if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+        return;
+      }
+    }
+
+    function init(){
+      // Quando o dataset muda (import novo ou re-import), reseta cap
+      SolsticeStore.subscribe('ingest', () => {
+        toastsFired = 0; firedKeys.clear();
+        // Delay para deixar UI renderizar primeiro
+        setTimeout(_analyzeDataset, 1200);
+      });
+    }
+
+    function _reset(){ toastsFired = 0; firedKeys.clear(); }
+    function status(){ return { fired: toastsFired, cap: CAP_PER_SESSION, keys: Array.from(firedKeys) }; }
+
+    return { init, _reset, status };
+  })();
+
+  /* ============================================================
+     BLOCO 8 — SolsticeInconsistencies
+     Catálogo de 15 regras de inconsistência analítica. Cada regra:
+       { id, label, description, when(ctx) → boolean, severity, hint }
+     Validações são chamadas pelo SolsticeProps ao render do Inspector
+     (badge inline com warn) e listadas em Solstice.Inconsistencies.list().
+     ============================================================ */
+  const SolsticeInconsistencies = (function(){
+    /**
+     * RULES — cada regra recebe ctx { slot, def, ingest, dict, rows, columns, types }
+     * e retorna true se o problema é DETECTADO.
+     * `id` é único; `severity` ∈ 'warn' | 'info' | 'error'.
+     */
+    const RULES = [
+      {
+        id: 'avg-of-avg',
+        label: 'Média de média',
+        severity: 'warn',
+        description: 'KPI com agregação "média" sobre dados já agregados pode mascarar volume.',
+        hint: 'Use Soma ou Mediana ponderada por volume.',
+        when: (ctx) => ctx.def && ctx.def.id === 'kpi' && (ctx.slot.config || {}).agg === 'avg' &&
+                       (ctx.dict && ctx.dict.columns && ctx.dict.columns[(ctx.slot.config||{}).column] &&
+                        /media|avg|mean|pct|%|rate|taxa/i.test(ctx.dict.columns[(ctx.slot.config||{}).column].friendlyName || ''))
+      },
+      {
+        id: 'sum-of-pct',
+        label: 'Soma de percentual',
+        severity: 'warn',
+        description: 'Somar valores que já são % gera número sem significado.',
+        hint: 'Use Média ou Mediana de % em vez de Soma.',
+        when: (ctx) => {
+          const cfg = ctx.slot.config || {};
+          if (!cfg.column) return false;
+          if (cfg.agg !== 'sum') return false;
+          const t = (ctx.types[cfg.column] || {}).type;
+          return t === 'percentage';
+        }
+      },
+      {
+        id: 'sum-of-id',
+        label: 'Soma de identificador',
+        severity: 'error',
+        description: 'Somar IDs/CPF/CNPJ/CEP não tem significado de negócio.',
+        hint: 'Use Contagem (count) ou Distinct count.',
+        when: (ctx) => {
+          const cfg = ctx.slot.config || {};
+          if (!cfg.column) return false;
+          if (cfg.agg !== 'sum') return false;
+          const group = SolsticeTypes.group((ctx.types[cfg.column] || {}).type);
+          return group === 'id';
+        }
+      },
+      {
+        id: 'count-vs-sum-confusion',
+        label: 'Contagem vs Soma',
+        severity: 'info',
+        description: 'Confirme se a intenção é "quantos" (Contagem) ou "qual o total" (Soma).',
+        hint: 'KPIs comuns: "Total de Vendas" = Soma; "Quantidade de Pedidos" = Contagem.',
+        when: (ctx) => ctx.def && ctx.def.id === 'kpi' && (ctx.slot.config || {}).agg === 'sum' &&
+                       SolsticeTypes.group((ctx.types[(ctx.slot.config||{}).column] || {}).type) === 'numeric' &&
+                       (ctx.rows && ctx.rows.length < 30)
+      },
+      {
+        id: 'high-null-col',
+        label: 'Coluna com muitos nulos',
+        severity: 'warn',
+        description: 'Coluna selecionada tem mais de 50% de valores nulos.',
+        hint: 'Considere filtrar nulos antes ou escolher outra coluna.',
+        when: (ctx) => {
+          const cfg = ctx.slot.config || {};
+          const col = cfg.column || cfg.yColumn || cfg.valueColumn;
+          if (!col) return false;
+          const total = ctx.rows.length;
+          const nulls = SolsticeStats.countNulls(ctx.rows.map(r => r[col]));
+          return total > 0 && nulls / total > 0.50;
+        }
+      },
+      {
+        id: 'gauge-meta-fora-range',
+        label: 'Meta fora do range',
+        severity: 'warn',
+        description: 'A meta configurada está fora do range mínimo/máximo do gauge — agulha não pode mostrar.',
+        hint: 'Ajuste range ou meta.',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'gauge') return false;
+          const cfg = ctx.slot.config || {};
+          if (cfg.target == null) return false;
+          return cfg.target < cfg.min || cfg.target > cfg.max;
+        }
+      },
+      {
+        id: 'sankey-same-cols',
+        label: 'Origem = Destino no Sankey',
+        severity: 'error',
+        description: 'sourceColumn e targetColumn devem ser colunas distintas.',
+        hint: 'Escolha uma categórica diferente em ⚙️ Configurar → Dados.',
+        when: (ctx) => ctx.def && ctx.def.id === 'sankey' &&
+                       (ctx.slot.config || {}).sourceColumn === (ctx.slot.config || {}).targetColumn &&
+                       (ctx.slot.config || {}).sourceColumn != null
+      },
+      {
+        id: 'distrib-bins-extremos',
+        label: 'Bins extremos na Distribuição',
+        severity: 'info',
+        description: 'Número de bins muito pequeno (<6) ou muito grande (>60) prejudica a leitura.',
+        hint: 'Faixa típica: 15-30 bins.',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'distribution') return false;
+          const b = (ctx.slot.config || {}).bins || 20;
+          return b < 6 || b > 60;
+        }
+      },
+      {
+        id: 'boxplot-grupos-demais',
+        label: 'Box Plot com muitos grupos',
+        severity: 'warn',
+        description: 'Categórica de agrupamento com mais de 8 distintos — visualização fica saturada.',
+        hint: 'Componente já corta para top-8 por contagem, mas considere uma categórica mais agregada.',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'boxplot') return false;
+          const gc = (ctx.slot.config || {}).groupColumn;
+          if (!gc) return false;
+          return SolsticeStats.distinctCount(ctx.rows.map(r => r[gc])) > 8;
+        }
+      },
+      {
+        id: 'scatter-poucos-pontos',
+        label: 'Scatter com poucos pontos',
+        severity: 'info',
+        description: 'Scatter com menos de 10 pontos pareados não é estatisticamente robusto.',
+        hint: 'Considere outra visualização (KPI, Tabela).',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'scatter') return false;
+          const cfg = ctx.slot.config || {};
+          if (!cfg.xColumn || !cfg.yColumn) return false;
+          let n = 0;
+          for (const r of ctx.rows){
+            const x = parseFloat(r[cfg.xColumn]), y = parseFloat(r[cfg.yColumn]);
+            if (!isNaN(x) && !isNaN(y)) n++;
+          }
+          return n < 10;
+        }
+      },
+      {
+        id: 'monovalor',
+        label: 'Coluna com 1 valor único',
+        severity: 'warn',
+        description: 'A coluna selecionada tem apenas 1 valor distinto — análise sem informação.',
+        hint: 'Escolha outra coluna em ⚙️.',
+        when: (ctx) => {
+          const cfg = ctx.slot.config || {};
+          const col = cfg.column || cfg.yColumn || cfg.valueColumn;
+          if (!col) return false;
+          return SolsticeStats.distinctCount(ctx.rows.map(r => r[col])) === 1;
+        }
+      },
+      {
+        id: 'comparison-no-temporal',
+        label: 'Período anterior sem coluna temporal',
+        severity: 'warn',
+        description: 'Comparação "previous-period" foi configurada mas o dataset não tem coluna temporal — usa proxy (1ª vs 2ª metade dos registros).',
+        hint: 'Aceitável até filtros globais B9. Considere "Meta fixa" ou "Média histórica".',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'kpi') return false;
+          const cmp = (ctx.slot.config || {}).comparison;
+          if (!cmp || cmp.type !== 'previous-period') return false;
+          return !ctx.columns.some(c => SolsticeTypes.group((ctx.types[c]||{}).type) === 'temporal');
+        }
+      },
+      {
+        id: 'time-series-poucos-pontos',
+        label: 'Série Temporal com poucos pontos',
+        severity: 'info',
+        description: 'Menos de 5 pontos no eixo temporal — visualização pouco informativa.',
+        hint: 'Tente um bin temporal mais granular (day em vez de month) ou outra coluna temporal.',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'time-series') return false;
+          const cfg = ctx.slot.config || {};
+          if (!cfg.xColumn) return false;
+          const keys = new Set();
+          for (const r of ctx.rows){
+            const d = new Date(r[cfg.xColumn]); if (isNaN(d)) continue;
+            const k = cfg.bin === 'month' ? d.getFullYear() + '-' + d.getMonth()
+                    : cfg.bin === 'week'  ? d.getFullYear() + '-' + Math.floor(d.getDate()/7)
+                    : d.toISOString().slice(0, 10);
+            keys.add(k);
+          }
+          return keys.size < 5;
+        }
+      },
+      {
+        id: 'agg-incompat-comparison',
+        label: 'Agregação incompatível com comparação',
+        severity: 'warn',
+        description: 'A baseline atual da Comparação não faz sentido estatístico com a agregação escolhida.',
+        hint: 'Esse alerta dispara antes do auto-switch (ADR-044). Ajuste agregação ou comparação.',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'kpi') return false;
+          const cfg = ctx.slot.config || {};
+          const cmp = cfg.comparison;
+          if (!cmp) return false;
+          return !SolsticeKPI.isCompatible(cfg.agg || 'sum', cmp.type);
+        }
+      },
+      {
+        id: 'tabela-sem-filtro-grande',
+        label: 'Tabela com 500+ linhas sem filtro',
+        severity: 'info',
+        description: 'Mais de 500 linhas e nenhum filtro — performance pode degradar.',
+        hint: 'Aplique filtros globais (Bloco 9) ou reduza rowLimit em ⚙️.',
+        when: (ctx) => {
+          if (!ctx.def || ctx.def.id !== 'table') return false;
+          return ctx.rows.length > 500;
+        }
+      }
+    ];
+
+    /** Lista todos os ids + descrições (útil para debug e dashboards futuros). */
+    function catalog(){ return RULES.map(r => ({ id: r.id, label: r.label, severity: r.severity, description: r.description, hint: r.hint })); }
+
+    /**
+     * Avalia regras para um slot. Retorna array de hits { id, label, severity, description, hint }.
+     */
+    function checkSlot(slotId){
+      const sec = SolsticeStore.get('canvas.sections') || [];
+      let slot = null;
+      for (const s of sec) for (const r of s.rows){
+        const sl = r.slots.find(x => x.id === slotId);
+        if (sl){ slot = sl; break; }
+      }
+      if (!slot) return [];
+      const def = SolsticeComponents.get(slot.type);
+      const ingest = SolsticeStore.get('ingest') || {};
+      const ctx = {
+        slot, def,
+        ingest,
+        rows: ingest.rows || [],
+        columns: ingest.columns || [],
+        types: ingest.types || {},
+        dict: SolsticeStore.get('dictionary')
+      };
+      const hits = [];
+      for (const rule of RULES){
+        try {
+          if (rule.when(ctx)){
+            hits.push({ id: rule.id, label: rule.label, severity: rule.severity, description: rule.description, hint: rule.hint });
+          }
+        } catch(e){ /* regra deu erro — ignora silenciosamente */ }
+      }
+      return hits;
+    }
+
+    return { catalog, checkSlot, RULES };
+  })();
+
+  /* ============================================================
+     BLOCO 8 — SolsticeAsk
+     "Pergunte ao Solstice" via Ctrl+P. Command palette tipo Spotlight.
+     Parser regex simples reconhece padrões pt-BR:
+       - "qual a média/mediana/soma/máximo/mínimo de <col>?"
+       - "quantos outliers em <col>?"
+       - "top <N> em <col>" / "top <N> <col> por <col2>"
+       - "correlação entre <X> e <Y>"
+       - "quantos registros?"
+       - "quantas categorias em <col>?"
+       - "tendência de <col>"
+     ============================================================ */
+  const SolsticeAsk = (function(){
+    let isOpen = false;
+    let panelEl = null;
+
+    /** Resolve nome de coluna por friendlyName OU nome técnico (case-insensitive). */
+    function _resolveColumn(name){
+      if (!name) return null;
+      const ingest = SolsticeStore.get('ingest');
+      const dict = SolsticeStore.get('dictionary');
+      if (!ingest || !ingest.columns) return null;
+      const n = String(name).trim().toLowerCase();
+      // Match exato
+      for (const c of ingest.columns) if (c.toLowerCase() === n) return c;
+      // Friendly name
+      if (dict && dict.columns){
+        for (const c of ingest.columns){
+          const fn = (dict.columns[c] && dict.columns[c].friendlyName) || '';
+          if (fn.toLowerCase() === n) return c;
+        }
+      }
+      // Match parcial (startsWith)
+      for (const c of ingest.columns) if (c.toLowerCase().startsWith(n)) return c;
+      if (dict && dict.columns){
+        for (const c of ingest.columns){
+          const fn = (dict.columns[c] && dict.columns[c].friendlyName) || '';
+          if (fn.toLowerCase().startsWith(n)) return c;
+        }
+      }
+      return null;
+    }
+
+    /** Tenta interpretar pergunta e retorna { ok, title, value, formula, error }. */
+    function parse(query){
+      const q = String(query).trim().toLowerCase();
+      if (!q) return { ok: false, error: 'Pergunta vazia.' };
+      const ingest = SolsticeStore.get('ingest');
+      const dict = SolsticeStore.get('dictionary');
+      if (!ingest || !ingest.rows || !ingest.rows.length){
+        return { ok: false, error: 'Importe um CSV primeiro.' };
+      }
+      const rows = ingest.rows;
+
+      // PADRÃO: "quantos registros"
+      if (/quantos? registros|n[uú]mero de registros|total de linhas/.test(q)){
+        return { ok: true, title: 'Total de registros', value: SolsticeHumanize.recordCount(rows.length), formula: 'rows.length' };
+      }
+
+      // PADRÃO: "quantas categorias em X" / "distintos em X"
+      let m = q.match(/(?:quantas? (?:categorias|distintos|[uú]nicos)|categorias? distintas?) (?:em|de|na coluna|do)\s+(.+)/);
+      if (m){
+        const col = _resolveColumn(m[1]);
+        if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
+        const d = SolsticeStats.distinctCount(rows.map(r => r[col]));
+        return { ok: true, title: 'Distintos em ' + SolsticeHumanize.column(col, dict), value: SolsticeLocale.integer(d), formula: 'distinctCount(' + col + ')' };
+      }
+
+      // PADRÃO: "qual a média/mediana/etc de X" e variantes
+      m = q.match(/(?:qual (?:[éa] |o )?|me d[êe] (?:o |a )?)?(m[éz]dia|mediana|soma|total|m[áa]ximo|m[íi]nimo|desvio padr[ãa]o|stddev) (?:de|do|da|na coluna)\s+(.+)/);
+      if (m){
+        const opMap = { 'média':'mean','media':'mean','mediana':'median','soma':'sum','total':'sum','máximo':'max','maximo':'max','mínimo':'min','minimo':'min','desvio padrão':'stdDev','desvio padrao':'stdDev','stddev':'stdDev' };
+        const op = opMap[m[1]];
+        const col = _resolveColumn(m[2]);
+        if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[2] + '".' };
+        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        if (!values.length) return { ok: false, error: 'Coluna "' + col + '" não tem valores numéricos válidos.' };
+        const v = SolsticeStats[op](values);
+        const typeDef = SolsticeTypes.getType((ingest.types || {})[col] && ingest.types[col].type);
+        const formatted = typeDef && typeDef.format
+          ? (function(){ try { return typeDef.format(v, SolsticeLocale); } catch(e){ return SolsticeLocale.decimal(v, 2); }})()
+          : SolsticeLocale.decimal(v, 2);
+        return { ok: true, title: SolsticeHumanize.aggregation(op === 'mean' ? 'avg' : op) + ' de ' + SolsticeHumanize.column(col, dict), value: formatted, formula: 'Stats.' + op + '(' + col + ') sobre ' + values.length + ' valores' };
+      }
+
+      // PADRÃO: "quantos outliers em X"
+      m = q.match(/quantos? outliers? (?:em|de|na coluna|do)\s+(.+)/);
+      if (m){
+        const col = _resolveColumn(m[1]);
+        if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
+        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        if (!values.length) return { ok: false, error: 'Coluna sem valores numéricos.' };
+        const ou = SolsticeStats.outliersIQR(values, 1.5);
+        const pct = (ou.values.length / values.length * 100).toFixed(1);
+        return { ok: true, title: 'Outliers em ' + SolsticeHumanize.column(col, dict),
+                 value: ou.values.length + ' (' + pct + '%)',
+                 formula: 'outliersIQR(' + col + ', 1.5) · faixa [' + SolsticeLocale.decimal(ou.fences.lo, 1) + ', ' + SolsticeLocale.decimal(ou.fences.hi, 1) + ']' };
+      }
+
+      // PADRÃO: "correlação entre X e Y"
+      m = q.match(/correla[çc][ãa]o (?:entre|de)\s+(.+?)\s+(?:e|com|vs)\s+(.+)/);
+      if (m){
+        const colA = _resolveColumn(m[1]);
+        const colB = _resolveColumn(m[2]);
+        if (!colA) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
+        if (!colB) return { ok: false, error: 'Não encontrei a coluna "' + m[2] + '".' };
+        const xs = rows.map(r => parseFloat(r[colA]));
+        const ys = rows.map(r => parseFloat(r[colB]));
+        const r = SolsticeStats.correlation(xs, ys);
+        if (r == null) return { ok: false, error: 'Não foi possível calcular (poucos pares válidos).' };
+        const strength = Math.abs(r) >= 0.7 ? 'forte' : Math.abs(r) >= 0.4 ? 'moderada' : 'fraca';
+        return { ok: true, title: 'Correlação ' + SolsticeHumanize.column(colA, dict) + ' × ' + SolsticeHumanize.column(colB, dict),
+                 value: SolsticeLocale.decimal(r, 3) + ' (' + strength + ')',
+                 formula: 'Pearson r = cov(x,y)/(σx·σy)' };
+      }
+
+      // PADRÃO: "top N em X" ou "top N X por Y"
+      m = q.match(/top\s+(\d+)\s+(?:em\s+)?(.+?)(?:\s+por\s+(.+))?$/);
+      if (m){
+        const n = Math.min(20, parseInt(m[1]));
+        const catCol = _resolveColumn(m[2]);
+        if (!catCol) return { ok: false, error: 'Não encontrei a coluna "' + m[2] + '".' };
+        let numCol = m[3] ? _resolveColumn(m[3]) : null;
+        // Se não especificou Y, usa contagem
+        const agg = new Map();
+        for (const r of rows){
+          const k = String(r[catCol] || '—');
+          if (numCol){
+            const v = parseFloat(r[numCol]); if (isNaN(v)) continue;
+            agg.set(k, (agg.get(k) || 0) + v);
+          } else {
+            agg.set(k, (agg.get(k) || 0) + 1);
+          }
+        }
+        const sorted = Array.from(agg.entries()).sort((a, b) => b[1] - a[1]).slice(0, n);
+        const formatted = sorted.map(([k, v]) => k + ': ' + SolsticeLocale.decimal(v, 1)).join(' · ');
+        return { ok: true, title: 'Top ' + n + ' em ' + SolsticeHumanize.column(catCol, dict) + (numCol ? ' por ' + SolsticeHumanize.column(numCol, dict) : ' (por contagem)'),
+                 value: formatted,
+                 formula: 'sort(group(' + catCol + '), ' + (numCol ? 'sum(' + numCol + ')' : 'count') + ') · top ' + n };
+      }
+
+      // PADRÃO: "tendência de X"
+      m = q.match(/tend[êe]ncia (?:de|do|da)\s+(.+)/);
+      if (m){
+        const col = _resolveColumn(m[1]);
+        if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
+        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        if (values.length < 3) return { ok: false, error: 'Pouco dado para tendência (mínimo 3 valores).' };
+        const t = SolsticeStats.trend(values);
+        if (!t) return { ok: false, error: 'Não foi possível calcular tendência.' };
+        const dirLabel = t.direction === 'up' ? '🔼 Subindo' : t.direction === 'down' ? '🔽 Descendo' : '➡️ Estável';
+        return { ok: true, title: 'Tendência de ' + SolsticeHumanize.column(col, dict),
+                 value: dirLabel + ' · ' + SolsticeLocale.decimal(t.magnitude * 100, 1) + '%',
+                 formula: 'linearRegression(values).slope · R² = ' + SolsticeLocale.decimal(t.r2 || 0, 2) };
+      }
+
+      return { ok: false, error: 'Não entendi a pergunta. Veja exemplos de comandos suportados abaixo.' };
+    }
+
+    function open(){
+      if (isOpen) return;
+      isOpen = true;
+      const overlay = SolsticeUtils.el('div', {
+        class: 'solstice__ask-overlay',
+        onclick: (e) => { if (e.target === overlay) close(); }
+      });
+      const panel = SolsticeUtils.el('div', { class:'solstice__ask-panel' });
+      const inputWrap = SolsticeUtils.el('div', { class:'solstice__ask-input-wrap' });
+      inputWrap.appendChild(SolsticeUtils.el('span', { style:'font-size:18px;' }, '🔍'));
+      const input = SolsticeUtils.el('input', {
+        class:'solstice__ask-input', type:'text',
+        placeholder:'Pergunte algo sobre seus dados…'
+      });
+      inputWrap.appendChild(input);
+      inputWrap.appendChild(SolsticeUtils.el('span', { class:'solstice__ask-kbd' }, 'Esc'));
+      panel.appendChild(inputWrap);
+
+      const bodyEl = SolsticeUtils.el('div', { class:'solstice__ask-body' });
+      panel.appendChild(bodyEl);
+
+      function showSuggestions(){
+        bodyEl.innerHTML = '';
+        bodyEl.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;' },
+          'Exemplos de comandos'));
+        const suggestions = [
+          'qual a média de receita',
+          'quantos outliers em margem_bruta',
+          'correlação entre receita e ticket_medio',
+          'top 5 em regiao por receita',
+          'tendência de receita',
+          'quantos registros',
+          'quantas categorias em canal'
+        ];
+        suggestions.forEach(s => {
+          const el = SolsticeUtils.el('div', { class:'solstice__ask-suggestion',
+            onclick: () => { input.value = s; doAsk(); }
+          }, s);
+          bodyEl.appendChild(el);
+        });
+      }
+
+      function doAsk(){
+        const res = parse(input.value);
+        bodyEl.innerHTML = '';
+        if (!res.ok){
+          bodyEl.appendChild(SolsticeUtils.el('div', { class:'solstice__ask-error' },
+            '⚠️ ' + res.error));
+          showSuggestionsAppend();
+          return;
+        }
+        const result = SolsticeUtils.el('div', { class:'solstice__ask-result' });
+        result.appendChild(SolsticeUtils.el('div', { style:'font-size:11px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;' }, res.title));
+        result.appendChild(SolsticeUtils.el('div', { class:'solstice__ask-result-value' }, res.value));
+        if (res.formula) result.appendChild(SolsticeUtils.el('div', { class:'solstice__ask-result-formula' }, res.formula));
+        bodyEl.appendChild(result);
+      }
+
+      function showSuggestionsAppend(){
+        const sep = SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);margin-top:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;' },
+          'Tente:');
+        bodyEl.appendChild(sep);
+        ['qual a média de [coluna]', 'top 5 em [categoria] por [numérica]', 'correlação entre [X] e [Y]'].forEach(s => {
+          bodyEl.appendChild(SolsticeUtils.el('div', { class:'solstice__ask-suggestion',
+            onclick: () => { input.value = s.replace(/\[coluna\]/, '').replace(/\[X\]/, '').replace(/\[Y\]/, '').replace(/\[categoria\]/, '').replace(/\[numérica\]/, '').trim(); input.focus(); }
+          }, s));
+        });
+      }
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter'){ e.preventDefault(); doAsk(); }
+        if (e.key === 'Escape'){ e.preventDefault(); close(); }
+      });
+
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+      panelEl = overlay;
+      setTimeout(() => input.focus(), 50);
+      showSuggestions();
+    }
+
+    function close(){
+      if (panelEl){ panelEl.remove(); panelEl = null; }
+      isOpen = false;
+    }
+
+    function init(){
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+P abre. Bloqueia o "imprimir" do browser.
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p'){
+          // Não intercepta se está num input/textarea/contenteditable
+          const tag = e.target && e.target.tagName;
+          const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+          if (isEditing) return;
+          e.preventDefault();
+          if (isOpen) close(); else open();
+        }
+      });
+    }
+
+    return { open, close, parse, init, isOpen: () => isOpen };
+  })();
+
+  /* ============================================================
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco7-r2',
+    version: '5.3.0-bloco8',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,
@@ -11057,6 +12469,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     Inspector:   SolsticeInspector,
     Analysis:    SolsticeAnalysis,
     createAccordion: createAccordion,
+    Insights:        SolsticeInsights,
+    Narrative:       SolsticeNarrative,
+    Agent:           SolsticeAgent,
+    Inconsistencies: SolsticeInconsistencies,
+    Ask:             SolsticeAsk,
     LZ:          (typeof LZString !== 'undefined') ? LZString : null
   };
 
