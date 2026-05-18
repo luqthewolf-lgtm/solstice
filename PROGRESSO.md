@@ -9,8 +9,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco7** (B7 + UX smart dos 4 componentes avançados) |
-| Bloco corrente | **Bloco 7 — SolsticeStats + Aba Análise + Smart Defaults** ✅ COMPLETO |
+| Versão atual | **v5.3.0-bloco7-r1** (B7 + patch r1 cap de tamanho dos componentes) |
+| Bloco corrente | **Bloco 7 — SolsticeStats + Aba Análise + Smart Defaults** ✅ COMPLETO + Patch r1 (cap de tamanho) |
 | Próximo bloco | Bloco 8 — Insights + Narrativa + Agente + Inconsistências (Diferencial #2) |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
@@ -342,6 +342,24 @@ Lucas pediu polish completo antes do B7. Aplicado:
 **`Solstice.Stats` exposto.** Versão `5.3.0-bloco7`. Sentinel `[Solstice] Bloco 7 aplicado · módulo estatístico + UX smart dos 4 componentes avançados`.
 
 **Tamanho:** dashboard.html ~10.250 linhas (~265 KB).
+
+### 🔧 Patch B7-r1 — Cap de tamanho dos componentes
+
+Lucas reportou que ao adicionar Scatter/Gauge/Box Plot/Sankey via catálogo (com smart defaults criando seção 1col full-width), os SVGs estouravam verticalmente (~700-800px) em containers largos. Bug listado como #006 em `BUGS.md`.
+
+**Correções (ADR-062):**
+
+1. **`.solstice__chart-svg`** — substituído `aspect-ratio + min-height` por `max-width + max-height` per tier:
+   - compact: 360×230 · standard: 480×320 · large: 600×380
+   - SVG fica letterbox centralizado (margin: 0 auto) em containers largos; em containers pequenos respeita 100% width
+2. **`.solstice__chart-wrap`** (Chart.js) — `max-height: 380px` no wrap E no canvas filho
+3. **`.solstice__comp`** — `max-height: 460px` + `overflow: hidden` como teto absoluto/salvaguarda (≈ 380 SVG + 40 header + 20 padding + folga)
+4. **`.solstice__md`** (markdown) — `max-height: 380px` + `overflow-y: auto` para textos longos
+5. **`.solstice__hist`** (Distribuição) — `max-width: 600px` + `margin: 0 auto`
+
+**Resultado:** qualquer componente, em qualquer layout (1col/2col/4col/free), respeita uma altura máxima razoável. Nada estoura mais.
+
+Versão `5.3.0-bloco7-r1`. Sentinel `[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)`.
 
 ---
 

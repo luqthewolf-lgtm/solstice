@@ -122,3 +122,43 @@ Bloco 8 — Insights + Narrativa Automática + Agente Proativo + Inconsistência
 ## 📦 Portabilidade
 
 Veja `portabilidade/bloco-07.md` — **cada função de SolsticeStats é uma feature portável independente** (a SEÇÃO 13 do PROMPT pede isso explicitamente). Plus aba Análise (média complexidade), smart defaults dos 4 componentes (simples), shim pattern (simples).
+
+---
+
+## 🔧 Patch B7-r1 — Cap de tamanho dos componentes (2026-05-18)
+
+Versão `5.3.0-bloco7-r1`. Tamanho: ~10.270 linhas (~448 KB).
+
+### Bug corrigido (#006 em BUGS.md)
+
+Ao adicionar Scatter/Gauge/BoxPlot/Sankey, a seção 1col criada pelo `addByType` ocupava largura inteira do canvas (~1180px). O SVG tinha `aspect-ratio: 16/10` + `width: 100%` sem `max-height` → renderizava com ~738px de altura. Seção estourava verticalmente.
+
+### Correções (ADR-062)
+
+| Classe | Antes | Depois |
+|---|---|---|
+| `.solstice__chart-svg` | `aspect-ratio: 16/10` + `min-height: 140px` | `max-width: 600px` + `max-height: 380px` + `margin: 0 auto` |
+| `.solstice__chart-svg--compact` | `aspect-ratio: 8/5` + `min-height: 100px` | `max-width: 360px` + `max-height: 230px` |
+| `.solstice__chart-svg--standard` | `aspect-ratio: 3/2` + `min-height: 200px` | `max-width: 480px` + `max-height: 320px` |
+| `.solstice__chart-svg--large` | `aspect-ratio: 16/10` + `min-height: 280px` | `max-width: 600px` + `max-height: 380px` |
+| `.solstice__chart-wrap` (Chart.js) | `flex: 1; min-height: 200px` | + `max-height: 380px` |
+| `.solstice__chart-wrap canvas` | `display: block; max-width: 100%` | + `max-height: 380px` |
+| `.solstice__hist` (Distribution) | `width: 100%; height: 200px` | + `max-width: 600px; margin: 0 auto` |
+| `.solstice__md` (Markdown) | apenas font-size + padding | + `max-height: 380px; overflow-y: auto; width: 100%` |
+| `.solstice__comp` (casca) | `min-height: 120px` | + `max-height: 460px; overflow: hidden` |
+
+### Resultado
+
+- Qualquer componente em qualquer layout (1col/2col/4col/free) cap em ~460px de altura
+- SVGs ficam letterbox centralizados em containers largos
+- Markdown longo ganha scroll interno
+- Box-shadow de `is-selected` não é clipado (browser não aplica overflow:hidden em box-shadow)
+- ADR-062 estabelece regra de checklist para blocos futuros
+
+### Pontos de versão sincronizados (ADR-037)
+
+- Banner topo: `BLOCO 7 r1 · ...CAP DE TAMANHO DOS COMPONENTES`
+- Sidebar status: linha "✓ Cap de tamanho dos componentes (B7-r1)"
+- Footer dinâmico: `v5.3 · Bloco 7 r1` (via regex em `Solstice.version`)
+- `Solstice.version = '5.3.0-bloco7-r1'`
+- Sentinela console: `[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)`

@@ -1074,6 +1074,35 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-062 — Cap explícito de tamanho em componentes visuais com aspect-ratio livre (B7-r1)
+
+**Status:** Aceito · Patch B7-r1
+**Contexto:** SVGs dos componentes B6 (Scatter/Gauge/BoxPlot/Sankey) usavam `aspect-ratio: 16/10` + `width: 100%` sem `max-height`. Em containers largos (1col full-width, canvas ~1180px), o SVG renderizava com ~738px de altura, estourando a seção. Bug #006 em BUGS.md. Smart defaults do B7 amplificaram o problema (usuários adicionam mais).
+
+**Decisão:**
+1. Substituir `aspect-ratio + min-height` por **`max-width + max-height` per tier** em `.solstice__chart-svg`:
+   - compact: 360×230 · standard: 480×320 · large: 600×380
+   - SVG fica letterbox centralizado (margin: 0 auto) em containers maiores
+2. Aplicar `max-height: 380px` no wrap Chart.js (`.solstice__chart-wrap`) e seu canvas filho
+3. Aplicar `max-height: 460px` + `overflow: hidden` em `.solstice__comp` como teto absoluto (380 SVG + 40 header + 20 padding + folga)
+4. Aplicar `max-height: 380px` + `overflow-y: auto` em `.solstice__md` para textos longos
+5. Aplicar `max-width: 600px` + `margin: 0 auto` em `.solstice__hist`
+
+**Alternativas consideradas:**
+- **JS resize** (calcular dimensões pixel-perfect via JS): viola Pure CSS rule, custa runtime, conflita com ResizeObserver do B6-r1
+- **aspect-ratio + max-height puro**: aspect-ratio é "preferida" mas pode colidir com max-height de forma inconsistente entre browsers (Firefox vs Chrome). max-width+max-height é mais robusto
+- **CSS container queries**: o KPI Card já usa, mas SVGs com viewBox precisam de width/height explícitos para letterboxing
+
+**Consequências:**
+- ✅ Nenhum componente estoura seção em containers largos
+- ✅ Em containers pequenos (4col layout): SVG ainda renderiza responsivo via tier compact
+- ✅ Box-shadow de `is-selected` não é clipado (overflow:hidden não afeta box-shadow externo)
+- ✅ Tooltips de hover, modais, sidebar não são afetados (vivem fora do `.solstice__comp`)
+- ⚠️ Componentes com conteúdo dinâmico longo (markdown grande, tabela com 500 linhas) precisam scroll INTERNO — markdown ganhou overflow-y: auto; tabela já tinha .solstice__data-table-wrap com max-height: 70vh; mas comp ainda cap em 460px (table scroll fica em ~400px visíveis)
+- 📋 **Regra a partir de B8:** todo componente visual com elemento de aspect-ratio livre (SVG, canvas, embed) DEVE declarar `max-width` e `max-height`. Adicionar ao checklist do bloco.
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

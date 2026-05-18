@@ -11,6 +11,32 @@ _Nenhum bug crítico conhecido no momento._
 
 ---
 
+### #006 — Componentes SVG estouram a seção verticalmente em containers largos · RESOLVIDO
+
+**Status:** RESOLVIDO em Patch B7-r1
+**Severidade:** importante (UX/layout)
+**Módulo:** CSS — `.solstice__chart-svg`, `.solstice__chart-wrap`, `.solstice__comp`, `.solstice__md`, `.solstice__hist`
+**Bloco em que apareceu:** B6 (precursor) · ficou MAIS visível no B7 porque smart defaults fazem usuários adicionar Scatter/Gauge/BoxPlot/Sankey com frequência
+
+**Descrição:**
+Ao adicionar Scatter/Gauge/Box Plot/Sankey via catálogo, o componente criava uma seção 1col que ocupa a largura inteira do canvas (~1180px em 1080p). O SVG tinha `aspect-ratio: 16/10` com `width: 100%` mas SEM `max-height`. Em containers de 1180px, isso fazia o SVG renderizar com altura ~738px. A seção esticava verticalmente e quebrava o layout — usuário precisava resize manual para cada componente.
+
+Mesmo problema com Chart.js wrap (`flex: 1` + `min-height: 200px` sem cap) e Markdown (sem cap em textos longos).
+
+**Correção (B7-r1 / ADR-062):**
+1. `.solstice__chart-svg` + variantes — trocou `aspect-ratio + min-height` por `max-width + max-height` per tier (compact: 360×230 · standard: 480×320 · large: 600×380). SVG fica letterbox centralizado em containers largos.
+2. `.solstice__chart-wrap` (Chart.js) — adicionado `max-height: 380px` no wrap e no canvas filho.
+3. `.solstice__comp` — `max-height: 460px` (≈ SVG cap 380 + header 40 + padding 20 + folga) como teto absoluto + `overflow: hidden` como salvaguarda.
+4. `.solstice__md` (markdown) — `max-height: 380px` + `overflow-y: auto` para textos longos.
+5. `.solstice__hist` (Distribuição) — `max-width: 600px` + `margin: 0 auto` para mesma proteção.
+
+**Prevenção:**
+ADR-062 documenta a regra geral: todo componente visual com elemento de aspect-ratio livre (SVG, canvas, embed) DEVE declarar `max-width` e `max-height`. Adicionar a esse checklist ao registrar novo componente nos blocos futuros.
+
+**Reportado por:** Lucas Cardoso, sessão 2 (2026-05-18), via uso real após validação do B7.
+
+---
+
 ### #002 — UI desatualizada acumulada (sidebar status, footer, tab Componentes, botão remover) · RESOLVIDO
 
 **Status:** RESOLVIDO em Patch B5-r1
@@ -214,6 +240,28 @@ Copie o bloco abaixo ao reportar:
 ---
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
+
+### Bloco 7 — refinamentos r1 (cap de tamanho)
+
+- [ ] Sentinela verde `[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)`
+- [ ] `[Solstice] boot OK` também aparece
+- [ ] `Solstice.version === '5.3.0-bloco7-r1'`
+- [ ] Footer mostra `v5.3 · Bloco 7 r1`
+- [ ] Banner cita `BLOCO 7 r1 · ...CAP DE TAMANHO`
+- [ ] Status sidebar tem linha "✓ Cap de tamanho dos componentes (B7-r1)"
+- [ ] Carregar CSV dummy → adicionar **Scatter** em seção 1col (canvas largo)
+- [ ] Scatter renderiza com **altura ≤ ~440px** (incluindo header da casca) — NÃO estoura 700px+
+- [ ] SVG do Scatter fica centralizado (letterbox) com max-width ~600px
+- [ ] Mesma validação para Gauge, Box Plot, Sankey, Distribuição
+- [ ] Série Temporal (Chart.js) também respeita cap (max-height 380px no wrap)
+- [ ] Markdown com texto longo → scroll vertical interno aparece, sem estourar
+- [ ] Tabela continua scrollando internamente (data-table-wrap)
+- [ ] Heatmap Calendário continua scrollando horizontal (overflow-x:auto)
+- [ ] Em layout 2col-equal: SVGs ainda renderizam responsivos sem cap visível
+- [ ] Em layout 4col-equal: SVGs em tier compact com max-width 360px
+- [ ] Resize de slot (Bloco 4) ainda funciona — componente respeita novas dimensões via ResizeObserver
+- [ ] Componente com is-selected NÃO tem box-shadow clipado (overflow:hidden não corta box-shadow externo)
+- [ ] Tooltips de hover dos botões 🔬🔍⚙️🗑️ ainda aparecem (não cortados)
 
 ### Bloco 7 — SolsticeStats + Aba Análise + Smart Defaults
 

@@ -1328,3 +1328,25 @@ Nenhum — `SolsticeStats` é puro, sem state. Aba "📈 Análise" não persiste
 .solstice__stats-note       /* destaque warn para insights estatísticos */
 .solstice__stats-footer     /* mono pequeno tracejado para snippet de console */
 ```
+
+---
+
+## Cap de tamanho dos componentes (Patch B7-r1)
+
+ADR-062 estabelece dimensões máximas para componentes visuais. Sem aspect-ratio livre — usa `max-width` + `max-height` per tier:
+
+| Classe | Tier | max-width | max-height |
+|---|---|---|---|
+| `.solstice__chart-svg` (base) | — | 600px | 380px |
+| `.solstice__chart-svg--compact` | <240px container | 360px | 230px |
+| `.solstice__chart-svg--standard` | <420px container | 480px | 320px |
+| `.solstice__chart-svg--large` | ≥420px container | 600px | 380px |
+| `.solstice__chart-wrap` (Chart.js) | — | 100% | 380px |
+| `.solstice__chart-wrap canvas` | — | 100% | 380px |
+| `.solstice__hist` (Distribution) | — | 600px | 200px (fixo) |
+| `.solstice__md` (Markdown) | — | 100% | 380px + scroll |
+| `.solstice__comp` (casca) | — | (do slot) | 460px + overflow:hidden |
+
+`margin: 0 auto` adicionado em SVGs e markdown para centralização (letterboxing).
+
+**Regra de checklist para blocos futuros:** todo componente novo com SVG/canvas/embed deve declarar max-width E max-height (ou cumprir via classe `.solstice__chart-svg` herdada).

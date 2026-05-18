@@ -608,15 +608,18 @@
 
   /* ===== BLOCO 6 — SCATTER / HEATMAP CAL / GAUGE / MARKDOWN / BOX PLOT / SANKEY ===== */
 
-  /* Wrap genérico SVG dos componentes — responsivo por tier (Patch B6-r1) */
+  /* Wrap genérico SVG dos componentes — responsivo por tier (Patch B6-r1, ajustado B7-r1)
+     ADR-062 (B7-r1): aspect-ratio puro fazia SVG estourar verticalmente em containers
+     largos (1col + canvas ~1180px → SVG ~750px de altura). Troca para max-width + max-height
+     per tier. SVG fica "letterbox" centralizado com dimensões sensatas em qualquer slot. */
   .solstice__chart-svg {
     display: block; width: 100%; height: auto;
-    min-height: 140px;
-    aspect-ratio: 16 / 10;
+    margin: 0 auto;
+    max-width: 600px; max-height: 380px;
   }
-  .solstice__chart-svg--compact  { min-height: 100px; aspect-ratio: 8 / 5; }
-  .solstice__chart-svg--standard { min-height: 200px; aspect-ratio: 3 / 2; }
-  .solstice__chart-svg--large    { min-height: 280px; aspect-ratio: 16 / 10; }
+  .solstice__chart-svg--compact  { max-width: 360px; max-height: 230px; }
+  .solstice__chart-svg--standard { max-width: 480px; max-height: 320px; }
+  .solstice__chart-svg--large    { max-width: 600px; max-height: 380px; }
   .solstice__chart-tier-empty {
     padding: var(--sp-4);
     text-align: center;
@@ -718,11 +721,13 @@
   }
   .solstice__gauge-target-tick { stroke: var(--c-warn); stroke-width: 2; }
 
-  /* Markdown / Texto rico */
+  /* Markdown / Texto rico (Patch B7-r1: scroll interno se texto longo) */
   .solstice__md {
     font-size: var(--fs-sm); line-height: 1.6;
     color: var(--c-text);
     padding: var(--sp-3);
+    max-height: 380px; overflow-y: auto;
+    width: 100%;
   }
   .solstice__md h1, .solstice__md h2, .solstice__md h3 {
     font-family: var(--font-display); margin: var(--sp-3) 0 var(--sp-2);
@@ -796,7 +801,9 @@
 
   /* ===== BLOCO 5 — COMPONENTES BASE / AUDITORIA / PAINEL DE PROPRIEDADES ===== */
 
-  /* Componente genérico — substitui o slot placeholder quando type != 'empty' */
+  /* Componente genérico — substitui o slot placeholder quando type != 'empty'
+     ADR-062 (B7-r1): teto vertical absoluto como salvaguarda contra estouro de seção.
+     440px ≈ max-height SVG (380px) + header da casca (40px) + padding (20px). */
   .solstice__comp {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
@@ -804,6 +811,8 @@
     padding: var(--sp-3) var(--sp-4);
     display: flex; flex-direction: column;
     min-height: 120px;
+    max-height: 460px;
+    overflow: hidden;
     transition: all var(--t-fast);
     position: relative;
     cursor: pointer;
@@ -966,15 +975,16 @@
     border-radius: var(--rad-sm);
   }
 
-  /* Wrap padrão para gráficos Chart.js */
+  /* Wrap padrão para gráficos Chart.js (Patch B7-r1 cap vertical) */
   .solstice__chart-wrap {
-    flex: 1; min-height: 200px; position: relative;
+    flex: 1; min-height: 200px; max-height: 380px; position: relative;
   }
-  .solstice__chart-wrap canvas { display: block; max-width: 100%; }
+  .solstice__chart-wrap canvas { display: block; max-width: 100%; max-height: 380px; }
 
-  /* Histograma SVG */
+  /* Histograma SVG (Patch B7-r1: max-width para evitar estourar em containers largos) */
   .solstice__hist {
     display: block; width: 100%; height: 200px;
+    max-width: 600px; margin: 0 auto;
   }
   .solstice__hist rect {
     fill: var(--c-accent); opacity: 0.7;
@@ -2071,7 +2081,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 7 · MÓDULO ESTATÍSTICO SolsticeStats (35+ funções) + UX SMART DOS 4 COMPONENTES AVANÇADOS
+  ☀️ SOLSTICE v5.3 · BLOCO 7 r1 · MÓDULO ESTATÍSTICO SolsticeStats (47 funções) + UX SMART + CAP DE TAMANHO DOS COMPONENTES
 </div>
 
 <!-- App shell -->
@@ -2181,6 +2191,7 @@
         <strong style="color:var(--c-success)">✓</strong> SolsticeStats — 35+ funções puras (descritiva · regressão · séries · outliers · correlação) (B7)<br>
         <strong style="color:var(--c-success)">✓</strong> Aba "📈 Análise" no Props · "Por que esse número?" (B7)<br>
         <strong style="color:var(--c-success)">✓</strong> Smart defaults Scatter/Gauge/Box Plot/Sankey ao adicionar componente (B7)<br>
+        <strong style="color:var(--c-success)">✓</strong> Cap de tamanho dos componentes (max-height por tier · sem estouro vertical) (B7-r1)<br>
         <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 8 (Insights + Narrativa + Agente + Inconsistências)
       </div>
     </div>
@@ -3765,10 +3776,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       el.textContent = 'v5.3 · Bloco ' + blocoNum + revision;
     })();
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 7','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 7 (r1)','color:#4D9FFF;font-size:14px;font-weight:bold;');
     console.log('Atalhos: Ctrl+Z desfaz · Ctrl+Shift+Z refaz · Ctrl+Shift+D debug · window.Solstice expõe a API.');
     console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções estatísticas · Solstice.Components.list() → '+SolsticeComponents.list().length+' componentes · aba 📈 Análise disponível em qualquer componente selecionado');
-    console.log('%c[Solstice] Bloco 7 aplicado · módulo estatístico + UX smart dos 4 componentes avançados','color:#4ADE80;font-weight:bold;');
+    console.log('%c[Solstice] Patch B7-r1 aplicado · cap de tamanho dos componentes SVG (max-height por tier + .solstice__comp 460px)','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -10205,7 +10216,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco7',
+    version: '5.3.0-bloco7-r1',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,
