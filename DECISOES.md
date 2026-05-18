@@ -1413,6 +1413,85 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-079 — Snapshots em localStorage com LZ-String · cap 30/perfil
+
+**Status:** Aceito · Bloco 11
+**Contexto:** Persistir estado completo (canvas + filtros + params + dicionário + dataset) precisa de storage estável. IndexedDB seria mais robusto mas exige async em todo lugar; sessionStorage some na próxima sessão; servidor viola single-file.
+**Decisão:** localStorage por perfil (`solstice.snapshots.<profileId>`). State serializado em JSON, comprimido com LZ-String (já inline desde B1 via ADR-005), armazenado como array em ordem do mais recente primeiro. Cap 30 por perfil — quando excede, descarta o mais antigo.
+**Compressão típica:** dataset com 50k linhas (5 MB JSON puro) → ~500 KB Base64 → 1 snapshot consome ~10% do limite típico (5 MB localStorage).
+**Consequências:**
+- ✅ Restauração instantânea (sem fetch); funciona offline
+- ✅ Escopado por perfil (multi-usuário no mesmo browser não pisa em snapshot alheio)
+- ⚠️ Limite localStorage varia por browser (5-10 MB) — cap 30 é heurística
+- ⚠️ `QuotaExceededError` tratado via `SolsticeErrors.show('STORAGE_QUOTA_EXCEEDED')`
+
+---
+
+## ADR-080 — Versions = ring buffer 10 em memória, sessão-only
+
+**Status:** Aceito · Bloco 11
+**Contexto:** Usuário quer "voltar pra como tava 5 minutos atrás" sem precisar criar snapshot nomeado a cada mudança. Mas histórico cheio em localStorage estoura.
+**Decisão:** Array em memória do módulo `SolsticeVersions`. Subscribe em `canvas.sections` chama `_capture()`; descarta duplicatas seguidas (mesmo JSON); cap 10. **NÃO persiste** — esvazia a cada reload.
+**Por que não persistir:** Snapshots já fazem o papel de persistência nomeada. Versions é "Cmd+Z de UI" — efêmero e contextual.
+**Consequências:**
+- ✅ Sem custo de storage
+- ✅ Restauração rápida (sem decompress)
+- ✅ Distinto semanticamente de Snapshots — sem confusão
+- ⚠️ Perde histórico ao recarregar — aceitável vs custo
+
+---
+
+## ADR-081 — FileSystem com detecção + fallback gracioso
+
+**Status:** Aceito · Bloco 11
+**Contexto:** File System Access API permite escrever em arquivo real (não download), mas só Chrome/Edge moderno suportam. Firefox/Safari precisam fallback.
+**Decisão:** `typeof window.showSaveFilePicker === 'function'` detecta suporte. Quando suportado, usa API moderna (`showSaveFilePicker` + `createWritable`). Quando não, fallback para `<a href="blob:" download>` (HTML5 universal).
+**Fallback do open:** `<input type="file">` programaticamente criado e clicado. Promise resolve com conteúdo parseado.
+**Erros AbortError silenciados** (usuário cancelou diálogo) — não exibe toast.
+**Consequências:**
+- ✅ Chrome/Edge têm UX premium (escolher pasta, sobrescrever, etc.)
+- ✅ Firefox/Safari ganham fallback funcional
+- ✅ Mesma API para ambos os modos (`saveJSON`, `openJSON`, `saveBlob`)
+- ⚠️ Fallback não preserva handle (não "Salvar no mesmo lugar" 2x)
+
+---
+
+## ADR-082 — Export HTML standalone com hidratação no boot
+
+**Status:** Aceito · Bloco 11
+**Contexto:** Compartilhar dashboard via e-mail/Slack precisa de um único arquivo .html que abra direto, sem servidor, sem reimportar CSV.
+**Decisão:** `SolsticeExport.buildStandaloneHTML` pega `document.documentElement.outerHTML` do dashboard atual, injeta:
+1. `<meta name="solstice-embedded" content="1">` no `<head>`
+2. `<script id="solstice-embedded-state" type="application/octet-stream">` no `<head>` com state LZ-comprimido em Base64
+3. Snippet de auto-hidratação no fim do `<body>` que (a) aguarda Solstice carregar (b) lê meta + script (c) descomprime + parse (d) chama `Store.batch()` para popular tudo de uma vez (e) força `Canvas.render()`
+**3 opções no modal:** com dados embutidos · sem dados (template) · JSON puro (.solstice.json).
+**Tamanho:** ~600 KB base + dataset comprimido (10-20% do JSON puro do CSV).
+**Consequências:**
+- ✅ Receptor abre e vê dashboard idêntico — sem servidor, sem fetch, sem reimportar
+- ✅ Funciona offline em qualquer browser
+- ✅ Sentinela específica `[Solstice] Estado embedded rehidratado` no console facilita debug
+- ⚠️ Versão do dashboard.html EMBEDDED é a do momento do export — se Solstice evolui, snapshots antigos podem ter incompatibilidades (mitigado por estabilidade da Store API)
+- ⚠️ Datasets > 5 MB de raw começam a pesar (~1 MB no HTML)
+
+---
+
+## ADR-083 — Templates Itaú anexados a `SolsticeTemplates.DOMAIN` no init
+
+**Status:** Aceito · Bloco 11
+**Contexto:** SolsticeTemplates (B3) tem arrays `AGNOSTIC` e `DOMAIN`. Adicionar 3 templates Itaú sem reescrever templates.
+**Decisão:** Módulo `SolsticeTemplatesItau` próprio com `TEMPLATES` array; em `init()`, anexa os 3 itens ao `SolsticeTemplates.DOMAIN` (verificando duplicação por `id`). Resultado: aparecem no picker quando `dictKey === 'banco_pj'` (mesma lógica de filtragem existente do B3).
+**Estrutura dos templates:**
+- `Carteira PJ — Visão Mensal` (3 KPIs + Série Temporal + Sankey)
+- `Acompanhamento de Inadimplência` (3 KPIs DPD + Box Plot + Histograma + Série)
+- `Pipeline Comercial PJ` (Sankey grande + Box Plot + Tabela)
+**Consequências:**
+- ✅ Reusa toda a infra de Templates do B3 (picker, busca, apply)
+- ✅ Templates específicos do Itaú sem poluir código agnóstico
+- ✅ Fácil estender — appendar a `TEMPLATES`
+- ⚠️ Templates assumem colunas com nomes específicos (`vlr_op_aprov_mensal`, `DPD30`, etc.) — só funcionam se dicionário Banco PJ for aplicado E dataset tiver essas colunas
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)

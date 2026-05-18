@@ -269,6 +269,69 @@ Copie o bloco abaixo ao reportar:
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
 
+### Bloco 11 — Snapshots + Versions + FileSystem + Export + Templates Itaú
+
+- [ ] Sentinela `[Solstice] Bloco 11 aplicado · Snapshots + Versions + FileSystem + Export + Templates Itaú` verde
+- [ ] `[Solstice] boot OK` aparece
+- [ ] `Solstice.version === '5.3.0-bloco11'`
+- [ ] Footer mostra `v5.3 · Bloco 11`
+- [ ] Console: `Solstice.Snapshots / Versions / FileSystem / Export / TemplatesItau` expostos
+
+**Snapshots:**
+- [ ] Carregar CSV → toolbar mostra 💾 Salvar · 📂 Abrir · ⬇️ Exportar · 🕐 Histórico
+- [ ] Click "💾 Salvar" → toast "Snapshot rápido salvo"
+- [ ] Click "📂 Abrir" → modal com lista de snapshots; item clicado restaura tudo (canvas + filtros + params + dataset)
+- [ ] Ctrl+S salva snapshot rápido sem abrir modal (mesma ação do botão)
+- [ ] Ctrl+O abre modal de snapshots
+- [ ] Renomear snapshot via ✏️ → toast + nome muda na lista
+- [ ] Remover snapshot via 🗑️ → modal confirm danger → desaparece da lista
+- [ ] Snapshots persistem entre reloads (localStorage)
+- [ ] Cap 30: salvar 31º → mais antigo é descartado
+- [ ] Console: `Solstice.Snapshots.list().length` é correto
+
+**Versions:**
+- [ ] Click "🕐 Histórico" → modal com versão atual (🟢) + até 10 anteriores (🕐)
+- [ ] Cada versão tem timestamp + tamanho em KB
+- [ ] Click em ↶ restaura versão anterior + toast
+- [ ] Reload da página → histórico zera (em memória)
+- [ ] Console: `Solstice.Versions.list().length` ≤ 10
+
+**FileSystem:**
+- [ ] Em Chrome/Edge: `Solstice.FileSystem.isSupported() === true`
+- [ ] Em Firefox: false; fallback download funciona
+- [ ] saveJSON → diálogo "Save As" em Chrome; download direto em Firefox
+- [ ] openJSON → diálogo "Open" em Chrome; input file em Firefox
+
+**Export:**
+- [ ] Click "⬇️ Exportar" → modal com 3 opções
+- [ ] Opção "📄 HTML com dados" → baixa arquivo `.html`; abrir num browser limpo → dashboard idêntico aparece + console mostra `[Solstice] Estado embedded rehidratado`
+- [ ] Opção "📑 HTML sem dados" → mesmo arquivo mas com canvas vazio aguardando import
+- [ ] Opção "🗂️ JSON puro" → baixa `.solstice.json`; pode reabrir via 📂 (fallback openJSON)
+- [ ] Console: `Solstice.Audit.list({action:'export_html'})` registra exportação
+
+**Templates Itaú:**
+- [ ] `Solstice.TemplatesItau.list().length === 3`
+- [ ] `Solstice.Templates.DOMAIN` contém os 3 templates Itaú (anexados no init)
+- [ ] Aplicar dicionário "Banco PJ" → picker do "📋 Templates" da toolbar mostra os 3
+- [ ] Click no template "Carteira PJ — Visão Mensal" → 2 sections criadas com 5 componentes
+- [ ] Sem dicionário "Banco PJ": templates aparecem mas filtrados por `domain` apenas se match
+
+**Aba Dicionários (sidebar):**
+- [ ] Click em "🧠 Dicionários" → painel mostra ativo + salvos + 6 pré-feitos
+- [ ] Click em ✓ de um pré-feito → aplica + toast + painel atualiza
+- [ ] Lista de pré-feitos exclui "generico"
+
+**Aba Snapshots (sidebar):**
+- [ ] Click em "📸 Snapshots" → painel com botão "💾 Salvar atual" + lista
+- [ ] Salvar pelo painel → modal prompt para nome → adiciona à lista
+- [ ] 📂/🗑️ funcionam inline
+
+**Regressão B1-B10:**
+- [ ] Auto-Dashboard e Wizard continuam operacionais
+- [ ] Filtros/Cross-filter/Params operacionais
+- [ ] 10 componentes renderizam
+- [ ] Insights/Narrative/Ask operacionais
+
 ### Bloco 10 — Auto-Dashboard + Wizard + Recomendações (15+ tipos · 11 intenções)
 
 - [ ] Sentinela verde `[Solstice] Bloco 10 aplicado · Auto-Dashboard + Wizard expandido + Recomendações (15+ tipos)`

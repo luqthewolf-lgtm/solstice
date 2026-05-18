@@ -1960,3 +1960,128 @@ INTENTS                        // → array<Intent> (11+1)
 | 🧙 Wizard | `SolsticeWizard.open()` |
 
 Ambos só aparecem com dataset carregado (`dataset.ready`).
+
+---
+
+## `Solstice.Snapshots` (Bloco 11 · ADR-079)
+
+CRUD de snapshots em localStorage por perfil.
+
+```js
+list()                         // → array<Entry> { id, name, savedAt, size, rowsCount, data }
+                               //   data = LZ-Base64 do JSON do state
+save(name?)                    // → Entry novo · cap 30 (descarta antigo)
+load(id)                       // → boolean (aplica state)
+remove(id)
+rename(id, newName)
+openModal()                    // → Promise — modal CRUD completo
+_captureState()                // → state object (sem comprimir, debug)
+init()                         // no-op
+```
+
+**State shape:** `{ canvas: { sections, header }, filters, params, dictionary, ingest: { sourceName, columns, types, rows } }`.
+
+**Path no localStorage:** `solstice.snapshots.<profileId>`.
+
+---
+
+## `Solstice.Versions` (Bloco 11 · ADR-080)
+
+Histórico automático em memória.
+
+```js
+list()                         // → array<{index, ts}>
+restore(index)                 // → boolean (substitui canvas.sections)
+openModal()                    // modal com lista clicável
+_capture()                     // captura manual (geralmente desnecessário)
+init()                         // subscribe em canvas.sections
+```
+
+**Cap:** 10 versões. **Persistência:** memória (zera no reload).
+
+---
+
+## `Solstice.FileSystem` (Bloco 11 · ADR-081)
+
+File System Access API + fallback download/upload.
+
+```js
+saveJSON(state, suggestedName) // → Promise<bool>
+openJSON()                     // → Promise<state | null>
+saveBlob(blob, suggestedName)  // → Promise<bool>
+isSupported()                  // → boolean (mostra UI condicional)
+init()                         // bind Ctrl+S/Ctrl+O
+```
+
+**Atalhos novos:**
+- `Ctrl + S` — snapshot rápido (auto-nomeado com timestamp)
+- `Ctrl + O` — abre modal de Snapshots
+
+Não interceptam quando foco está em input/textarea/contenteditable.
+
+---
+
+## `Solstice.Export` (Bloco 11 · ADR-082)
+
+Gera HTML standalone ou JSON.
+
+```js
+buildStandaloneHTML({ includeData=true })  // → string HTML completo
+openExportModal()                          // → Promise — modal com 3 opções
+```
+
+**3 opções no modal:**
+1. **HTML standalone com dados** — dashboard inteiro + dataset embutido (~600 KB + dataset)
+2. **HTML sem dados** (template) — só estrutura; usuário do destino reimporta CSV
+3. **JSON puro** (`.solstice.json`) — estado serializado, sem HTML
+
+**Hidratação automática:** HTML exportado lê `<meta name="solstice-embedded">` + `<script id="solstice-embedded-state">`, descomprime, popula Store via `batch()`, força render. Loga sentinela verde `[Solstice] Estado embedded rehidratado`.
+
+---
+
+## `Solstice.TemplatesItau` (Bloco 11 · ADR-083)
+
+3 templates pré-instalados para dicionário Banco PJ.
+
+```js
+list()                         // → array dos 3 templates
+TEMPLATES                      // → mesma coisa (debug)
+init()                         // anexa a SolsticeTemplates.DOMAIN
+```
+
+**Templates (ids):**
+- `itau-carteira-pj-mensal` — 🏦 Carteira PJ — Visão Mensal
+- `itau-inadimplencia` — ⚠️ Acompanhamento de Inadimplência
+- `itau-pipeline-comercial` — 📈 Pipeline Comercial PJ
+
+Aparecem no picker do `SolsticeTemplates` quando `dictKey === 'banco_pj'`.
+
+---
+
+## Botões novos na toolbar do canvas (Bloco 11)
+
+| Botão | Aciona | Visível quando |
+|---|---|---|
+| 📂 Abrir | `SolsticeSnapshots.openModal()` | sempre |
+| 💾 Salvar | `SolsticeSnapshots.save()` + toast | dataset carregado |
+| ⬇️ Exportar | `SolsticeExport.openExportModal()` | dataset carregado |
+| 🕐 Histórico | `SolsticeVersions.openModal()` | dataset carregado |
+
+---
+
+## Abas novas na sidebar (Bloco 11)
+
+| Aba | Painel | Função |
+|---|---|---|
+| 🧠 Dicionários | `#dicionarios-panel` | Dicionário ativo + salvos + 6 pré-feitos aplicáveis com 1 clique |
+| 📸 Snapshots | `#snapshots-panel` | Lista compacta dos snapshots do perfil com 📂/🗑️ inline |
+
+---
+
+## Estilos CSS novos (Bloco 11)
+
+```css
+.solstice__snaps-list / .solstice__snap-item / -thumb / -body / -name / -meta / -actions / -empty
+.solstice__dicts-panel / -list / .solstice__dict-item / -icon / -body / -name / -meta / -actions
+.solstice__export-options / .solstice__export-option / -title / -desc / -meta
+```

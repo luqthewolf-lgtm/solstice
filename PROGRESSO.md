@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco10** (B10 — Auto-Dashboard + Wizard + Recomendações) |
-| Bloco corrente | **Bloco 10 — Auto-Dashboard contextual + Wizard expandido + Recomendações ampliadas** ✅ COMPLETO |
-| Próximo bloco | Bloco 11 — Snapshots + Templates + Export HTML standalone |
+| Versão atual | **v5.3.0-bloco11** (B11 — Snapshots + Versions + FileSystem + Export + Templates Itaú) |
+| Bloco corrente | **Bloco 11 — Snapshots + Templates + Export + File System** ✅ COMPLETO |
+| Próximo bloco | Bloco 12 — 5 Modos + Atalhos + Polish (Modo Slides + Apresentador) |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
 | Tempo total estimado restante | ~5-7 sessões |
@@ -559,6 +559,71 @@ Cada intenção mapeia para subset de regras via `INTENT_RULES`. Wizard tem 3 st
 
 **ADRs novas:** ADR-075 (ColumnScore 8 critérios compostos · pesos calibrados na intuição) · ADR-076 (Recommender declarativo com 15 regras · confidence 0-100) · ADR-077 (AutoDashboard com confirmação se conf média < 70%) · ADR-078 (Wizard 3-step com 11 intenções mapeadas a subsets de regras).
 
+### 🟫 Bloco 11 — Snapshots + Versions + FileSystem + Export + Templates Itaú
+
+**Entregue em:** 2026-05-18 · Sessão 3
+
+**5 módulos novos** + aba Dicionários/Snapshots ativadas + 4 botões na toolbar:
+
+| Módulo | API pública | Função |
+|---|---|---|
+| `SolsticeSnapshots` | save/load/list/remove/rename/openModal | CRUD de snapshots em localStorage com LZ-String, cap 30/perfil |
+| `SolsticeVersions` | restore/list/openModal | Ring buffer de 10 versões automáticas (sessão-only) acionado por mudança em `canvas.sections` |
+| `SolsticeFileSystem` | saveJSON/openJSON/saveBlob/isSupported | File System Access API + fallback download/upload · Ctrl+S salva snap rápido · Ctrl+O abre |
+| `SolsticeExport` | buildStandaloneHTML/openExportModal | 3 opções: HTML+dados embutidos · HTML sem dados (template) · JSON puro |
+| `SolsticeTemplatesItau` | list/init/TEMPLATES | 3 templates pré-instalados (Carteira PJ Mensal · Inadimplência · Pipeline Comercial PJ) anexados ao `SolsticeTemplates.DOMAIN` |
+
+**Snapshot state shape (state completo):**
+```js
+{
+  canvas: { sections, header },
+  filters, params,
+  dictionary,
+  ingest: { sourceName, columns, types, rows }
+}
+```
+Tudo serializável, comprimido com LZ-String (5-10x).
+
+**HTML standalone export** — gera cópia do `dashboard.html` atual com:
+- `<meta name="solstice-embedded" content="1">` no `<head>`
+- `<script id="solstice-embedded-state" type="application/octet-stream">` com state LZ-comprimido em base64
+- Snippet de auto-hidratação no fim do `<body>` que descomprime, popula Store via `batch()`, força `Canvas.render()`, e loga sentinela verde de rehidratação
+- 3 opções no modal: **com dados** (full standalone) · **sem dados** (template) · **JSON puro** (.solstice.json)
+
+**Versions** captura snapshot mínimo (`JSON.stringify(canvas.sections)`) a cada subscribe em `canvas.sections`, descarta duplicatas seguidas, mantém ring buffer 10. Não persiste — apenas sessão. Distinto de Snapshots manuais.
+
+**FileSystem** — `showSaveFilePicker`/`showOpenFilePicker` quando disponível (Chrome/Edge), fallback gracioso para download/input file (Firefox/Safari). `Ctrl+S` cria snapshot rápido + toast; `Ctrl+O` abre modal de Snapshots.
+
+**Templates Itaú** (3):
+1. **Carteira PJ — Visão Mensal** (🏦) — 2 sections: KPIs (volume aprovado · DPD30 · gauge) + Evolução temporal + Sankey por região/segmento
+2. **Acompanhamento de Inadimplência** (⚠️) — 3 sections: DPD30/60/90 KPIs + Box plot por segmento + histograma + série temporal
+3. **Pipeline Comercial PJ** (📈) — 2 sections: Sankey canal→produto + Box plot ticket médio por canal + Tabela
+
+Templates aparecem no picker do `SolsticeTemplates` (B3) quando `dictKey === 'banco_pj'`.
+
+**Aba "🧠 Dicionários" na sidebar:**
+- Mostra dicionário ativo no topo (card accent)
+- Lista dicionários SALVOS (localStorage) com botão "✓ Aplicar"
+- Lista os 6 pré-feitos (banco_pj, vendas, rh, marketing, operacional, cientifico) — todos aplicáveis com 1 clique
+
+**Aba "📸 Snapshots" na sidebar:**
+- Botão "💾 Salvar atual" (primary)
+- Lista dos snapshots do perfil com data + tamanho + ações (📂 carregar · 🗑️ remover)
+
+**Atalhos novos:** `Ctrl+S` salva snapshot rápido · `Ctrl+O` abre modal de Snapshots.
+
+**Botões na toolbar do canvas (4 novos):**
+- 📂 Abrir (snapshots)
+- 💾 Salvar (snapshot rápido — só com dataset)
+- ⬇️ Exportar (modal com 3 opções — só com dataset)
+- 🕐 Histórico (versions — só com dataset)
+
+**`Solstice.Snapshots / Versions / FileSystem / Export / TemplatesItau` expostos.** Versão `5.3.0-bloco11`. Sentinela `[Solstice] Bloco 11 aplicado · Snapshots + Versions + FileSystem + Export + Templates Itaú`.
+
+**Tamanho:** dashboard.html ~15.407 linhas (~667 KB).
+
+**ADRs novas:** ADR-079 (Snapshots em localStorage com LZ-String · cap 30 por perfil) · ADR-080 (Versions = ring buffer 10 em memória, sessão-only) · ADR-081 (FileSystem com detecção + fallback gracioso) · ADR-082 (Export HTML standalone com hidratação no boot via meta + script) · ADR-083 (Templates Itaú anexados a `SolsticeTemplates.DOMAIN` no init).
+
 ---
 
 ## 📅 Roadmap
@@ -573,7 +638,7 @@ Cada intenção mapeia para subset de regras via `INTENT_RULES`. Wizard tem 3 st
 - [x] **Bloco 8** — Insights + Narrativa + Agente + Inconsistências + Ask (Diferencial #2)
 - [x] **Bloco 9** — Filtros Globais + Cross-Filter + Parâmetros
 - [x] **Bloco 10** — Auto-Dashboard + Wizard Expandido + Recomendações (15+ tipos · 11 intenções)
-- [ ] **Bloco 11** — Snapshots + Templates + Export + File System
+- [x] **Bloco 11** — Snapshots + Versions + FileSystem + Export HTML + Templates Itaú
 - [ ] **Bloco 12** — 5 Modos + Atalhos + Polish (Modo Slides + Apresentador)
 - [ ] **Bloco 13** — Diferenciais Avançados (Modo Comentário + Grafo de Métricas) + `portabilidade/INDICE.md`
 

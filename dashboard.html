@@ -1358,6 +1358,148 @@
     margin-bottom: var(--sp-3);
   }
 
+  /* ============================================================
+     BLOCO 11 — SNAPSHOTS · VERSIONS · EXPORT · DICIONÁRIOS
+     ============================================================ */
+
+  /* Lista de snapshots/versões (modal) */
+  .solstice__snaps-list {
+    display: flex; flex-direction: column; gap: var(--sp-2);
+    max-height: 420px; overflow-y: auto;
+  }
+  .solstice__snap-item {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: var(--sp-3); align-items: center;
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-sm);
+    transition: border-color var(--t-fast);
+  }
+  .solstice__snap-item:hover { border-color: var(--c-accent); }
+  .solstice__snap-thumb {
+    width: 56px; height: 40px;
+    background: var(--c-surface-3);
+    border-radius: var(--rad-xs);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--c-muted);
+    font-size: 20px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .solstice__snap-thumb svg { width: 100%; height: 100%; display: block; }
+  .solstice__snap-body { min-width: 0; }
+  .solstice__snap-name {
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .solstice__snap-meta {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+  .solstice__snap-actions {
+    display: flex; gap: 4px;
+  }
+  .solstice__snap-actions button {
+    width: 28px; height: 28px;
+    padding: 0;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-xs);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--c-muted);
+    transition: all var(--t-fast);
+  }
+  .solstice__snap-actions button:hover {
+    color: var(--c-text);
+    background: var(--c-surface-3);
+  }
+  .solstice__snap-actions button.is-danger:hover {
+    color: var(--c-error);
+    border-color: var(--c-error);
+  }
+  .solstice__snap-empty {
+    padding: var(--sp-4) var(--sp-3);
+    text-align: center;
+    color: var(--c-muted);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+  }
+
+  /* Aba Dicionários (sidebar) */
+  .solstice__dicts-panel {
+    padding: var(--sp-2) 0;
+  }
+  .solstice__dicts-list {
+    display: flex; flex-direction: column; gap: 4px;
+    margin-top: var(--sp-2);
+  }
+  .solstice__dict-item {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--c-surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--rad-sm);
+    cursor: pointer;
+  }
+  .solstice__dict-item:hover { border-color: var(--c-border); }
+  .solstice__dict-item-icon { font-size: 16px; }
+  .solstice__dict-item-body { flex: 1; min-width: 0; }
+  .solstice__dict-item-name {
+    font-size: var(--fs-sm); color: var(--c-text);
+    font-weight: var(--fw-medium);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .solstice__dict-item-meta {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+  }
+  .solstice__dict-item-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--t-fast); }
+  .solstice__dict-item:hover .solstice__dict-item-actions { opacity: 1; }
+  .solstice__dict-item-actions button {
+    width: 22px; height: 22px; padding: 0;
+    background: transparent; border: 0;
+    cursor: pointer; color: var(--c-muted);
+    font-size: 12px;
+  }
+  .solstice__dict-item-actions button:hover { color: var(--c-text); }
+
+  /* Modal de Export */
+  .solstice__export-options {
+    display: flex; flex-direction: column; gap: var(--sp-3);
+  }
+  .solstice__export-option {
+    padding: var(--sp-3);
+    background: var(--c-surface-2);
+    border: 2px solid var(--c-border);
+    border-radius: var(--rad-md);
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .solstice__export-option:hover {
+    border-color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 6%, var(--c-surface));
+  }
+  .solstice__export-option-title {
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .solstice__export-option-desc {
+    font-size: var(--fs-xs); color: var(--c-text-2);
+    line-height: 1.5;
+  }
+  .solstice__export-option-meta {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    margin-top: 6px;
+  }
+
   /* ===== MODAL ===== */
   .solstice__modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.55);
@@ -3018,7 +3160,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 10 · AUTO-DASHBOARD + WIZARD EXPANDIDO + RECOMENDAÇÕES (15+ tipos · 11 intenções)
+  ☀️ SOLSTICE v5.3 · BLOCO 11 · SNAPSHOTS + VERSIONS + FILE SYSTEM + EXPORT HTML + TEMPLATES ITAÚ
 </div>
 
 <!-- App shell -->
@@ -3088,8 +3230,8 @@
       <div class="solstice__sidebar-title">Workspace</div>
       <div class="solstice__sidebar-tab is-active" id="tab-dados"><span class="solstice__sidebar-tab-icon">📊</span> Dados</div>
       <div class="solstice__sidebar-tab" id="tab-componentes"><span class="solstice__sidebar-tab-icon">🧩</span> Componentes</div>
-      <div class="solstice__sidebar-tab" disabled><span class="solstice__sidebar-tab-icon">🧠</span> Dicionários <small style="margin-left:auto;color:var(--c-muted)">B11</small></div>
-      <div class="solstice__sidebar-tab" disabled><span class="solstice__sidebar-tab-icon">📸</span> Snapshots <small style="margin-left:auto;color:var(--c-muted)">B11</small></div>
+      <div class="solstice__sidebar-tab" id="tab-dicionarios"><span class="solstice__sidebar-tab-icon">🧠</span> Dicionários</div>
+      <div class="solstice__sidebar-tab" id="tab-snapshots"><span class="solstice__sidebar-tab-icon">📸</span> Snapshots</div>
 
       <!-- Bloco 2: painel de dados (popula após import/dummy) -->
       <div id="data-panel" class="solstice__hidden" style="margin-top: var(--sp-4);">
@@ -3100,6 +3242,10 @@
 
       <!-- Bloco 5 / B7-r2: painel de componentes (catálogo accordion + lista) -->
       <div id="components-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
+
+      <!-- B11: painéis Dicionários e Snapshots na sidebar -->
+      <div id="dicionarios-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
+      <div id="snapshots-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
 
       <!-- B7-r2: props-panel MOVIDO para o inspector lateral direito (#inspector). -->
     </div>
@@ -3146,7 +3292,13 @@
         <strong style="color:var(--c-success)">✓</strong> Recommender · 15+ regras declarativas com confidence (B10)<br>
         <strong style="color:var(--c-success)">✓</strong> Auto-Dashboard · pipeline com confirmação se conf &lt; 70% (B10)<br>
         <strong style="color:var(--c-success)">✓</strong> Wizard · 11 intenções (7 agnósticas + 4 analíticas + customizada) (B10)<br>
-        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 11 (Snapshots + Templates + Export HTML standalone)
+        <strong style="color:var(--c-success)">✓</strong> Snapshots em localStorage com LZ-String (B11)<br>
+        <strong style="color:var(--c-success)">✓</strong> Histórico de versões automático · 10 últimas (B11)<br>
+        <strong style="color:var(--c-success)">✓</strong> File System Access API + fallback download/upload (B11)<br>
+        <strong style="color:var(--c-success)">✓</strong> Export HTML standalone com dados embutidos (B11)<br>
+        <strong style="color:var(--c-success)">✓</strong> 3 templates Itaú pré-instalados (Carteira PJ · Inadimplência · Pipeline) (B11)<br>
+        <strong style="color:var(--c-success)">✓</strong> Aba "🧠 Dicionários" na sidebar — CRUD de dicionários salvos (B11)<br>
+        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 12 (5 modos · Atalhos · Polish · Slides + Apresentador)
       </div>
     </div>
   </aside>
@@ -4798,10 +4950,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     SolsticeCrossFilter.init();
     SolsticeParams.init();
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 10','color:#4D9FFF;font-size:14px;font-weight:bold;');
-    console.log('Atalhos: Ctrl+Z/Shift+Z · Ctrl+Shift+D · Ctrl+P · Esc · 🪄 Auto-Dashboard e 🧙 Wizard na toolbar');
-    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções · '+SolsticeComponents.list().length+' componentes · ColumnScore/Recommender/AutoDashboard/Wizard carregados');
-    console.log('%c[Solstice] Bloco 10 aplicado · Auto-Dashboard + Wizard expandido + Recomendações (15+ tipos)','color:#4ADE80;font-weight:bold;');
+    // B11: inicializa Snapshots/Versions/FileSystem/Export/TemplatesItau
+    SolsticeSnapshots.init();
+    SolsticeVersions.init();
+    SolsticeFileSystem.init();
+    SolsticeTemplatesItau.init();
+
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 11','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('Atalhos: Ctrl+Z/Shift+Z · Ctrl+Shift+D · Ctrl+P · Ctrl+S salva · Ctrl+O abre · Esc');
+    console.log('💾 Salvar / 📂 Abrir / ⬇️ Exportar / 🕐 Histórico na toolbar · Snapshots/Versions/FS/Export carregados');
+    console.log('%c[Solstice] Bloco 11 aplicado · Snapshots + Versions + FileSystem + Export + Templates Itaú','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -10520,36 +10678,184 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /**
-     * activate(which) — B7-r2: props-panel da sidebar foi REMOVIDO.
-     * Agora só alterna entre #data-panel e #components-panel.
-     * Props vivem no inspector lateral direito (#inspector).
+     * activate(which) — B7-r2 + B11: alterna entre Dados/Componentes/Dicionários/Snapshots.
      */
     function activate(which){
       active = which;
       SolsticeStore.set('ui.activeTab', which);
       const tD = document.getElementById('tab-dados');
       const tC = document.getElementById('tab-componentes');
+      const tDi = document.getElementById('tab-dicionarios');
+      const tSn = document.getElementById('tab-snapshots');
       if (tD) tD.classList.toggle('is-active', which === 'dados');
       if (tC) tC.classList.toggle('is-active', which === 'componentes');
+      if (tDi) tDi.classList.toggle('is-active', which === 'dicionarios');
+      if (tSn) tSn.classList.toggle('is-active', which === 'snapshots');
       const dataPanel = document.getElementById('data-panel');
       const compPanel = document.getElementById('components-panel');
+      const dictsPanel = document.getElementById('dicionarios-panel');
+      const snapsPanel = document.getElementById('snapshots-panel');
       const dsReady = SolsticeStore.get('dataset.ready');
-      if (which === 'dados'){
-        if (dataPanel && dsReady) dataPanel.classList.remove('solstice__hidden');
-        if (compPanel) compPanel.classList.add('solstice__hidden');
-      } else {
-        if (dataPanel) dataPanel.classList.add('solstice__hidden');
-        if (compPanel) compPanel.classList.remove('solstice__hidden');
+      // Esconde tudo
+      [dataPanel, compPanel, dictsPanel, snapsPanel].forEach(p => p && p.classList.add('solstice__hidden'));
+      if (which === 'dados' && dataPanel && dsReady){
+        dataPanel.classList.remove('solstice__hidden');
+      } else if (which === 'componentes' && compPanel){
+        compPanel.classList.remove('solstice__hidden');
         _renderComponentsPanel();
+      } else if (which === 'dicionarios' && dictsPanel){
+        dictsPanel.classList.remove('solstice__hidden');
+        _renderDictsPanel();
+      } else if (which === 'snapshots' && snapsPanel){
+        snapsPanel.classList.remove('solstice__hidden');
+        _renderSnapsPanel();
       }
+    }
+
+    /** B11: render painel de Dicionários. */
+    function _renderDictsPanel(){
+      const host = document.getElementById('dicionarios-panel');
+      if (!host) return;
+      host.innerHTML = '';
+      const wrap = SolsticeUtils.el('div', { class:'solstice__dicts-panel' });
+      wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__editor-title' },
+        '🧠 Dicionários semânticos'));
+      wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint' },
+        'Dicionários salvos podem ser aplicados a CSVs similares.'));
+
+      // Dicionário ativo
+      const active = SolsticeStore.get('dictionary');
+      if (active){
+        const card = SolsticeUtils.el('div',
+          { style:'background:color-mix(in srgb,var(--c-accent) 10%, transparent);border:1px solid var(--c-accent);border-radius:var(--rad-sm);padding:var(--sp-2);margin-top:var(--sp-2);font-size:var(--fs-xs);color:var(--c-text-2);' },
+          '🟢 Dicionário ativo: ',
+          SolsticeUtils.el('strong', null, active.name || 'sem nome'),
+          active.coverage != null ? document.createTextNode(' · cobertura ' + Math.round(active.coverage * 100) + '%') : document.createTextNode('')
+        );
+        wrap.appendChild(card);
+      } else {
+        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint',
+          style:'background:var(--c-surface-2);padding:var(--sp-2);border-radius:var(--rad-sm);margin-top:var(--sp-2);' },
+          'Nenhum dicionário ativo. Importe um CSV para ver a sugestão automática.'));
+      }
+
+      // Dicionários salvos
+      const saved = SolsticeDictionary.listSaved();
+      wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);text-transform:uppercase;letter-spacing:0.04em;' },
+        'SALVOS (' + saved.length + ')'));
+      const list = SolsticeUtils.el('div', { class:'solstice__dicts-list' });
+      if (!saved.length){
+        list.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-empty' },
+          'Nenhum dicionário salvo. Quando você ajustar um dicionário ao importar CSV, ele aparece aqui.'));
+      }
+      saved.forEach(name => {
+        const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
+        item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, '🧠'));
+        const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, name));
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' }, 'localStorage'));
+        item.appendChild(body);
+        const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
+        acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar ao dataset atual', onclick: () => {
+          const d = SolsticeDictionary.load(name);
+          if (d){ SolsticeStore.set('dictionary', d); SolsticeToast.success('Dicionário aplicado', name); _renderDictsPanel(); }
+        }}, '✓'));
+        item.appendChild(acts);
+        list.appendChild(item);
+      });
+      wrap.appendChild(list);
+
+      // Botões pré-feitos
+      wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);text-transform:uppercase;letter-spacing:0.04em;' },
+        'PRÉ-FEITOS'));
+      const preset = SolsticeUtils.el('div', { class:'solstice__dicts-list' });
+      const presets = SolsticeDictionary.presets || {};
+      Object.entries(presets).forEach(([key, p]) => {
+        if (key === 'generico') return;
+        const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
+        item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, p.emoji || '🧠'));
+        const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, p.name || key));
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' },
+          (Object.keys(p.columns || {}).length) + ' colunas mapeadas'));
+        item.appendChild(body);
+        const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
+        acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar ao dataset atual', onclick: () => {
+          SolsticeStore.set('dictionary', { ...p, name: p.name }); SolsticeToast.success('Dicionário aplicado', p.name); _renderDictsPanel();
+        }}, '✓'));
+        item.appendChild(acts);
+        preset.appendChild(item);
+      });
+      wrap.appendChild(preset);
+      host.appendChild(wrap);
+    }
+
+    /** B11: render painel de Snapshots. */
+    function _renderSnapsPanel(){
+      const host = document.getElementById('snapshots-panel');
+      if (!host) return;
+      host.innerHTML = '';
+      const wrap = SolsticeUtils.el('div');
+      wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__editor-title' },
+        '📸 Snapshots'));
+      wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__cat-hint' },
+        'Snapshots do perfil atual. Salvos em localStorage com compressão.'));
+
+      const dsReady = SolsticeStore.get('dataset.ready');
+      if (dsReady){
+        wrap.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--primary',
+          style:'width:100%;margin-top:var(--sp-2);',
+          onclick: async () => {
+            const nm = await SolsticeModal.prompt({
+              title:'Salvar snapshot',
+              defaultValue:'Snapshot ' + new Date().toLocaleString('pt-BR')
+            });
+            if (nm){ SolsticeSnapshots.save(nm); _renderSnapsPanel(); SolsticeToast.success('Snapshot salvo', nm); }
+          }
+        }, '💾 Salvar atual'));
+      }
+
+      const snaps = SolsticeSnapshots.list();
+      wrap.appendChild(SolsticeUtils.el('div', { style:'margin-top:var(--sp-3);font-size:var(--fs-xs);color:var(--c-muted);text-transform:uppercase;letter-spacing:0.04em;' },
+        snaps.length + ' salvo(s)'));
+      const list = SolsticeUtils.el('div', { class:'solstice__dicts-list' });
+      if (!snaps.length){
+        list.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-empty' },
+          'Nenhum snapshot ainda. Salve o estado atual para reabrir depois.'));
+      }
+      snaps.forEach(snap => {
+        const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
+        item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, '📸'));
+        const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, snap.name));
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' },
+          new Date(snap.savedAt).toLocaleDateString('pt-BR') + ' · ' + Math.round(snap.size/1024) + ' KB'));
+        item.appendChild(body);
+        const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
+        acts.appendChild(SolsticeUtils.el('button', { title:'Carregar', onclick: () => SolsticeSnapshots.load(snap.id) }, '📂'));
+        acts.appendChild(SolsticeUtils.el('button', { title:'Remover', onclick: async () => {
+          const ok = await SolsticeModal.confirm({ title:'Remover snapshot?', danger:true, message:snap.name, confirmLabel:'Remover' });
+          if (ok){ SolsticeSnapshots.remove(snap.id); _renderSnapsPanel(); }
+        }}, '🗑️'));
+        item.appendChild(acts);
+        list.appendChild(item);
+      });
+      wrap.appendChild(list);
+      host.appendChild(wrap);
     }
 
     function init(){
       const tD = document.getElementById('tab-dados');
       const tC = document.getElementById('tab-componentes');
+      const tDi = document.getElementById('tab-dicionarios');
+      const tSn = document.getElementById('tab-snapshots');
       if (tD) tD.addEventListener('click', () => activate('dados'));
       if (tC) tC.addEventListener('click', () => activate('componentes'));
+      if (tDi) tDi.addEventListener('click', () => activate('dicionarios'));
+      if (tSn) tSn.addEventListener('click', () => activate('snapshots'));
       SolsticeStore.subscribe('dataset.ready', () => { if (active === 'componentes') _renderComponentsPanel(); });
+      SolsticeStore.subscribe('dictionary', () => { if (active === 'dicionarios') _renderDictsPanel(); });
     }
 
     function current(){ return active; }
@@ -11248,6 +11554,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             title: 'Wizard guiado (B10) — escolha uma intenção e gere componentes',
             onclick: () => SolsticeWizard.open()
           }, '🧙 Wizard') : null,
+          SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            title: 'Snapshots (B11) — abrir/salvar estado · Ctrl+O',
+            onclick: () => SolsticeSnapshots.openModal()
+          }, '📂 Abrir'),
+          hasDataset ? SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            title: 'Salvar snapshot rápido (Ctrl+S)',
+            onclick: () => { SolsticeSnapshots.save(); SolsticeToast.success('Snapshot rápido salvo', 'Ctrl+S · veja em "📂 Abrir"'); }
+          }, '💾 Salvar') : null,
+          hasDataset ? SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            title: 'Exportar dashboard como HTML standalone',
+            onclick: () => SolsticeExport.openExportModal()
+          }, '⬇️ Exportar') : null,
+          hasDataset ? SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            title: 'Histórico de versões (sessão)',
+            onclick: () => SolsticeVersions.openModal()
+          }, '🕐 Histórico') : null,
           undoBtn,
           redoBtn,
           hasDataset ? SolsticeUtils.el('button', {
@@ -14358,10 +14684,663 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
+     BLOCO 11 — SolsticeSnapshots (ADR-079)
+     Persistência completa do estado do dashboard em localStorage,
+     comprimida com LZ-String. CRUD por nome, escopado por perfil.
+     Estado salvo:
+       canvas.sections + filters + params + canvas.header + dictionary
+     ============================================================ */
+  const SolsticeSnapshots = (function(){
+
+    const LS_KEY_PREFIX = 'solstice.snapshots.';
+
+    function _profileId(){
+      const p = SolsticeProfiles.current();
+      return p ? p.id : 'default';
+    }
+    function _storageKey(){ return LS_KEY_PREFIX + _profileId(); }
+
+    function _safeWrite(key, value){
+      try { localStorage.setItem(key, value); return true; }
+      catch (e){
+        SolsticeErrors.show('STORAGE_QUOTA_EXCEEDED', {}, { detail: String(e) });
+        return false;
+      }
+    }
+    function _safeRead(key){
+      try { return localStorage.getItem(key); } catch(e){ return null; }
+    }
+
+    /** Lista snapshots do perfil atual. Retorna array<{id, name, savedAt, size}>. */
+    function list(){
+      const raw = _safeRead(_storageKey());
+      if (!raw) return [];
+      try { return JSON.parse(raw); } catch(e){ return []; }
+    }
+
+    /** Captura estado atual (puro, sem comprimir ainda). */
+    function _captureState(){
+      return {
+        canvas: { sections: SolsticeStore.get('canvas.sections') || [], header: SolsticeStore.get('canvas.header') || {} },
+        filters: SolsticeStore.get('filters') || {},
+        params: SolsticeStore.get('params') || {},
+        dictionary: SolsticeStore.get('dictionary') || null,
+        ingest: (function(){
+          const i = SolsticeStore.get('ingest');
+          if (!i) return null;
+          // Salva metadata + linhas para reidratação
+          return {
+            sourceName: i.sourceName,
+            columns: i.columns,
+            types: i.types,
+            rows: i.rows  // pode ser grande — LZ-String comprime
+          };
+        })()
+      };
+    }
+
+    /** Salva snapshot com `name` opcional. Retorna o objeto criado ou null. */
+    function save(name){
+      const state = _captureState();
+      const json = JSON.stringify(state);
+      const compressed = SolsticeLZ.compressToBase64(json);
+      const id = SolsticeUtils.uuid();
+      const entry = {
+        id, name: name || 'Snapshot ' + new Date().toLocaleString('pt-BR'),
+        savedAt: new Date().toISOString(),
+        size: compressed.length,
+        rowsCount: (state.ingest && state.ingest.rows) ? state.ingest.rows.length : 0,
+        data: compressed
+      };
+      const all = list();
+      all.unshift(entry);
+      // Limita a 30 snapshots por perfil (cap)
+      while (all.length > 30) all.pop();
+      const ok = _safeWrite(_storageKey(), JSON.stringify(all));
+      if (!ok) return null;
+      SolsticeAudit.record({ action:'snapshot_save', details: { id, name: entry.name, size: entry.size } });
+      return entry;
+    }
+
+    /** Carrega snapshot por id. Aplica em Store. */
+    function load(id){
+      const all = list();
+      const entry = all.find(e => e.id === id);
+      if (!entry){ SolsticeToast.error('Snapshot não encontrado', id); return false; }
+      try {
+        const raw = SolsticeLZ.decompressFromBase64(entry.data);
+        const state = JSON.parse(raw);
+        SolsticeStore.batch(() => {
+          SolsticeStore.set('canvas.sections', state.canvas && state.canvas.sections || []);
+          SolsticeStore.set('canvas.header', state.canvas && state.canvas.header || {});
+          SolsticeStore.set('filters', state.filters || {});
+          SolsticeStore.set('params', state.params || {});
+          SolsticeStore.set('dictionary', state.dictionary || null);
+          if (state.ingest){
+            SolsticeStore.set('ingest', state.ingest);
+            SolsticeStore.set('dataset.ready', true);
+            SolsticeStore.set('dataset.name', state.ingest.sourceName || 'snapshot');
+            SolsticeStore.set('dataset.source', 'snapshot');
+            SolsticeStore.set('dataset.rows', state.ingest.rows);
+            SolsticeStore.set('dataset.columns', state.ingest.columns);
+          }
+        });
+        // Força re-render
+        if (SolsticeCanvas && SolsticeCanvas.render) SolsticeCanvas.render();
+        SolsticeAudit.record({ action:'snapshot_load', details:{ id, name: entry.name } });
+        SolsticeToast.success('Snapshot carregado', entry.name);
+        return true;
+      } catch(e){
+        SolsticeToast.error('Falha ao carregar snapshot', String(e));
+        console.error('[Snapshot load]', e);
+        return false;
+      }
+    }
+
+    /** Remove snapshot. */
+    function remove(id){
+      const all = list().filter(e => e.id !== id);
+      _safeWrite(_storageKey(), JSON.stringify(all));
+      SolsticeAudit.record({ action:'snapshot_remove', details:{ id } });
+    }
+
+    /** Renomeia. */
+    function rename(id, newName){
+      const all = list();
+      const e = all.find(x => x.id === id);
+      if (e){ e.name = newName; _safeWrite(_storageKey(), JSON.stringify(all)); }
+    }
+
+    /** Modal CRUD de snapshots. */
+    async function openModal(){
+      let snaps = list();
+      function refresh(listEl){
+        listEl.innerHTML = '';
+        if (!snaps.length){
+          listEl.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-empty' },
+            'Nenhum snapshot salvo neste perfil ainda. Use o botão "💾 Salvar" da toolbar para criar um.'));
+          return;
+        }
+        snaps.forEach(snap => {
+          const item = SolsticeUtils.el('div', { class:'solstice__snap-item' });
+          const thumb = SolsticeUtils.el('div', { class:'solstice__snap-thumb' }, '📸');
+          item.appendChild(thumb);
+          const body = SolsticeUtils.el('div', { class:'solstice__snap-body' });
+          body.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-name' }, snap.name));
+          body.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-meta' },
+            new Date(snap.savedAt).toLocaleString('pt-BR') + ' · ' +
+            Math.round(snap.size / 1024) + ' KB · ' +
+            SolsticeHumanize.recordCount(snap.rowsCount)));
+          item.appendChild(body);
+          const acts = SolsticeUtils.el('div', { class:'solstice__snap-actions' });
+          acts.appendChild(SolsticeUtils.el('button', { title:'Carregar',
+            onclick: () => load(snap.id) }, '📂'));
+          acts.appendChild(SolsticeUtils.el('button', { title:'Renomear', onclick: async () => {
+            const nv = await SolsticeModal.prompt({ title:'Renomear snapshot', defaultValue: snap.name });
+            if (nv){ rename(snap.id, nv); snaps = list(); refresh(listEl); }
+          }}, '✏️'));
+          acts.appendChild(SolsticeUtils.el('button', { class:'is-danger', title:'Remover',
+            onclick: async () => {
+              const ok = await SolsticeModal.confirm({ title:'Remover snapshot?', message:'Esta ação não pode ser desfeita.', danger: true, confirmLabel:'Remover' });
+              if (ok){ remove(snap.id); snaps = list(); refresh(listEl); }
+            }
+          }, '🗑️'));
+          item.appendChild(acts);
+          listEl.appendChild(item);
+        });
+      }
+      await SolsticeModal.show({
+        title: '📂 Snapshots — ' + (SolsticeProfiles.current() ? SolsticeProfiles.current().name : 'Default'),
+        size: 'lg',
+        body: () => {
+          const wrap = SolsticeUtils.el('div');
+          wrap.appendChild(SolsticeUtils.el('p',
+            { style:'color:var(--c-muted);font-size:var(--fs-xs);margin-bottom:var(--sp-3);line-height:1.5;' },
+            'Snapshots salvam o estado completo: canvas, filtros, parâmetros, dicionário e dataset. ' +
+            'Comprimidos com LZ-String. Até 30 por perfil. Use 📂 para restaurar, ✏️ renomear, 🗑️ remover.'));
+          const listEl = SolsticeUtils.el('div', { class:'solstice__snaps-list' });
+          refresh(listEl);
+          wrap.appendChild(listEl);
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary',
+            onclick: async () => {
+              const nm = await SolsticeModal.prompt({
+                title:'Salvar snapshot',
+                message:'Dê um nome para identificar.',
+                defaultValue:'Snapshot ' + new Date().toLocaleString('pt-BR')
+              });
+              if (nm){ save(nm); snaps = list();
+                const listEl = document.querySelector('.solstice__snaps-list');
+                if (listEl) refresh(listEl);
+              }
+            }
+          }, '💾 Salvar atual'),
+          SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => close(null) }, 'Fechar')
+        ]
+      });
+    }
+
+    function init(){ /* nada — Store-based */ }
+
+    return { list, save, load, remove, rename, openModal, init, _captureState };
+  })();
+
+  /* ============================================================
+     BLOCO 11 — SolsticeVersions (ADR-080)
+     Histórico AUTOMÁTICO. Cada mudança em canvas.sections cria entrada
+     no ring buffer (cap 10). NÃO persiste em localStorage — sessão-only.
+     Diferente de Snapshots (manuais + nominados + persistidos).
+     ============================================================ */
+  const SolsticeVersions = (function(){
+    const MAX = 10;
+    const history = []; // array de { ts, snapshot: stringified canvas.sections }
+    let suppress = false;
+
+    function _capture(){
+      if (suppress) return;
+      const json = JSON.stringify(SolsticeStore.get('canvas.sections') || []);
+      // Não duplica entradas idênticas seguidas
+      if (history.length && history[0].snapshot === json) return;
+      history.unshift({ ts: Date.now(), snapshot: json });
+      while (history.length > MAX) history.pop();
+    }
+
+    function list(){
+      return history.map((h, i) => ({ index: i, ts: h.ts }));
+    }
+
+    function restore(index){
+      const entry = history[index];
+      if (!entry) return false;
+      try {
+        const sections = JSON.parse(entry.snapshot);
+        suppress = true;
+        SolsticeStore.set('canvas.sections', sections);
+        setTimeout(() => { suppress = false; }, 0);
+        SolsticeAudit.record({ action:'version_restore', details:{ index, ts: entry.ts } });
+        return true;
+      } catch(e){ console.error('[Versions restore]', e); return false; }
+    }
+
+    async function openModal(){
+      await SolsticeModal.show({
+        title: '🕐 Histórico de versões — esta sessão',
+        body: () => {
+          const wrap = SolsticeUtils.el('div');
+          wrap.appendChild(SolsticeUtils.el('p',
+            { style:'color:var(--c-muted);font-size:var(--fs-xs);margin-bottom:var(--sp-3);line-height:1.5;' },
+            'Histórico automático em memória (não persiste entre sessões). Cap ' + MAX + ' versões. ' +
+            'Use Snapshots (📂) para persistência. Restaurar substitui canvas atual (Undo continua disponível).'));
+          if (!history.length){
+            wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-empty' },
+              'Sem versões ainda. O histórico começa após a primeira mudança em sections.'));
+            return wrap;
+          }
+          const list = SolsticeUtils.el('div', { class:'solstice__snaps-list' });
+          history.forEach((h, i) => {
+            const item = SolsticeUtils.el('div', { class:'solstice__snap-item' });
+            item.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-thumb' }, i === 0 ? '🟢' : '🕐'));
+            const body = SolsticeUtils.el('div', { class:'solstice__snap-body' });
+            body.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-name' },
+              i === 0 ? 'Versão atual' : 'Versão #' + (history.length - i)));
+            body.appendChild(SolsticeUtils.el('div', { class:'solstice__snap-meta' },
+              new Date(h.ts).toLocaleTimeString('pt-BR') + ' · ' + Math.round(h.snapshot.length / 1024) + ' KB'));
+            item.appendChild(body);
+            const acts = SolsticeUtils.el('div', { class:'solstice__snap-actions' });
+            if (i > 0){
+              acts.appendChild(SolsticeUtils.el('button', { title:'Restaurar', onclick: () => {
+                restore(i); SolsticeToast.success('Versão restaurada', '#' + (history.length - i));
+              }}, '↶'));
+            }
+            item.appendChild(acts);
+            list.appendChild(item);
+          });
+          wrap.appendChild(list);
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary', onclick: () => close(null) }, 'Fechar')
+        ]
+      });
+    }
+
+    function init(){
+      // captura inicial
+      _capture();
+      SolsticeStore.subscribe('canvas.sections', () => _capture());
+    }
+
+    return { list, restore, openModal, init, _capture };
+  })();
+
+  /* ============================================================
+     BLOCO 11 — SolsticeFileSystem (ADR-081)
+     File System Access API + fallback download/upload.
+     `.solstice.json` para estado puro; `.solstice.html` chamado via Export.
+     ============================================================ */
+  const SolsticeFileSystem = (function(){
+    const supported = typeof window.showSaveFilePicker === 'function' && typeof window.showOpenFilePicker === 'function';
+    let lastHandle = null;
+
+    async function saveJSON(state, suggestedName){
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      if (supported){
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: suggestedName || 'solstice-state.json',
+            types: [{ description: 'Solstice JSON', accept: { 'application/json': ['.json', '.solstice.json'] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          lastHandle = handle;
+          SolsticeAudit.record({ action:'fs_save', details:{ name: handle.name, size: blob.size } });
+          return true;
+        } catch(e){
+          if (e && e.name === 'AbortError') return false;
+          console.warn('[FS saveJSON]', e);
+          // cai no fallback abaixo
+        }
+      }
+      // Fallback download
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = suggestedName || 'solstice-state.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return true;
+    }
+
+    async function openJSON(){
+      if (supported){
+        try {
+          const [handle] = await window.showOpenFilePicker({
+            types: [{ description: 'Solstice JSON', accept: { 'application/json': ['.json', '.solstice.json'] } }]
+          });
+          lastHandle = handle;
+          const file = await handle.getFile();
+          const text = await file.text();
+          return JSON.parse(text);
+        } catch(e){
+          if (e && e.name === 'AbortError') return null;
+          console.warn('[FS openJSON]', e);
+        }
+      }
+      // Fallback input file
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.solstice.json,application/json';
+        input.onchange = async (e) => {
+          const f = e.target.files[0];
+          if (!f){ resolve(null); return; }
+          try { resolve(JSON.parse(await f.text())); }
+          catch(err){ resolve(null); }
+        };
+        input.click();
+      });
+    }
+
+    async function saveBlob(blob, suggestedName){
+      if (supported){
+        try {
+          const handle = await window.showSaveFilePicker({ suggestedName });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return true;
+        } catch(e){
+          if (e && e.name === 'AbortError') return false;
+        }
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = suggestedName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return true;
+    }
+
+    function isSupported(){ return supported; }
+
+    function init(){
+      // Atalhos: Ctrl+S salva (cria snapshot) · Ctrl+O abre snapshots
+      document.addEventListener('keydown', (e) => {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        const tag = e.target && e.target.tagName;
+        const editing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+        if (editing) return;
+        if (e.key.toLowerCase() === 's'){
+          e.preventDefault();
+          SolsticeSnapshots.save();
+          SolsticeToast.success('Snapshot rápido salvo', 'Ctrl+S · veja em "📂 Abrir"');
+        }
+        if (e.key.toLowerCase() === 'o'){
+          e.preventDefault();
+          SolsticeSnapshots.openModal();
+        }
+      });
+    }
+
+    return { saveJSON, openJSON, saveBlob, isSupported, init };
+  })();
+
+  /* ============================================================
+     BLOCO 11 — SolsticeExport (ADR-082)
+     Gera HTML standalone com dashboard.html atual + estado embutido.
+     Auto-hidrata no boot via flag data-embedded-mode.
+     ============================================================ */
+  const SolsticeExport = (function(){
+
+    /** Gera HTML completo com state embutido. */
+    function buildStandaloneHTML(opts){
+      opts = opts || {};
+      const includeData = opts.includeData !== false;
+      const state = SolsticeSnapshots._captureState();
+      if (!includeData) state.ingest = null;  // só estrutura; usuário importa CSV de novo
+      const json = JSON.stringify(state);
+      const compressed = SolsticeLZ.compressToBase64(json);
+
+      // Pega o HTML do documento atual
+      const html = document.documentElement.outerHTML;
+      // Marca como embedded e injeta o state no início do <head>
+      const injection = '<meta name="solstice-embedded" content="1">\n' +
+                        '<script id="solstice-embedded-state" type="application/octet-stream">' + compressed + '<\/script>';
+      const out = html.replace(/<head([^>]*)>/i, '<head$1>\n' + injection);
+      // Snippet de auto-hidratação no fim do body
+      const hydration =
+        '\n<script>\n' +
+        '(function(){\n' +
+        '  function rehydrate(){\n' +
+        '    if (!window.Solstice || !window.Solstice.LZ) return setTimeout(rehydrate, 100);\n' +
+        '    var meta = document.querySelector(\'meta[name="solstice-embedded"]\');\n' +
+        '    if (!meta) return;\n' +
+        '    var script = document.getElementById("solstice-embedded-state");\n' +
+        '    if (!script) return;\n' +
+        '    try {\n' +
+        '      var raw = window.Solstice.LZ.decompressFromBase64(script.textContent.trim());\n' +
+        '      var state = JSON.parse(raw);\n' +
+        '      var S = window.Solstice.Store;\n' +
+        '      S.batch(function(){\n' +
+        '        S.set("canvas.sections", state.canvas && state.canvas.sections || []);\n' +
+        '        S.set("canvas.header",   state.canvas && state.canvas.header   || {});\n' +
+        '        S.set("filters",         state.filters || {});\n' +
+        '        S.set("params",          state.params  || {});\n' +
+        '        S.set("dictionary",      state.dictionary || null);\n' +
+        '        if (state.ingest){\n' +
+        '          S.set("ingest", state.ingest);\n' +
+        '          S.set("dataset.ready", true);\n' +
+        '          S.set("dataset.rows", state.ingest.rows);\n' +
+        '          S.set("dataset.columns", state.ingest.columns);\n' +
+        '          S.set("dataset.name", state.ingest.sourceName || "embedded");\n' +
+        '          S.set("dataset.source", "embedded");\n' +
+        '        }\n' +
+        '      });\n' +
+        '      if (window.Solstice.Canvas && window.Solstice.Canvas.render) window.Solstice.Canvas.render();\n' +
+        '      console.log("%c[Solstice] Estado embedded rehidratado", "color:#4ADE80;font-weight:bold;");\n' +
+        '    } catch(e){ console.error("[Solstice] Rehidratação falhou:", e); }\n' +
+        '  }\n' +
+        '  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(rehydrate, 200); });\n' +
+        '  else setTimeout(rehydrate, 200);\n' +
+        '})();\n' +
+        '<\/script>\n';
+      return out.replace(/<\/body>/i, hydration + '</body>');
+    }
+
+    async function openExportModal(){
+      await SolsticeModal.show({
+        title: '⬇️ Exportar dashboard',
+        size: 'lg',
+        body: (close) => {
+          const wrap = SolsticeUtils.el('div', { class:'solstice__export-options' });
+
+          const optA = SolsticeUtils.el('div', { class:'solstice__export-option', onclick: async () => {
+            const html = buildStandaloneHTML({ includeData: true });
+            const blob = new Blob([html], { type: 'text/html' });
+            await SolsticeFileSystem.saveBlob(blob, 'solstice-dashboard-' + Date.now() + '.html');
+            SolsticeToast.success('HTML exportado', Math.round(blob.size / 1024) + ' KB');
+            SolsticeAudit.record({ action:'export_html', details:{ includeData: true, size: blob.size } });
+            close(null);
+          }});
+          optA.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-title' },
+            '📄 HTML standalone com dados embutidos'));
+          optA.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-desc' },
+            'Abre direto no browser, sem precisar reimportar CSV. Inclui canvas + filtros + parâmetros + dicionário + dataset. ' +
+            'Ideal para compartilhar via e-mail/Slack.'));
+          optA.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-meta' },
+            'Tamanho típico: ~600 KB + dataset comprimido'));
+          wrap.appendChild(optA);
+
+          const optB = SolsticeUtils.el('div', { class:'solstice__export-option', onclick: async () => {
+            const html = buildStandaloneHTML({ includeData: false });
+            const blob = new Blob([html], { type: 'text/html' });
+            await SolsticeFileSystem.saveBlob(blob, 'solstice-template-' + Date.now() + '.html');
+            SolsticeToast.success('Template exportado', Math.round(blob.size / 1024) + ' KB');
+            SolsticeAudit.record({ action:'export_html', details:{ includeData: false, size: blob.size } });
+            close(null);
+          }});
+          optB.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-title' },
+            '📑 HTML standalone SEM dados (template)'));
+          optB.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-desc' },
+            'Mesma estrutura — canvas, filtros, parâmetros e dicionário —  mas SEM o dataset. ' +
+            'Usuário do destino importa o próprio CSV. Útil para distribuir templates de dashboard.'));
+          optB.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-meta' },
+            'Tamanho típico: ~600 KB'));
+          wrap.appendChild(optB);
+
+          const optC = SolsticeUtils.el('div', { class:'solstice__export-option', onclick: async () => {
+            const state = SolsticeSnapshots._captureState();
+            await SolsticeFileSystem.saveJSON(state, 'solstice-state-' + Date.now() + '.solstice.json');
+            SolsticeToast.success('JSON exportado', 'Estado salvo · pode ser reaberto via 📂 Abrir');
+            SolsticeAudit.record({ action:'export_json', details:{ size: JSON.stringify(state).length } });
+            close(null);
+          }});
+          optC.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-title' },
+            '🗂️ JSON puro (.solstice.json)'));
+          optC.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-desc' },
+            'Apenas o estado em JSON, sem HTML. Útil para versionar com git ou processar com scripts. ' +
+            'Reabra via 📂 Abrir.'));
+          optC.appendChild(SolsticeUtils.el('div', { class:'solstice__export-option-meta' },
+            'Sem compressão · maior em bytes, mas legível'));
+          wrap.appendChild(optC);
+
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => close(null) }, 'Cancelar')
+        ]
+      });
+    }
+
+    return { buildStandaloneHTML, openExportModal };
+  })();
+
+  /* ============================================================
+     BLOCO 11 — SolsticeTemplatesItau (ADR-083)
+     3 templates pré-instalados para domínio bancário PJ.
+     Aparecem no picker do Templates (B3) quando dicionário detectado
+     for "banco_pj" OU explicitamente listados.
+     ============================================================ */
+  const SolsticeTemplatesItau = (function(){
+
+    /** Helper: cria slot configurado. */
+    function _slot(type, config){
+      return { id: SolsticeUtils.uuid(), type, config: config || {} };
+    }
+
+    /** 3 templates de domínio Itaú. */
+    const TEMPLATES = [
+      {
+        id: 'itau-carteira-pj-mensal',
+        name: 'Carteira PJ — Visão Mensal',
+        icon: '🏦',
+        description: 'Volume aprovado · evolução temporal · concentração por segmento · DPD30.',
+        domain: 'banco_pj',
+        domainLabel: 'Banco PJ',
+        build: () => [
+          {
+            title: 'KPIs principais',
+            rows: [{ layout: '3col-equal', slots: [
+              _slot('kpi',   { column: 'vlr_op_aprov_mensal', agg: 'sum' }),
+              _slot('kpi',   { column: 'DPD30', agg: 'avg' }),
+              _slot('gauge', { column: 'DPD30', agg: 'avg', min: 0, max: 100, target: 5 })
+            ]}]
+          },
+          {
+            title: 'Evolução e composição',
+            rows: [{ layout: '2col-equal', slots: [
+              _slot('time-series', { xColumn: 'mes_ref', yColumn: 'vlr_op_aprov_mensal', bin: 'month', kind: 'line' }),
+              _slot('sankey', { sourceColumn: 'regiao', targetColumn: 'segmento', valueColumn: 'vlr_op_aprov_mensal' })
+            ]}]
+          }
+        ]
+      },
+      {
+        id: 'itau-inadimplencia',
+        name: 'Acompanhamento de Inadimplência',
+        icon: '⚠️',
+        description: 'DPD30/60/90 · outliers · tendência · distribuição por segmento.',
+        domain: 'banco_pj',
+        domainLabel: 'Banco PJ',
+        build: () => [
+          {
+            title: 'Indicadores de risco',
+            rows: [{ layout: '3col-equal', slots: [
+              _slot('kpi',     { column: 'DPD30', agg: 'avg', comparison: { type: 'previous-period' } }),
+              _slot('kpi',     { column: 'DPD60', agg: 'avg', comparison: { type: 'previous-period' } }),
+              _slot('kpi',     { column: 'DPD90', agg: 'avg', comparison: { type: 'previous-period' } })
+            ]}]
+          },
+          {
+            title: 'Distribuição e outliers',
+            rows: [{ layout: '2col-equal', slots: [
+              _slot('boxplot',      { valueColumn: 'DPD30', groupColumn: 'segmento' }),
+              _slot('distribution', { column: 'DPD30', bins: 25 })
+            ]}]
+          },
+          {
+            title: 'Evolução',
+            rows: [{ layout: '1col', slots: [
+              _slot('time-series', { xColumn: 'mes_ref', yColumn: 'DPD30', bin: 'month', kind: 'line' })
+            ]}]
+          }
+        ]
+      },
+      {
+        id: 'itau-pipeline-comercial',
+        name: 'Pipeline Comercial PJ',
+        icon: '📈',
+        description: 'Funil canal → segmento → produto · top performers · ticket médio.',
+        domain: 'banco_pj',
+        domainLabel: 'Banco PJ',
+        build: () => [
+          {
+            title: 'Funil de aprovação',
+            rows: [{ layout: '1col', slots: [
+              _slot('sankey', { sourceColumn: 'canal', targetColumn: 'produto', valueColumn: 'vlr_op_aprov_mensal' })
+            ]}]
+          },
+          {
+            title: 'Comparação por canal',
+            rows: [{ layout: '2col-equal', slots: [
+              _slot('boxplot', { valueColumn: 'ticket_medio', groupColumn: 'canal' }),
+              _slot('table',   { rowLimit: 50 })
+            ]}]
+          }
+        ]
+      }
+    ];
+
+    function list(){ return TEMPLATES.slice(); }
+
+    /**
+     * Hook em SolsticeTemplates: estende getAll/list/apply para incluir
+     * estes templates quando o dicionário for banco_pj OU sempre se opts.includeItau.
+     * Como SolsticeTemplates já tem AGNOSTIC/DOMAIN arrays, vamos ADICIONAR
+     * aos templates DOMAIN existentes no init().
+     */
+    function init(){
+      // Se SolsticeTemplates já tem o array DOMAIN, anexa nossos templates lá
+      if (typeof SolsticeTemplates !== 'undefined' && SolsticeTemplates.DOMAIN){
+        TEMPLATES.forEach(t => {
+          // Evita duplicação se init for chamado 2x
+          if (!SolsticeTemplates.DOMAIN.find(x => x.id === t.id)){
+            SolsticeTemplates.DOMAIN.push(t);
+          }
+        });
+      }
+    }
+
+    return { list, init, TEMPLATES };
+  })();
+
+  /* ============================================================
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco10',
+    version: '5.3.0-bloco11',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,
@@ -14412,6 +15391,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     Recommender:     SolsticeRecommender,
     AutoDashboard:   SolsticeAutoDashboard,
     Wizard:          SolsticeWizard,
+    Snapshots:       SolsticeSnapshots,
+    Versions:        SolsticeVersions,
+    FileSystem:      SolsticeFileSystem,
+    Export:          SolsticeExport,
+    TemplatesItau:   SolsticeTemplatesItau,
     LZ:          (typeof LZString !== 'undefined') ? LZString : null
   };
 
