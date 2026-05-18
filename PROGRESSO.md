@@ -9,9 +9,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versão atual | **v5.3.0-bloco8** (B8 — Insights + Narrativa + Agente + Inconsistências + Ask · Diferencial #2) |
-| Bloco corrente | **Bloco 8 — Diferencial #2 (Narrativa Automática)** ✅ COMPLETO |
-| Próximo bloco | Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros |
+| Versão atual | **v5.3.0-bloco9** (B8 + r1 empty-state + B9: Filtros + CrossFilter + Params) |
+| Bloco corrente | **Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros** ✅ COMPLETO |
+| Próximo bloco | Bloco 10 — Auto-Dashboard + Wizard Expandido + Recomendações |
 | Sessões realizadas | 2 (B1-B5 + B6 + B7) |
 | Data última atualização | 2026-05-18 |
 | Tempo total estimado restante | ~5-7 sessões |
@@ -442,6 +442,63 @@ Lucas pediu reestruturação grande para resolver fricções de uso real do pain
 
 **ADRs novas:** ADR-066 (Insights priorizados por score) · ADR-067 (Narrativa template-based pt-BR) · ADR-068 (Agent cap 3/sessão) · ADR-069 (Inconsistencies declarativas) · ADR-070 (Ask parser regex, não LLM).
 
+### 🔧 Patch B8-r1 — Empty state centralizado (canvas flex column)
+
+Lucas reportou: "Comece com um template + lista de componentes" vai afundando a cada alteração. Bug: `.solstice__canvas-empty` tinha `height: 100%` que ignorava toolbar/Insights crescendo acima.
+
+**Correção (ADR-071):** `.solstice__canvas` vira `display: flex; flex-direction: column; gap: var(--sp-4)`. `.solstice__canvas-empty` troca `height: 100%` por `flex: 1; min-height: 320px`. Empty state agora ocupa só o espaço RESTANTE e centraliza corretamente.
+
+### 🟧 Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros
+
+**Entregue em:** 2026-05-18 · Sessão 3 (mesmo turno do B8 + B8-r1)
+
+**3 módulos novos:**
+
+| Módulo | API pública | Função |
+|---|---|---|
+| `SolsticeFilters` | apply/getActiveRows/set/get/clear/activeCount/suggested/renderInto/init | Engine + UI da barra de filtros globais no topo do canvas |
+| `SolsticeCrossFilter` | activate/clear/get/isActive/renderInto/init | Filtro temporário disparado por clique em ponto/categoria/barra |
+| `SolsticeParams` | get/getAll/set/remove/resolveText/openModal/init | Parâmetros globais como K/V tipados, substituíveis via `{{param.X}}` |
+
+**Barra de Filtros (UI):**
+- Renderiza acima do painel Insights, abaixo da toolbar
+- Sugestões automáticas via `Filters.suggested()`: categóricas (2-30 distintos), temporais (≥30 valores), numéricas (IQR > 0)
+- Limita a 8 controles para não saturar
+- 3 tipos:
+  - **Multi-select** com busca (categóricas) — chips no trigger, panel com checkboxes ordenados por contagem
+  - **Range slider duplo** (numéricas) — sliders + inputs numéricos
+  - **Date picker** (temporais) — presets 7d/30d/3m/12m/Tudo relativos ao max da série, + inputs date custom
+- Header colapsável com badge "N ativos" + botão "✕ Limpar tudo"
+- Estado persistido em `Store.ui.filters.collapsed`
+
+**Cross-Filter:**
+- `SolsticeCrossFilter.activate(column, value)` filtra TODOS os componentes para `column === value`
+- Barra azul no topo do canvas indica filtro ativo: "🎯 Cross-filter: Região = Sudeste · ✕ Limpar"
+- **Esc** limpa (cascata depois de drawer/inspector)
+- **Demonstração:** Sankey ganhou clique nos nodes (origem e destino) — clica num node, todos os outros componentes filtram
+
+**Parâmetros Globais:**
+- Modal "🎛️ Parâmetros" acionado por botão na toolbar do canvas
+- CRUD: nome + tipo (string/number/date) + valor
+- Persistido em `Store.params`
+- Substituição `{{param.X}}` aplicada antes dos placeholders `{{path.no.store}}` no Markdown
+- Narrativa Automática (B8) pode usar (futuro: B11)
+
+**Integração nos componentes:**
+- `SolsticeComponents._ctx()` refatorado: `ctx.rows` agora é resultado de `SolsticeFilters.apply(ingest.rows)`
+- Novo `ctx.rowsAll` exposto para defaultConfig/suggested que precisam do dataset completo
+- Todos os 10 componentes herdam filtragem automaticamente
+
+**Comportamento reativo:**
+- Mudança em `Store.filters` ou `Store.crossfilter` → `SolsticeCanvas.render()` cascateia em tudo
+- Insights/Narrative/Inconsistencies do B8 recomputam naturalmente
+
+**`Solstice.Filters / CrossFilter / Params` expostos.** Versão `5.3.0-bloco9`. Sentinela `[Solstice] Bloco 9 aplicado · Filtros Globais + Cross-Filter + Parâmetros · (+ patch B8-r1 empty-state)`.
+
+**Tamanho:** dashboard.html ~13.389 linhas (~579 KB).
+
+**ADRs novas:** ADR-071 (Canvas flex-column · empty state flex:1) · ADR-072 (Filtros aplicam via _ctx() — transparente para componentes) · ADR-073 (Cross-filter como destaque temporário, distinto de filtros globais) · ADR-074 (Parâmetros como K/V tipados substituídos antes de Store paths).
+
 ---
 
 ## 📅 Roadmap
@@ -454,7 +511,7 @@ Lucas pediu reestruturação grande para resolver fricções de uso real do pain
 - [x] **Bloco 6** — 6 Componentes Avançados + Box Plot + Sankey
 - [x] **Bloco 7** — Módulo Estatístico `SolsticeStats` + Aba Análise + Smart Defaults
 - [x] **Bloco 8** — Insights + Narrativa + Agente + Inconsistências + Ask (Diferencial #2)
-- [ ] **Bloco 9** — Filtros Globais + Cross-Filter + Parâmetros
+- [x] **Bloco 9** — Filtros Globais + Cross-Filter + Parâmetros
 - [ ] **Bloco 10** — Auto-Dashboard + Wizard Expandido + Recomendações
 - [ ] **Bloco 11** — Snapshots + Templates + Export + File System
 - [ ] **Bloco 12** — 5 Modos + Atalhos + Polish (Modo Slides + Apresentador)

@@ -1752,3 +1752,112 @@ Resposta inclui campo `formula` explicando matematicamente o cálculo.
 | Tecla | Ação |
 |---|---|
 | `Ctrl + P` / `Cmd + P` | Toggle do "Pergunte ao Solstice" (intercepta print do browser quando foco não está em input) |
+
+---
+
+## `Solstice.Filters` (Bloco 9 · ADR-072)
+
+Engine + UI de filtros globais. Aplica nos componentes via `SolsticeComponents._ctx()`.
+
+```js
+apply(rows)                    // → array filtrado (aplica Store.filters + Store.crossfilter)
+getActiveRows()                // → ingest.rows filtrados (atalho)
+set(col, value)                // sobrescreve filtro de coluna; passe null/[] para limpar
+get(col)                       // → valor atual do filtro da coluna
+clear()                        // limpa todos os filtros + crossfilter
+activeCount()                  // → quantos filtros ativos
+suggested()                    // → array<{column, kind, ...}> de colunas filtrables
+                               //   categorical (2-30 distintos), temporal (≥30), numeric (IQR > 0)
+renderInto(parentEl)           // anexa barra de filtros (acima do Insights, abaixo da toolbar)
+init()                         // subscribe em filters + crossfilter para re-render do canvas
+```
+
+**Shape de Store.filters:**
+```js
+{
+  regiao: ['Sul', 'Sudeste'],                  // categorical
+  receita: { min: 1000, max: 50000 },          // numeric
+  data: { from: '2025-01-01', to: '2025-12-31' } // temporal (ISO strings)
+}
+```
+
+**Path no Store:** `ui.filters.collapsed` (boolean — barra colapsada/expandida).
+
+## `Solstice.CrossFilter` (Bloco 9 · ADR-073)
+
+Filtro temporário disparado por clique em componente. Distinto dos filtros globais.
+
+```js
+activate(column, value)        // ativa cross-filter; substitui anterior
+clear()                        // limpa
+get()                          // → { column, value } | null
+isActive()                     // → boolean
+renderInto(parentEl)           // anexa barra accent "🎯 Cross-filter: X = Y · ✕ Limpar"
+init()                         // bind Esc (cascata depois de drawer/inspector)
+```
+
+**Componentes que disparam (B9):**
+- **Sankey** — clique em node (origem ou destino) → cross-filter na coluna correspondente
+
+**Componentes futuros (B10+):** Scatter (clique em ponto), Distribution (clique em barra), Box Plot (clique em grupo).
+
+**Path no Store:** `crossfilter` (objeto `{ column, value }` ou `null`).
+
+## `Solstice.Params` (Bloco 9 · ADR-074)
+
+Parâmetros globais como K/V tipados.
+
+```js
+get(name)                      // → valor (raw) ou undefined
+getAll()                       // → { name: { type, value }, ... }
+set(name, def)                 // def = { type, value } OU valor cru (mantém type existente)
+remove(name)                   // deleta um parâmetro
+resolveText(text)              // → string com {{param.X}} substituídos
+openModal()                    // modal CRUD com 3 colunas: nome / tipo / valor / remover
+init()                         // no-op (Store-based)
+```
+
+**Tipos suportados:** `string`, `number`, `date`.
+
+**Onde resolveText é usado:** `SolsticeComponents.markdown.render` chama antes da substituição legada `{{path.no.store}}`.
+
+**Path no Store:** `params` (objeto `{ name: { type, value }, ... }`).
+
+## `_ctx()` refatorado (Bloco 9)
+
+`SolsticeComponents._ctx()` agora retorna:
+
+```js
+{
+  rows,                        // filtrados (apply de Filters + CrossFilter)
+  rowsAll,                     // NOVO: dataset SEM filtros — use para defaultConfig
+  columns,
+  types,
+  dictionary,
+  L
+}
+```
+
+**Migração:** componentes que precisam ver dataset completo (Auto-Dashboard B10, smart defaults) devem trocar `ctx.rows` por `ctx.rowsAll`.
+
+## Estilos CSS novos (Bloco 9)
+
+```css
+.solstice__filterbar / -head / -title / -count.has-active / -actions / -toggle / -body / -empty
+.solstice__filter / -label / -clear
+.solstice__ms / -trigger / -trigger-placeholder / -chip / -chip-more
+.solstice__ms-panel / -search / -option / -option-count / -empty
+.solstice__range / -track / -fill / -input / -values
+.solstice__datefilter / -presets / -preset.is-active / -range
+.solstice__crossfilter-bar / -bar-text / -bar-clear
+.solstice__params-list / -row / -empty
+```
+
+## Paths novos no Store (Bloco 9)
+
+| Path | Tipo | Setado por |
+|---|---|---|
+| `filters` | `{ col: value }` | `Filters.set / clear` |
+| `crossfilter` | `{ column, value } \| null` | `CrossFilter.activate / clear` |
+| `params` | `{ name: { type, value } }` | `Params.set / remove / openModal` |
+| `ui.filters.collapsed` | boolean | toggle do header da barra |

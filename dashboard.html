@@ -389,7 +389,7 @@
   }
   .solstice__sidebar-tab-icon { width: 16px; opacity: 0.8; }
 
-  /* Canvas */
+  /* Canvas — Patch B8-r1: flex column para empty state ocupar espaço restante (não afundar com toolbar+Insights+sections crescendo) */
   .solstice__canvas {
     grid-area: canvas;
     padding: var(--sp-6);
@@ -399,13 +399,19 @@
       radial-gradient(circle at 0% 0%, rgba(77,159,255,.04), transparent 40%),
       var(--c-bg);
     position: relative;        /* B7-r2: ancora o drawer de análise */
+    display: flex; flex-direction: column;  /* B8-r1: ADR-071 */
+    gap: var(--sp-4);                       /* substitui margens individuais empilhadas */
   }
   /* B7-r2: quando o drawer de análise está aberto, deixa espaço inferior no canvas */
   .solstice__app.has-analysis .solstice__canvas {
     padding-bottom: calc(var(--sp-6) + 340px);
   }
+  /* B8-r1: empty state ocupa o RESTANTE do canvas (flex:1) e centraliza conteúdo.
+     Antes usava height:100% que ignorava toolbar/Insights acima, fazendo o conteúdo
+     "afundar" abaixo da viewport conforme irmãos cresciam. */
   .solstice__canvas-empty {
-    height: 100%;
+    flex: 1;
+    min-height: 320px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; padding: var(--sp-8);
     color: var(--c-muted);
@@ -924,6 +930,293 @@
     color: var(--c-text-2);
     font-size: var(--fs-xs);
     line-height: 1.5;
+  }
+
+  /* ============================================================
+     BLOCO 9 — FILTROS GLOBAIS · CROSS-FILTER · PARÂMETROS
+     ============================================================ */
+
+  /* Barra de filtros no topo do canvas (acima do painel Insights) */
+  .solstice__filterbar {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    overflow: hidden;
+  }
+  .solstice__filterbar-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-2) var(--sp-4);
+    background: var(--c-surface-2);
+    border-bottom: 1px solid var(--c-border);
+    cursor: pointer; user-select: none;
+  }
+  .solstice__filterbar-title {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--c-text);
+  }
+  .solstice__filterbar-count {
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono);
+    background: var(--c-surface-3); padding: 2px 6px;
+    border-radius: var(--rad-full);
+  }
+  .solstice__filterbar-count.has-active {
+    background: var(--c-accent); color: #fff;
+  }
+  .solstice__filterbar-actions { display: flex; gap: var(--sp-2); align-items: center; }
+  .solstice__filterbar-toggle {
+    font-size: 10px; color: var(--c-muted);
+    transition: transform 200ms var(--ease);
+  }
+  .solstice__filterbar.is-collapsed .solstice__filterbar-toggle { transform: rotate(-90deg); }
+  .solstice__filterbar-body {
+    padding: var(--sp-3) var(--sp-4);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--sp-3);
+  }
+  .solstice__filterbar.is-collapsed .solstice__filterbar-body { display: none; }
+  .solstice__filterbar-empty {
+    padding: var(--sp-3) var(--sp-4);
+    color: var(--c-muted); font-size: var(--fs-xs);
+    text-align: center;
+  }
+
+  /* Controle individual de filtro */
+  .solstice__filter {
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-sm);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .solstice__filter-label {
+    font-size: var(--fs-xs); color: var(--c-text-2);
+    font-weight: var(--fw-semibold);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .solstice__filter-clear {
+    font-size: 10px; color: var(--c-muted);
+    cursor: pointer;
+    padding: 2px 6px; border-radius: var(--rad-xs);
+  }
+  .solstice__filter-clear:hover { color: var(--c-warn); background: var(--c-surface-3); }
+  .solstice__filter-clear.is-hidden { visibility: hidden; }
+
+  /* Multi-select com busca */
+  .solstice__ms {
+    position: relative;
+  }
+  .solstice__ms-trigger {
+    width: 100%; min-height: 32px;
+    padding: 6px 8px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-xs);
+    font-size: var(--fs-xs); color: var(--c-text);
+    cursor: pointer; text-align: left;
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .solstice__ms-trigger:hover { border-color: var(--c-accent); }
+  .solstice__ms-trigger-placeholder { color: var(--c-muted); }
+  .solstice__ms-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 6px;
+    background: var(--c-accent); color: #fff;
+    border-radius: var(--rad-full);
+    font-size: 10px; font-weight: var(--fw-medium);
+    max-width: 140px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .solstice__ms-chip-more {
+    padding: 2px 6px; color: var(--c-muted); font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .solstice__ms-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-sm);
+    box-shadow: var(--sh-2);
+    z-index: 50;
+    max-height: 280px; overflow-y: auto;
+    padding: 6px;
+  }
+  .solstice__ms-search {
+    width: 100%; padding: 6px 8px;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-xs);
+    font-size: var(--fs-xs);
+    margin-bottom: 4px;
+  }
+  .solstice__ms-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: var(--rad-xs);
+    font-size: var(--fs-xs);
+  }
+  .solstice__ms-option:hover { background: var(--c-surface-2); }
+  .solstice__ms-option input { cursor: pointer; }
+  .solstice__ms-option-count {
+    margin-left: auto; color: var(--c-muted);
+    font-family: var(--font-mono); font-size: 10px;
+  }
+  .solstice__ms-empty {
+    padding: 8px; color: var(--c-muted); font-size: var(--fs-xs);
+    text-align: center;
+  }
+
+  /* Range slider duplo (numérico) */
+  .solstice__range {
+    position: relative;
+    padding: var(--sp-1) 0;
+  }
+  .solstice__range-track {
+    position: relative;
+    height: 4px;
+    background: var(--c-surface-3);
+    border-radius: var(--rad-full);
+  }
+  .solstice__range-fill {
+    position: absolute;
+    height: 100%;
+    background: var(--c-accent);
+    border-radius: var(--rad-full);
+  }
+  .solstice__range-input {
+    position: absolute; top: -8px;
+    width: 100%; height: 20px;
+    -webkit-appearance: none; appearance: none;
+    background: transparent;
+    pointer-events: none;
+  }
+  .solstice__range-input::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    border: 2px solid var(--c-surface);
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: var(--sh-1);
+  }
+  .solstice__range-input::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    border: 2px solid var(--c-surface);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .solstice__range-values {
+    display: flex; justify-content: space-between;
+    margin-top: 8px;
+    font-size: 10px; color: var(--c-muted);
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .solstice__range-values input {
+    width: 80px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-xs);
+    padding: 2px 4px;
+    text-align: center;
+    color: var(--c-text);
+  }
+
+  /* Date picker com presets */
+  .solstice__datefilter {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .solstice__datefilter-presets {
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .solstice__datefilter-preset {
+    font-size: 10px;
+    padding: 3px 8px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-full);
+    cursor: pointer;
+    color: var(--c-text-2);
+    transition: all var(--t-fast);
+  }
+  .solstice__datefilter-preset:hover { background: var(--c-surface-3); }
+  .solstice__datefilter-preset.is-active {
+    background: var(--c-accent); color: #fff; border-color: var(--c-accent);
+  }
+  .solstice__datefilter-range {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .solstice__datefilter-range input {
+    flex: 1; min-width: 0;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-xs);
+    padding: 4px 6px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--c-text);
+  }
+
+  /* Indicador de cross-filter ativo */
+  .solstice__crossfilter-bar {
+    background: color-mix(in srgb, var(--c-accent) 14%, var(--c-surface));
+    border: 1px solid var(--c-accent);
+    border-radius: var(--rad-sm);
+    padding: 6px var(--sp-3);
+    font-size: var(--fs-xs);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+  }
+  .solstice__crossfilter-bar-text {
+    color: var(--c-text);
+    display: flex; align-items: center; gap: var(--sp-2);
+  }
+  .solstice__crossfilter-bar-clear {
+    font-size: 10px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 50%, transparent);
+    color: var(--c-accent);
+    padding: 2px 8px;
+    border-radius: var(--rad-full);
+    cursor: pointer;
+  }
+  .solstice__crossfilter-bar-clear:hover {
+    background: var(--c-accent); color: #fff;
+  }
+
+  /* Parâmetros — modal e UI */
+  .solstice__params-list {
+    display: flex; flex-direction: column; gap: var(--sp-2);
+    max-height: 360px; overflow-y: auto;
+  }
+  .solstice__params-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 1fr 32px;
+    gap: 8px; align-items: center;
+    padding: 6px;
+    background: var(--c-surface-2);
+    border-radius: var(--rad-sm);
+  }
+  .solstice__params-row input, .solstice__params-row select {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-xs);
+    padding: 4px 8px;
+    font-size: var(--fs-xs); color: var(--c-text);
+    height: 28px;
+  }
+  .solstice__params-empty {
+    padding: var(--sp-4);
+    text-align: center; color: var(--c-muted);
+    font-size: var(--fs-xs);
   }
 
   /* ===== MODAL ===== */
@@ -2586,7 +2879,7 @@
 
 <!-- Banner versão -->
 <div class="solstice__version-banner" role="status">
-  ☀️ SOLSTICE v5.3 · BLOCO 8 · INSIGHTS EXECUTIVOS + NARRATIVA AUTOMÁTICA + AGENTE PROATIVO + INCONSISTÊNCIAS (DIFERENCIAL #2)
+  ☀️ SOLSTICE v5.3 · BLOCO 9 · FILTROS GLOBAIS + CROSS-FILTER + PARÂMETROS (B8 + r1 empty-state + B9)
 </div>
 
 <!-- App shell -->
@@ -2706,7 +2999,11 @@
         <strong style="color:var(--c-success)">✓</strong> Agente Proativo · toasts contextuais com cap 3/sessão (B8)<br>
         <strong style="color:var(--c-success)">✓</strong> SolsticeInconsistencies · 15 regras analíticas (B8)<br>
         <strong style="color:var(--c-success)">✓</strong> "Pergunte ao Solstice" · Ctrl+P · parser NL simples (B8)<br>
-        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 9 (Filtros Globais + Cross-Filter + Parâmetros)
+        <strong style="color:var(--c-success)">✓</strong> Empty state centralizado · canvas flex column (B8-r1)<br>
+        <strong style="color:var(--c-success)">✓</strong> Filtros Globais · multi-select + range + date presets (B9)<br>
+        <strong style="color:var(--c-success)">✓</strong> Cross-Filter por clique propaga filtro (B9)<br>
+        <strong style="color:var(--c-success)">✓</strong> Parâmetros globais · variáveis {{param.X}} (B9)<br>
+        <strong style="color:var(--c-muted)">→</strong> Próximo: Bloco 10 (Auto-Dashboard + Wizard + Recomendações)
       </div>
     </div>
   </aside>
@@ -4353,11 +4650,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     SolsticeInsights.init();
     SolsticeAgent.init();
     SolsticeAsk.init();
+    // B9: inicializa Filters/CrossFilter/Params
+    SolsticeFilters.init();
+    SolsticeCrossFilter.init();
+    SolsticeParams.init();
 
-    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 8','color:#4D9FFF;font-size:14px;font-weight:bold;');
-    console.log('Atalhos: Ctrl+Z desfaz · Ctrl+Shift+Z refaz · Ctrl+Shift+D debug · Esc fecha · Ctrl+P "Pergunte ao Solstice"');
-    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções · '+SolsticeComponents.list().length+' componentes · Insights/Narrative/Agent/Inconsistencies/Ask carregados');
-    console.log('%c[Solstice] Bloco 8 aplicado · Insights + Narrativa + Agente + Inconsistências (Diferencial #2)','color:#4ADE80;font-weight:bold;');
+    console.log('%c☀️ SOLSTICE v5.3 · BLOCO 9','color:#4D9FFF;font-size:14px;font-weight:bold;');
+    console.log('Atalhos: Ctrl+Z/Shift+Z · Ctrl+Shift+D · Ctrl+P · Esc · Filtros: barra topo do canvas · Cross-filter: clique em ponto/categoria');
+    console.log('Solstice.Stats → '+Object.keys(SolsticeStats).length+' funções · '+SolsticeComponents.list().length+' componentes · Filters/CrossFilter/Params carregados');
+    console.log('%c[Solstice] Bloco 9 aplicado · Filtros Globais + Cross-Filter + Parâmetros · (+ patch B8-r1 empty-state)','color:#4ADE80;font-weight:bold;');
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -7184,8 +7485,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     /** Constrói contexto para o componente: dataset, dicionário, types, locale. */
     function _ctx(){
       const ingest = SolsticeStore.get('ingest');
+      const allRows = (ingest && ingest.rows) || [];
+      // B9: rows ativos respeitam filtros globais + cross-filter
+      const rows = (typeof SolsticeFilters !== 'undefined') ? SolsticeFilters.apply(allRows) : allRows;
       return {
-        rows: (ingest && ingest.rows) || [],
+        rows,
+        rowsAll: allRows,                     // B9: acesso ao dataset SEM filtros (defaultConfig, suggested)
         columns: (ingest && ingest.columns) || [],
         types: (ingest && ingest.types) || {},
         dictionary: SolsticeStore.get('dictionary'),
@@ -8098,8 +8403,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     function _renderMarkdown(text){
       const wrap = SolsticeUtils.el('div', { class:'solstice__md' });
-      // Pré-processa placeholders {{path}} substituindo por valores do Store
-      const withVars = text.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, p) => {
+      // Pré-processa placeholders. B9: {{param.X}} resolvido pelo SolsticeParams primeiro;
+      // depois mantém o caminho legado {{path.no.store}}.
+      let pre = text;
+      if (typeof SolsticeParams !== 'undefined' && SolsticeParams.resolveText){
+        pre = SolsticeParams.resolveText(pre);
+      }
+      const withVars = pre.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, p) => {
         const v = SolsticeStore.get(p);
         if (v == null) return '<span class="solstice__md-placeholder">{{' + p + '}}</span>';
         if (typeof v === 'object') return '<span class="solstice__md-placeholder">' + p + '</span>';
@@ -8427,7 +8737,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           svg.appendChild(path);
         });
 
-        // Nodes (origem)
+        // Nodes (origem) — B9: clicáveis para cross-filter
         sources.forEach(([k, v]) => {
           const p = sPos[k];
           const rect = document.createElementNS(NS, 'rect');
@@ -8435,8 +8745,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           rect.setAttribute('x', padX); rect.setAttribute('y', p.y.toFixed(1));
           rect.setAttribute('width', nodeW); rect.setAttribute('height', p.h.toFixed(1));
           rect.setAttribute('rx', 1);
+          rect.style.cursor = 'pointer';
+          rect.addEventListener('click', () => SolsticeCrossFilter.activate(cfg.sourceColumn, k));
           const title = document.createElementNS(NS, 'title');
-          title.textContent = k + ' · ' + ctx.L.decimal(v, 2);
+          title.textContent = k + ' · ' + ctx.L.decimal(v, 2) + ' · clique para cross-filter';
           rect.appendChild(title);
           svg.appendChild(rect);
           const lbl = document.createElementNS(NS, 'text');
@@ -8447,7 +8759,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           lbl.textContent = String(k).length > 14 ? String(k).slice(0, 13) + '…' : k;
           svg.appendChild(lbl);
         });
-        // Nodes (destino)
+        // Nodes (destino) — B9: também clicáveis
         targets.forEach(([k, v]) => {
           const p = tPos[k];
           const rect = document.createElementNS(NS, 'rect');
@@ -8455,8 +8767,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           rect.setAttribute('x', W - padX - nodeW); rect.setAttribute('y', p.y.toFixed(1));
           rect.setAttribute('width', nodeW); rect.setAttribute('height', p.h.toFixed(1));
           rect.setAttribute('rx', 1);
+          rect.style.cursor = 'pointer';
+          rect.addEventListener('click', () => SolsticeCrossFilter.activate(cfg.targetColumn, k));
           const title = document.createElementNS(NS, 'title');
-          title.textContent = k + ' · ' + ctx.L.decimal(v, 2);
+          title.textContent = k + ' · ' + ctx.L.decimal(v, 2) + ' · clique para cross-filter';
           rect.appendChild(title);
           svg.appendChild(rect);
           const lbl = document.createElementNS(NS, 'text');
@@ -8619,8 +8933,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
     function _ctx(){
       const ingest = SolsticeStore.get('ingest');
+      const allRows = (ingest && ingest.rows) || [];
+      // B9: rows ativos respeitam filtros globais + cross-filter
+      const rows = (typeof SolsticeFilters !== 'undefined') ? SolsticeFilters.apply(allRows) : allRows;
       return {
-        rows: (ingest && ingest.rows) || [],
+        rows,
+        rowsAll: allRows,                     // B9: acesso ao dataset SEM filtros (defaultConfig, suggested)
         columns: (ingest && ingest.columns) || [],
         types: (ingest && ingest.types) || {},
         dictionary: SolsticeStore.get('dictionary'),
@@ -10728,6 +11046,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Toolbar do canvas (sempre presente)
       canvas.appendChild(_renderToolbar(sections.length));
 
+      // B9: Barra do Cross-filter (acima dos filtros)
+      if (typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.renderInto(canvas);
+
+      // B9: Barra de Filtros Globais (acima de Insights)
+      if (typeof SolsticeFilters !== 'undefined') SolsticeFilters.renderInto(canvas);
+
       // B8: Painel de Insights Executivos (entre toolbar e sections) — só renderiza se há insights
       if (typeof SolsticeInsights !== 'undefined') SolsticeInsights.renderInto(canvas);
 
@@ -10766,6 +11090,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             title: 'Configurar cabeçalho do dashboard',
             onclick: () => SolsticeDashHeader.openConfig()
           }, '📋 Cabeçalho'),
+          SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            title: 'Parâmetros globais (B9)',
+            onclick: () => SolsticeParams.openModal()
+          }, '🎛️ Parâmetros'),
           undoBtn,
           redoBtn,
           hasDataset ? SolsticeUtils.el('button', {
@@ -12427,10 +12756,582 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
+     BLOCO 9 — SolsticeFilters
+     Engine + UI de filtros globais. Filtros vivem em Store.filters
+     como mapa { columnName: filterValue }. filterValue varia por tipo:
+       - categorical: array<string> (valores selecionados; vazio = sem filtro)
+       - numeric:     { min, max }
+       - temporal:    { from, to } (ISO strings)
+     Função pública getActiveRows() devolve subset filtrado de ingest.rows.
+     Componentes consomem isso quando aplicável.
+     ============================================================ */
+  const SolsticeFilters = (function(){
+
+    function _ingest(){ return SolsticeStore.get('ingest') || { rows:[], columns:[], types:{} }; }
+    function _filters(){ return SolsticeStore.get('filters') || {}; }
+    function _types(){ return _ingest().types || {}; }
+
+    /** Conta filtros ativos (não vazios). */
+    function activeCount(){
+      const f = _filters();
+      let n = 0;
+      for (const k of Object.keys(f)){
+        const v = f[k];
+        if (v == null) continue;
+        if (Array.isArray(v) && v.length === 0) continue;
+        if (v && typeof v === 'object' && v.min == null && v.max == null && v.from == null && v.to == null) continue;
+        n++;
+      }
+      return n;
+    }
+
+    /** Aplica filtros a um array de rows e retorna subset. */
+    function apply(rows){
+      const f = _filters();
+      const types = _types();
+      const cross = SolsticeStore.get('crossfilter');
+      let out = rows || [];
+
+      // Filtros globais por coluna
+      for (const col of Object.keys(f)){
+        const fv = f[col];
+        if (fv == null) continue;
+        const t = (types[col] || {}).type;
+        const group = SolsticeTypes.group(t);
+
+        if (Array.isArray(fv) && fv.length){
+          out = out.filter(r => fv.includes(String(r[col])));
+        } else if (group === 'numeric' && fv && (fv.min != null || fv.max != null)){
+          out = out.filter(r => {
+            const v = parseFloat(r[col]); if (isNaN(v)) return false;
+            if (fv.min != null && v < fv.min) return false;
+            if (fv.max != null && v > fv.max) return false;
+            return true;
+          });
+        } else if (group === 'temporal' && fv && (fv.from || fv.to)){
+          const from = fv.from ? new Date(fv.from) : null;
+          const to   = fv.to   ? new Date(fv.to)   : null;
+          out = out.filter(r => {
+            const d = new Date(r[col]); if (isNaN(d)) return false;
+            if (from && d < from) return false;
+            if (to && d > to) return false;
+            return true;
+          });
+        }
+      }
+
+      // Cross-filter (B9): destaque temporário { column, value } — filtra também
+      if (cross && cross.column && cross.value != null){
+        out = out.filter(r => String(r[cross.column]) === String(cross.value));
+      }
+
+      return out;
+    }
+
+    /** Retorna rows ativos (ingest.rows filtrados). */
+    function getActiveRows(){
+      const ing = _ingest();
+      return apply(ing.rows || []);
+    }
+
+    /** Sobrescreve filtro de uma coluna. Passe null para limpar. */
+    function set(col, value){
+      const f = SolsticeUtils.deepClone(_filters());
+      if (value == null || (Array.isArray(value) && value.length === 0)){
+        delete f[col];
+      } else {
+        f[col] = value;
+      }
+      SolsticeStore.set('filters', f);
+    }
+
+    function clear(){ SolsticeStore.set('filters', {}); SolsticeStore.set('crossfilter', null); }
+
+    function get(col){ return _filters()[col]; }
+
+    /**
+     * Sugere colunas para filtrar (boas candidatas):
+     * - categóricas com 2-30 distintos
+     * - temporais com 30+ valores válidos
+     * - numéricas com IQR > 0 (variância real)
+     */
+    function suggested(){
+      const ing = _ingest();
+      const rows = ing.rows || [];
+      const cols = ing.columns || [];
+      const types = ing.types || {};
+      const out = [];
+      cols.forEach(c => {
+        const t = types[c] && types[c].type;
+        const g = SolsticeTypes.group(t);
+        if (g === 'categorical'){
+          const d = SolsticeStats.distinctCount(rows.map(r => r[c]));
+          if (d >= 2 && d <= 30) out.push({ column: c, kind: 'categorical', distinct: d });
+        } else if (g === 'temporal'){
+          const valid = rows.filter(r => !isNaN(new Date(r[c]))).length;
+          if (valid >= 30) out.push({ column: c, kind: 'temporal', valid });
+        } else if (g === 'numeric'){
+          const vals = rows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+          if (vals.length > 5){
+            const iqr = SolsticeStats.iqr(vals);
+            if (iqr != null && iqr > 0) out.push({ column: c, kind: 'numeric', n: vals.length });
+          }
+        }
+      });
+      return out;
+    }
+
+    /* ---------- UI: BARRA DE FILTROS ---------- */
+
+    /** Cria um multi-select com busca para coluna categórica. */
+    function _renderMultiSelect(col){
+      const ing = _ingest();
+      const dict = SolsticeStore.get('dictionary');
+      const rows = ing.rows || [];
+      const counts = new Map();
+      for (const r of rows){
+        const k = String(r[col] == null ? '' : r[col]);
+        counts.set(k, (counts.get(k) || 0) + 1);
+      }
+      const all = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+      const selected = _filters()[col] || [];
+
+      const wrap = SolsticeUtils.el('div', { class:'solstice__filter' });
+      const labelRow = SolsticeUtils.el('div', { class:'solstice__filter-label' });
+      labelRow.appendChild(SolsticeUtils.el('span', null, SolsticeHumanize.column(col, dict)));
+      const clearBtn = SolsticeUtils.el('span',
+        { class:'solstice__filter-clear' + (selected.length ? '' : ' is-hidden'),
+          onclick: (e) => { e.stopPropagation(); set(col, null); }
+        }, '✕ limpar');
+      labelRow.appendChild(clearBtn);
+      wrap.appendChild(labelRow);
+
+      const ms = SolsticeUtils.el('div', { class:'solstice__ms' });
+      const trigger = SolsticeUtils.el('button', { class:'solstice__ms-trigger', type:'button' });
+      function refreshTrigger(){
+        trigger.innerHTML = '';
+        const sel = _filters()[col] || [];
+        if (!sel.length){
+          trigger.appendChild(SolsticeUtils.el('span', { class:'solstice__ms-trigger-placeholder' },
+            'Selecione…  (' + all.length + ')'));
+        } else {
+          sel.slice(0, 3).forEach(v => {
+            trigger.appendChild(SolsticeUtils.el('span', { class:'solstice__ms-chip' }, v));
+          });
+          if (sel.length > 3){
+            trigger.appendChild(SolsticeUtils.el('span', { class:'solstice__ms-chip-more' }, '+' + (sel.length - 3)));
+          }
+        }
+      }
+      refreshTrigger();
+      ms.appendChild(trigger);
+
+      let panel = null;
+      function closePanel(){ if (panel){ panel.remove(); panel = null; document.removeEventListener('click', outside, true); } }
+      function outside(e){ if (panel && !ms.contains(e.target)) closePanel(); }
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (panel){ closePanel(); return; }
+        panel = SolsticeUtils.el('div', { class:'solstice__ms-panel' });
+        const search = SolsticeUtils.el('input', {
+          class:'solstice__ms-search', type:'text', placeholder:'Buscar…',
+          oninput: (e) => { renderOptions(e.target.value); }
+        });
+        panel.appendChild(search);
+        const listEl = SolsticeUtils.el('div');
+        panel.appendChild(listEl);
+        function renderOptions(q){
+          listEl.innerHTML = '';
+          const norm = (s) => String(s).toLowerCase();
+          const term = norm(q || '');
+          const filtered = all.filter(([k]) => !term || norm(k).includes(term));
+          if (!filtered.length){
+            listEl.appendChild(SolsticeUtils.el('div', { class:'solstice__ms-empty' }, 'Nenhum item encontrado.'));
+            return;
+          }
+          filtered.forEach(([value, n]) => {
+            const opt = SolsticeUtils.el('label', { class:'solstice__ms-option' });
+            const cb = SolsticeUtils.el('input', {
+              type:'checkbox',
+              onchange: (e) => {
+                const sel = (_filters()[col] || []).slice();
+                if (e.target.checked){ if (!sel.includes(value)) sel.push(value); }
+                else { const i = sel.indexOf(value); if (i >= 0) sel.splice(i, 1); }
+                set(col, sel);
+                refreshTrigger();
+                clearBtn.classList.toggle('is-hidden', sel.length === 0);
+              }
+            });
+            if ((_filters()[col] || []).includes(value)) cb.checked = true;
+            opt.appendChild(cb);
+            opt.appendChild(SolsticeUtils.el('span', null, value));
+            opt.appendChild(SolsticeUtils.el('span', { class:'solstice__ms-option-count' }, String(n)));
+            listEl.appendChild(opt);
+          });
+        }
+        renderOptions('');
+        ms.appendChild(panel);
+        setTimeout(() => document.addEventListener('click', outside, true), 0);
+        search.focus();
+      });
+      wrap.appendChild(ms);
+      return wrap;
+    }
+
+    /** Cria range slider duplo para coluna numérica. */
+    function _renderRange(col){
+      const ing = _ingest();
+      const dict = SolsticeStore.get('dictionary');
+      const rows = ing.rows || [];
+      const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      if (!vals.length) return null;
+      const min = Math.min(...vals), max = Math.max(...vals);
+      const f = _filters()[col] || { min, max };
+      const curMin = f.min != null ? f.min : min;
+      const curMax = f.max != null ? f.max : max;
+
+      const wrap = SolsticeUtils.el('div', { class:'solstice__filter' });
+      const labelRow = SolsticeUtils.el('div', { class:'solstice__filter-label' });
+      labelRow.appendChild(SolsticeUtils.el('span', null, SolsticeHumanize.column(col, dict)));
+      const hasFilter = f.min != null || f.max != null;
+      const clearBtn = SolsticeUtils.el('span',
+        { class:'solstice__filter-clear' + (hasFilter ? '' : ' is-hidden'),
+          onclick: () => set(col, null)
+        }, '✕ limpar');
+      labelRow.appendChild(clearBtn);
+      wrap.appendChild(labelRow);
+
+      const range = SolsticeUtils.el('div', { class:'solstice__range' });
+      const track = SolsticeUtils.el('div', { class:'solstice__range-track' });
+      const fill  = SolsticeUtils.el('div', { class:'solstice__range-fill' });
+      track.appendChild(fill);
+      range.appendChild(track);
+      const step = (max - min) > 100 ? Math.max(1, Math.round((max - min) / 100)) : (max - min) / 100;
+      const inputLo = SolsticeUtils.el('input', { type:'range', class:'solstice__range-input',
+        min: String(min), max: String(max), step: String(step), value: String(curMin) });
+      const inputHi = SolsticeUtils.el('input', { type:'range', class:'solstice__range-input',
+        min: String(min), max: String(max), step: String(step), value: String(curMax) });
+      range.appendChild(inputLo); range.appendChild(inputHi);
+
+      const valsRow = SolsticeUtils.el('div', { class:'solstice__range-values' });
+      const numLo = SolsticeUtils.el('input', { type:'number', step: 'any', value: String(curMin) });
+      const numHi = SolsticeUtils.el('input', { type:'number', step: 'any', value: String(curMax) });
+      valsRow.appendChild(numLo); valsRow.appendChild(numHi);
+
+      function updateFill(){
+        const lo = parseFloat(inputLo.value), hi = parseFloat(inputHi.value);
+        const a = ((lo - min) / (max - min || 1)) * 100;
+        const b = ((hi - min) / (max - min || 1)) * 100;
+        fill.style.left = a + '%';
+        fill.style.width = Math.max(0, b - a) + '%';
+      }
+      function commit(){
+        const lo = parseFloat(inputLo.value), hi = parseFloat(inputHi.value);
+        const realLo = Math.min(lo, hi), realHi = Math.max(lo, hi);
+        if (realLo === min && realHi === max){ set(col, null); clearBtn.classList.add('is-hidden'); }
+        else { set(col, { min: realLo, max: realHi }); clearBtn.classList.remove('is-hidden'); }
+      }
+      inputLo.addEventListener('input', () => { numLo.value = inputLo.value; updateFill(); });
+      inputHi.addEventListener('input', () => { numHi.value = inputHi.value; updateFill(); });
+      inputLo.addEventListener('change', commit);
+      inputHi.addEventListener('change', commit);
+      numLo.addEventListener('change', () => { inputLo.value = numLo.value; updateFill(); commit(); });
+      numHi.addEventListener('change', () => { inputHi.value = numHi.value; updateFill(); commit(); });
+
+      updateFill();
+      wrap.appendChild(range);
+      wrap.appendChild(valsRow);
+      return wrap;
+    }
+
+    /** Cria date picker com presets para coluna temporal. */
+    function _renderDate(col){
+      const ing = _ingest();
+      const dict = SolsticeStore.get('dictionary');
+      const rows = ing.rows || [];
+      const dates = rows.map(r => new Date(r[col])).filter(d => !isNaN(d));
+      if (!dates.length) return null;
+      const dMin = new Date(Math.min(...dates));
+      const dMax = new Date(Math.max(...dates));
+      const f = _filters()[col] || {};
+
+      const wrap = SolsticeUtils.el('div', { class:'solstice__filter' });
+      const labelRow = SolsticeUtils.el('div', { class:'solstice__filter-label' });
+      labelRow.appendChild(SolsticeUtils.el('span', null, SolsticeHumanize.column(col, dict)));
+      const hasFilter = !!(f.from || f.to);
+      const clearBtn = SolsticeUtils.el('span',
+        { class:'solstice__filter-clear' + (hasFilter ? '' : ' is-hidden'),
+          onclick: () => set(col, null)
+        }, '✕ limpar');
+      labelRow.appendChild(clearBtn);
+      wrap.appendChild(labelRow);
+
+      const presets = SolsticeUtils.el('div', { class:'solstice__datefilter-presets' });
+      function presetBtn(label, fn){
+        return SolsticeUtils.el('span', {
+          class:'solstice__datefilter-preset',
+          onclick: () => {
+            const [from, to] = fn();
+            set(col, { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) });
+          }
+        }, label);
+      }
+      // Presets relativos ao MAX da série (não "hoje" — dados podem ser históricos)
+      presets.appendChild(presetBtn('Últimos 7d', () => [new Date(dMax.getTime() - 6 * 86400000), dMax]));
+      presets.appendChild(presetBtn('30d', () => [new Date(dMax.getTime() - 29 * 86400000), dMax]));
+      presets.appendChild(presetBtn('3m', () => { const d = new Date(dMax); d.setMonth(d.getMonth() - 3); return [d, dMax]; }));
+      presets.appendChild(presetBtn('12m', () => { const d = new Date(dMax); d.setFullYear(d.getFullYear() - 1); return [d, dMax]; }));
+      presets.appendChild(presetBtn('Tudo', () => [dMin, dMax]));
+      wrap.appendChild(presets);
+
+      const rangeRow = SolsticeUtils.el('div', { class:'solstice__datefilter-range' });
+      const inFrom = SolsticeUtils.el('input', { type:'date',
+        value: f.from || dMin.toISOString().slice(0, 10),
+        min: dMin.toISOString().slice(0, 10), max: dMax.toISOString().slice(0, 10),
+        onchange: (e) => set(col, { from: e.target.value, to: inTo.value })
+      });
+      const inTo = SolsticeUtils.el('input', { type:'date',
+        value: f.to || dMax.toISOString().slice(0, 10),
+        min: dMin.toISOString().slice(0, 10), max: dMax.toISOString().slice(0, 10),
+        onchange: (e) => set(col, { from: inFrom.value, to: e.target.value })
+      });
+      rangeRow.appendChild(inFrom);
+      rangeRow.appendChild(SolsticeUtils.el('span', { style:'font-size:10px;color:var(--c-muted);' }, '→'));
+      rangeRow.appendChild(inTo);
+      wrap.appendChild(rangeRow);
+      return wrap;
+    }
+
+    /** Renderiza barra de filtros no topo do canvas. */
+    function renderInto(parentEl){
+      if (!parentEl) return;
+      const ing = _ingest();
+      if (!ing.rows || !ing.rows.length) return;
+      const sug = suggested();
+      if (!sug.length) return;
+
+      const isCollapsed = !!SolsticeStore.get('ui.filters.collapsed');
+      const wrap = SolsticeUtils.el('div', {
+        class: 'solstice__filterbar' + (isCollapsed ? ' is-collapsed' : '')
+      });
+      const head = SolsticeUtils.el('div', {
+        class:'solstice__filterbar-head',
+        onclick: () => {
+          wrap.classList.toggle('is-collapsed');
+          SolsticeStore.set('ui.filters.collapsed', wrap.classList.contains('is-collapsed'));
+        }
+      });
+      const titleEl = SolsticeUtils.el('div', { class:'solstice__filterbar-title' });
+      titleEl.appendChild(SolsticeUtils.el('span', null, '🔍'));
+      titleEl.appendChild(SolsticeUtils.el('span', null, 'Filtros'));
+      const n = activeCount();
+      titleEl.appendChild(SolsticeUtils.el('span', { class:'solstice__filterbar-count' + (n ? ' has-active' : '') },
+        n ? n + ' ativos' : 'nenhum'));
+      head.appendChild(titleEl);
+      const acts = SolsticeUtils.el('div', { class:'solstice__filterbar-actions' });
+      if (n){
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--ghost',
+          style:'font-size:10px;padding:2px 8px;height:24px;',
+          onclick: (e) => { e.stopPropagation(); clear(); }
+        }, '✕ Limpar tudo'));
+      }
+      acts.appendChild(SolsticeUtils.el('span', { class:'solstice__filterbar-toggle' }, '▼'));
+      head.appendChild(acts);
+      wrap.appendChild(head);
+
+      const body = SolsticeUtils.el('div', { class:'solstice__filterbar-body' });
+      sug.slice(0, 8).forEach(s => {
+        let ctrl = null;
+        if (s.kind === 'categorical') ctrl = _renderMultiSelect(s.column);
+        else if (s.kind === 'numeric') ctrl = _renderRange(s.column);
+        else if (s.kind === 'temporal') ctrl = _renderDate(s.column);
+        if (ctrl) body.appendChild(ctrl);
+      });
+      wrap.appendChild(body);
+      parentEl.appendChild(wrap);
+    }
+
+    function init(){
+      // Re-render canvas quando filtros mudam (componentes pegam novos rows)
+      SolsticeStore.subscribe('filters', () => SolsticeCanvas && SolsticeCanvas.render && SolsticeCanvas.render());
+      SolsticeStore.subscribe('crossfilter', () => SolsticeCanvas && SolsticeCanvas.render && SolsticeCanvas.render());
+    }
+
+    return { apply, getActiveRows, set, get, clear, activeCount, suggested, renderInto, init };
+  })();
+
+  /* ============================================================
+     BLOCO 9 — SolsticeCrossFilter
+     Filtro temporário disparado por clique em ponto/categoria/barra.
+     Não persiste igual aos filtros globais — é "destaque" único.
+     Mostra barra azul no topo "Cross-filter ativo: X = Y · ✕ Limpar".
+     ============================================================ */
+  const SolsticeCrossFilter = (function(){
+
+    function activate(column, value){
+      SolsticeStore.set('crossfilter', { column, value });
+      SolsticeAudit && SolsticeAudit.record && SolsticeAudit.record({
+        action: 'crossfilter', target: column, details: { column, value }
+      });
+    }
+    function clear(){ SolsticeStore.set('crossfilter', null); }
+    function get(){ return SolsticeStore.get('crossfilter'); }
+    function isActive(){ const c = get(); return !!(c && c.column != null && c.value != null); }
+
+    /** Render bar do crossfilter ativo (acima da barra de filtros). */
+    function renderInto(parentEl){
+      if (!parentEl) return;
+      const c = get();
+      if (!c || c.column == null || c.value == null) return;
+      const dict = SolsticeStore.get('dictionary');
+      const bar = SolsticeUtils.el('div', { class:'solstice__crossfilter-bar' });
+      const txt = SolsticeUtils.el('div', { class:'solstice__crossfilter-bar-text' });
+      txt.appendChild(SolsticeUtils.el('span', null, '🎯'));
+      txt.appendChild(SolsticeUtils.el('span', null,
+        'Cross-filter: ' + SolsticeHumanize.column(c.column, dict) + ' = '));
+      txt.appendChild(SolsticeUtils.el('strong', null, String(c.value)));
+      bar.appendChild(txt);
+      bar.appendChild(SolsticeUtils.el('button',
+        { class:'solstice__crossfilter-bar-clear', onclick: clear }, '✕ Limpar'));
+      parentEl.appendChild(bar);
+    }
+
+    function init(){
+      // Esc limpa cross-filter (cascata depois de drawer/inspector)
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (document.querySelector('.solstice__modal-overlay')) return;
+        if (SolsticeAnalysis && SolsticeAnalysis.isOpen && SolsticeAnalysis.isOpen()) return;
+        if (SolsticeInspector && SolsticeInspector.isOpen && SolsticeInspector.isOpen()) return;
+        if (isActive()){ clear(); e.preventDefault(); }
+      });
+    }
+
+    return { activate, clear, get, isActive, renderInto, init };
+  })();
+
+  /* ============================================================
+     BLOCO 9 — SolsticeParams
+     Parâmetros globais como K/V tipados. Persistido em Store.params.
+     Substituíveis via {{param.NOME}} em narrativas e markdown.
+     ============================================================ */
+  const SolsticeParams = (function(){
+
+    function _all(){ return SolsticeStore.get('params') || {}; }
+
+    function get(name){ const p = _all()[name]; return p ? p.value : undefined; }
+    function getAll(){ return _all(); }
+    function set(name, def){
+      const p = SolsticeUtils.deepClone(_all());
+      // def: { type, value } ou só value (mantém type existente)
+      if (def && typeof def === 'object' && ('type' in def || 'value' in def)){
+        p[name] = { ...(p[name] || {}), ...def };
+      } else {
+        p[name] = { type: (p[name] && p[name].type) || 'string', value: def };
+      }
+      SolsticeStore.set('params', p);
+    }
+    function remove(name){
+      const p = SolsticeUtils.deepClone(_all());
+      delete p[name];
+      SolsticeStore.set('params', p);
+    }
+
+    /** Substitui {{param.NOME}} em string. */
+    function resolveText(text){
+      if (!text) return '';
+      const p = _all();
+      return String(text).replace(/\{\{\s*param\.(\w+)\s*\}\}/g, (_, k) => {
+        const e = p[k];
+        return e ? String(e.value) : '{{param.' + k + '}}';
+      });
+    }
+
+    /** Modal de edição CRUD de parâmetros. */
+    async function openModal(){
+      let local = SolsticeUtils.deepClone(_all());
+      function refresh(listEl){
+        listEl.innerHTML = '';
+        const keys = Object.keys(local);
+        if (!keys.length){
+          listEl.appendChild(SolsticeUtils.el('div', { class:'solstice__params-empty' },
+            'Nenhum parâmetro definido. Use o botão "+ Adicionar" abaixo.'));
+        }
+        keys.forEach(k => {
+          const entry = local[k] || { type: 'string', value: '' };
+          const row = SolsticeUtils.el('div', { class:'solstice__params-row' });
+          const inName = SolsticeUtils.el('input', { type:'text', value: k });
+          const selType = SolsticeUtils.el('select');
+          ['string', 'number', 'date'].forEach(t => {
+            const opt = SolsticeUtils.el('option', { value: t }, t);
+            if (entry.type === t) opt.selected = true;
+            selType.appendChild(opt);
+          });
+          const inValue = SolsticeUtils.el('input', { type: entry.type === 'number' ? 'number' : entry.type === 'date' ? 'date' : 'text', value: entry.value == null ? '' : String(entry.value) });
+          const delBtn = SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--icon',
+            title:'Remover', onclick: () => { delete local[k]; refresh(listEl); } }, '🗑️');
+          inName.addEventListener('change', (e) => {
+            const newKey = (e.target.value || '').trim();
+            if (!newKey || newKey === k) return;
+            if (local[newKey]) { SolsticeToast.warn('Nome em uso', newKey); inName.value = k; return; }
+            local[newKey] = local[k]; delete local[k]; refresh(listEl);
+          });
+          selType.addEventListener('change', (e) => {
+            local[k].type = e.target.value;
+            inValue.type = e.target.value === 'number' ? 'number' : e.target.value === 'date' ? 'date' : 'text';
+          });
+          inValue.addEventListener('change', (e) => {
+            const v = e.target.value;
+            local[k].value = selType.value === 'number' ? parseFloat(v) : v;
+          });
+          row.append(inName, selType, inValue, delBtn);
+          listEl.appendChild(row);
+        });
+      }
+
+      await SolsticeModal.show({
+        title: '🎛️ Parâmetros globais',
+        body: (close) => {
+          const wrap = SolsticeUtils.el('div');
+          wrap.appendChild(SolsticeUtils.el('p', { style:'color:var(--c-muted);font-size:var(--fs-xs);margin-bottom:var(--sp-3);line-height:1.5;' },
+            'Parâmetros viram variáveis que você pode referenciar em texto Markdown e narrativas usando ' +
+            '{{param.NOME}}. Ex: meta=1000000 vira "{{param.meta}}" no texto.'));
+          const list = SolsticeUtils.el('div', { class:'solstice__params-list' });
+          refresh(list);
+          wrap.appendChild(list);
+          const addBtn = SolsticeUtils.el('button', { class:'solstice__btn',
+            style:'margin-top:var(--sp-3);',
+            onclick: () => {
+              let i = 1; let name = 'novo_param';
+              while (local[name]) { i++; name = 'novo_param_' + i; }
+              local[name] = { type: 'string', value: '' };
+              refresh(list);
+            } }, '+ Adicionar parâmetro');
+          wrap.appendChild(addBtn);
+          return wrap;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => close(null) }, 'Cancelar'),
+          SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary',
+            onclick: () => { SolsticeStore.set('params', local); SolsticeToast.success('Parâmetros salvos', Object.keys(local).length + ' definido(s)'); close(null); }
+          }, 'Salvar')
+        ]
+      });
+    }
+
+    function init(){
+      // nada por enquanto — Store-based
+    }
+
+    return { get, getAll, set, remove, resolveText, openModal, init };
+  })();
+
+  /* ============================================================
      Exposição global para debug e blocos futuros
      ============================================================ */
   window.Solstice = {
-    version: '5.3.0-bloco8',
+    version: '5.3.0-bloco9',
     Utils:       SolsticeUtils,
     Store:       SolsticeStore,
     Locale:      SolsticeLocale,
@@ -12474,6 +13375,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     Agent:           SolsticeAgent,
     Inconsistencies: SolsticeInconsistencies,
     Ask:             SolsticeAsk,
+    Filters:         SolsticeFilters,
+    CrossFilter:     SolsticeCrossFilter,
+    Params:          SolsticeParams,
     LZ:          (typeof LZString !== 'undefined') ? LZString : null
   };
 

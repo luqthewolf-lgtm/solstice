@@ -269,6 +269,64 @@ Copie o bloco abaixo ao reportar:
 
 ## 🧪 Cenários para teste manual de regressão (atualizar a cada bloco)
 
+### Bloco 9 — Filtros Globais + Cross-Filter + Parâmetros (+ patch B8-r1 empty-state)
+
+- [ ] Sentinela verde `[Solstice] Bloco 9 aplicado · Filtros Globais + Cross-Filter + Parâmetros · (+ patch B8-r1 empty-state)`
+- [ ] `[Solstice] boot OK` aparece
+- [ ] `Solstice.version === '5.3.0-bloco9'`
+- [ ] Footer mostra `v5.3 · Bloco 9`
+- [ ] Banner cita `BLOCO 9 · FILTROS GLOBAIS`
+
+**Patch B8-r1 (empty state):**
+- [ ] Empty state inicial (sem dataset) fica CENTRALIZADO verticalmente no canvas
+- [ ] Após import de CSV, empty state com "Comece com um template" continua centralizado
+- [ ] Conforme toolbar/Filters/Insights crescem acima, empty NÃO afunda mais para fora da viewport
+- [ ] Recarregar a página várias vezes não muda posição
+
+**SolsticeFilters:**
+- [ ] Carregar CSV dummy → barra "🔍 Filtros" aparece entre toolbar e Insights
+- [ ] Sugere até 8 colunas: categóricas (2-30 distintos) + temporais + numéricas
+- [ ] Multi-select em "regiao" → click no trigger abre panel com busca + checkboxes ordenados por contagem
+- [ ] Selecionar 2 regiões → chips no trigger + "(+0)" se mais
+- [ ] Botão "✕ limpar" do filtro aparece quando há seleção
+- [ ] Range slider em "receita" → arrastar bolinhas muda min/max, fill accent acompanha, inputs numéricos sincronizam
+- [ ] Date picker em "data" → presets "7d / 30d / 3m / 12m / Tudo" clicáveis; inputs `<input type="date">` editáveis
+- [ ] Header da barra mostra "N ativos" badge accent quando há filtros
+- [ ] Botão "✕ Limpar tudo" no header aparece com filtros ativos
+- [ ] Click no header colapsa/expande (estado persiste em Store.ui.filters.collapsed)
+- [ ] **Componentes filtram:** KPI/Tabela/Scatter/etc. recalculam com rows filtradas
+- [ ] Console: `Solstice.Filters.activeCount()` retorna número correto
+- [ ] Console: `Solstice.Filters.getActiveRows().length` < `Solstice.Store.get('ingest').rows.length` quando filtros ativos
+- [ ] Insights/Narrativa/Inconsistências do B8 recalculam quando filtros mudam
+
+**SolsticeCrossFilter:**
+- [ ] Adicionar Sankey → clicar em um node (ex: "Sudeste" na origem) → barra azul accent aparece "🎯 Cross-filter: Região = Sudeste · ✕ Limpar"
+- [ ] Todos os outros componentes filtram para mostrar só "Sudeste"
+- [ ] Click no ✕ da barra → limpa cross-filter
+- [ ] Esc também limpa (após fechar drawer/inspector se abertos)
+- [ ] Click em outro node substitui o cross-filter
+- [ ] Console: `Solstice.CrossFilter.get()` retorna `{column, value}` ou null
+
+**SolsticeParams:**
+- [ ] Botão "🎛️ Parâmetros" aparece na toolbar do canvas
+- [ ] Click → modal com lista vazia + botão "+ Adicionar parâmetro"
+- [ ] Add → linha com inputs nome / tipo (string/number/date) / valor / 🗑️
+- [ ] Trocar tipo muda o input correspondente (number → input[type=number], date → input[type=date])
+- [ ] Renomear parâmetro com nome em uso → toast warn
+- [ ] Salvar → modal fecha + toast sucesso + persistido em Store.params
+- [ ] Criar Markdown com texto `{{param.meta}}` → ao selecionar componente, mostra valor real
+- [ ] Console: `Solstice.Params.get('meta')` retorna valor
+- [ ] Console: `Solstice.Params.resolveText('Meta: {{param.meta}}')` substitui
+
+**Regressão B1-B8:**
+- [ ] 10 componentes ainda renderizam normalmente
+- [ ] SolsticeStats 47 funções operacionais
+- [ ] Insights aparece SE houver insights (continua funcionando)
+- [ ] Narrativa modal abre via inspector
+- [ ] Ctrl+P abre Ask
+- [ ] Avisos (Inconsistências) aparecem no inspector
+- [ ] Inspector lateral, Drawer Análise, Catálogo accordion — operacionais
+
 ### Bloco 8 — Insights + Narrativa + Agente + Inconsistências + Ask
 
 - [ ] Sentinela verde `[Solstice] Bloco 8 aplicado · Insights + Narrativa + Agente + Inconsistências (Diferencial #2)`

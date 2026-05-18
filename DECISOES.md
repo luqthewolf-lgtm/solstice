@@ -1273,6 +1273,66 @@ Persistência em `Store.canvas.header` (vai com snapshots no B11). Auto-sugestã
 
 ---
 
+## ADR-071 — Canvas flex column + empty state flex:1 (B8-r1)
+
+**Status:** Aceito · Patch B8-r1
+**Contexto:** `.solstice__canvas-empty` tinha `height: 100%`. Com B5+ adicionando toolbar, B7 adicionando Cross-filter bar, B8 adicionando painel Insights, e B9 adicionando barra Filters, o `100%` do canvas-empty era a viewport COMPLETA — empty state era empurrado abaixo da fold a cada elemento que crescia acima.
+**Decisão:** Canvas vira `display: flex; flex-direction: column; gap: var(--sp-4)`. Empty state troca `height: 100%` por `flex: 1; min-height: 320px`. Toolbar/CrossFilter/Filters/Insights ficam acima naturalmente e o empty ocupa o restante centralizado.
+**Consequências:**
+- ✅ Empty state sempre visível e centralizado, independente de quantos elementos cresçam acima
+- ✅ Gap automático entre elementos (substitui margens individuais)
+- ⚠️ Quem dependia de `canvas > *` sendo block items pode quebrar — não é o caso atual
+
+---
+
+## ADR-072 — Filtros aplicam via SolsticeComponents._ctx() — transparente para render()
+
+**Status:** Aceito · Bloco 9
+**Contexto:** 10 componentes existentes consomem `ctx.rows` diretamente. Refatorar cada um para aceitar rows filtradas seria muito código (>500 linhas) e quebraria coisas.
+**Decisão:** Refatorar APENAS o helper `_ctx()` (2 ocorrências). Lá dentro, `rows` agora é `SolsticeFilters.apply(allRows)` se `SolsticeFilters` existe; senão fallback para `allRows`. Adicionalmente expõe `ctx.rowsAll` para defaultConfig/suggested que precisam do dataset COMPLETO (não filtrado).
+**Alternativas:**
+- Filtrar dentro de cada render — duplicação massiva
+- WebWorker pré-filtra — over-engineering pré-B12
+**Consequências:**
+- ✅ Mudança cirúrgica em 1 função
+- ✅ Componentes não precisam saber de filtros
+- ✅ Smart defaults continuam funcionando se usarem `ctx.rowsAll` (recomendação)
+- ⚠️ Performance: filtros recomputados a cada render. Para datasets grandes (B12) memoize por hash(filters)
+
+---
+
+## ADR-073 — Cross-filter como destaque temporário separado dos filtros globais
+
+**Status:** Aceito · Bloco 9
+**Contexto:** Clique em "Sudeste" no Sankey deveria filtrar todos os outros, mas o usuário NÃO quer "persistir" essa seleção como filtro permanente — é exploração.
+**Decisão:** Cross-filter vive em `Store.crossfilter` separado de `Store.filters`. Shape: `{ column, value }` (1 só por vez). Aplicado dentro de `Filters.apply()` JUNTO com filtros globais (interseção). UI distinta: barra azul accent no topo + botão "✕ Limpar". Esc limpa.
+**Diferenças semânticas:**
+- Filtros globais: persistem na sessão, multi-coluna, multi-valor
+- Cross-filter: 1 coluna × 1 valor, temporário, dispensável com 1 click ou Esc
+**Consequências:**
+- ✅ UX clara: "esse é meu filtro fixo" vs "esse é meu drilldown momentâneo"
+- ✅ Esc fecha primeiro modais → drawer → inspector → cross-filter — cascata natural
+- ⚠️ Apenas 1 cross-filter ativo de cada vez (clique novo substitui)
+
+---
+
+## ADR-074 — Parâmetros como K/V tipados substituídos antes de Store paths
+
+**Status:** Aceito · Bloco 9
+**Contexto:** Componente Markdown já tinha sintaxe `{{path.no.store}}` lendo do Store. Adicionar parâmetros tem que conviver sem ambiguidade.
+**Decisão:** `SolsticeParams.resolveText(text)` substitui `{{param.NOME}}` primeiro; depois o pipeline de Markdown processa `{{path.no.store}}` legado. Como o prefixo `param.` é exclusivo, não há conflito.
+**Shape de Store.params:**
+```js
+{ meta: { type: 'number', value: 1000000 }, ano_ref: { type: 'string', value: '2026' } }
+```
+**Consequências:**
+- ✅ Texto Markdown pode usar `{{param.meta}}` E `{{dataset.name}}` no mesmo arquivo
+- ✅ Modal CRUD simples (3 colunas: nome | tipo | valor | remover)
+- ⚠️ Tipos não validam ainda (number aceita string "abc") — refinamento B11
+- ⚠️ Sem fórmulas: `{{param.A * 1.1}}` fica para B11
+
+---
+
 ## Decisões reversíveis (anotadas para futuro)
 
 - **6 paletas hardcoded**: poderia ser editor visual de paleta (Bloco 12?)
