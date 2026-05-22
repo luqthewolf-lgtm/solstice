@@ -5739,9 +5739,11 @@
     font-family: var(--font-display); font-weight: var(--fw-semibold);
     color: var(--c-text);
   }
-  .solstice__data-table-wrap { overflow: auto; max-height: 70vh; }
+  /* PL-02 (Sprint 2): wrap permite scroll horizontal além de vertical.
+     Datasets com 100+ colunas agora são navegáveis. */
+  .solstice__data-table-wrap { overflow: auto; max-height: 70vh; max-width: 100%; }
   .solstice__data-table {
-    width: 100%; border-collapse: collapse;
+    width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0;
     font-size: var(--fs-base); font-variant-numeric: tabular-nums;
     line-height: 1.5;
   }
@@ -5751,10 +5753,22 @@
     white-space: nowrap;
   }
   .solstice__data-table th {
-    background: var(--c-surface-2); position: sticky; top: 0;
+    background: var(--c-surface-2); position: sticky; top: 0; z-index: 2;
     color: var(--c-text); font-weight: var(--fw-semibold);
     font-size: var(--fs-xs);
   }
+  /* PL-02: primeira coluna sticky horizontalmente (linha de identificadores) */
+  .solstice__data-table th:first-child,
+  .solstice__data-table td:first-child {
+    position: sticky; left: 0;
+    background: var(--c-surface);
+    box-shadow: 1px 0 0 var(--c-border);
+  }
+  .solstice__data-table th:first-child {
+    z-index: 3; /* acima de th normal */
+    background: var(--c-surface-2);
+  }
+  .solstice__data-table tbody tr:hover td:first-child { background: var(--c-surface-2); }
   .solstice__data-table th small {
     display: block; color: var(--c-muted); font-weight: var(--fw-regular);
     font-size: 10px; font-family: var(--font-mono);
@@ -5764,6 +5778,10 @@
   .solstice__data-table td.is-num { text-align: right; }
   .solstice__data-table td.is-null { color: var(--c-muted); font-style: italic; }
   .solstice__data-table td.is-invalid { color: var(--c-error); background: rgba(248,113,113,.08); }
+  /* PL-02: indicador visual sutil quando há scroll horizontal disponível */
+  .solstice__data-table-wrap::-webkit-scrollbar { height: 10px; width: 10px; }
+  .solstice__data-table-wrap::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 5px; }
+  .solstice__data-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--c-muted); }
 
   /* ===== UTILITIES ===== */
   @keyframes solstice-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -6278,6 +6296,10 @@
              💬 ⌨️ 🔍 etc.) ficam para iteração futura. -->
         <button class="solstice__btn" id="btn-import-menu" title="Importar (CSV · JSON · HTML)" aria-label="Abrir menu Importar" aria-haspopup="menu">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M2 3h5l1 1h6v9H2V3zm1 1v8h10V5H7.5L6.5 4H3z"/></svg>Importar <span aria-hidden="true" style="opacity:0.6;font-size:10px;">▾</span>
+        </button>
+        <!-- LE-06 (Sprint 2): refresh "manual mas reativo" — re-importa mantendo dashboard -->
+        <button class="solstice__btn" id="btn-refresh-data" title="Recarregar dados do arquivo (mantém dashboard montado)" aria-label="Recarregar dados">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;"><path fill="currentColor" d="M13.65 2.35a8 8 0 0 0-13.18 8.6l1.5-1.5a6 6 0 0 1 10.14-5.6l-2.11 2.1H15V0l-1.35 2.35zM2.35 13.65A8 8 0 0 0 15.53 5.05l-1.5 1.5a6 6 0 0 1-10.14 5.6l2.11-2.1H1V16l1.35-2.35z"/></svg>
         </button>
         <button class="solstice__btn" id="btn-save-menu" title="Salvar (Snapshot · Visão · Histórico)" aria-label="Abrir menu Salvar" aria-haspopup="menu">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M2 2h11l1 1v11H2V2zm2 1v4h7V3H4zm4 1h2v2H8V4zM3 9h10v4H3V9z"/></svg>Salvar <span aria-hidden="true" style="opacity:0.6;font-size:10px;">▾</span>
@@ -10287,6 +10309,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
+    // LE-06 (Sprint 2): Refresh "manual mas reativo" — re-importa arquivo
+    // pelo file picker (browser security não deixa guardar File entre sessões)
+    // mas preserva todos os componentes do canvas (mesma estrutura de colunas
+    // → mesma config funciona). Útil pra "fonte de dados atualizou, recarregar".
+    const btnRefreshData = document.getElementById('btn-refresh-data');
+    if (btnRefreshData){
+      btnRefreshData.addEventListener('click', () => {
+        const dsReady = SolsticeStore.get('dataset.ready');
+        if (!dsReady){
+          SolsticeToast.info('Sem dados pra recarregar', 'Importe um arquivo primeiro.');
+          return;
+        }
+        // Mostra hint sobre o que vai acontecer
+        const ingest = SolsticeStore.get('ingest') || {};
+        const lastName = ingest.sourceName || 'arquivo';
+        SolsticeToast.info('Re-selecione o arquivo', 'Por segurança o navegador não guarda "' + lastName + '". Escolha o arquivo atualizado.');
+        // Mantém canvas/componentes — só substitui o dataset
+        fileInput.accept = '.csv,.tsv,.txt,.json';
+        fileInput.click();
+      });
+    }
+
     // 💾 Salvar ▾
     const btnSaveMenu = document.getElementById('btn-save-menu');
     if (btnSaveMenu){
@@ -11341,15 +11385,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // Auditoria 2026 (B-02 / A-402): parseText agora retorna Promise para
     // permitir `worker: true` em Papa.parse — CSVs grandes não bloqueiam mais
     // a thread principal. Chamadores devem usar `await parseText(...)`.
-    function parseText(text, dialect){
+    //
+    // PL-01 (Sprint 2): parseText agora aceita opts.onProgress(rowsParsed) para
+    // streaming. CSVs > 5MB usam Papa.parse com chunk callback (Worker mode
+    // não suporta chunk; usa main thread mas com chunkSize razoável).
+    // Arquivos pequenos continuam no Worker (mais rápido, sem overhead).
+    function parseText(text, dialect, opts){
+      opts = opts || {};
+      const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
+      const LARGE_THRESHOLD = 5 * 1024 * 1024; // 5MB
+
       if (typeof Papa !== 'undefined'){
         return new Promise((resolve, reject) => {
-          Papa.parse(text, {
+          const isLarge = text.length >= LARGE_THRESHOLD;
+          // Worker mode não suporta chunk. Se quero progresso E é grande,
+          // desliga worker e habilita chunk. Arquivo pequeno: worker mode.
+          const useStreaming = isLarge && !!onProgress;
+          const cfg = {
             delimiter: dialect.delimiter,
             header: dialect.hasHeader,
             skipEmptyLines: true,
             dynamicTyping: false,
-            worker: true,
+            worker: !useStreaming,
             complete: (res) => {
               const rawColumns = dialect.hasHeader ? res.meta.fields : (res.data[0] && Object.keys(res.data[0]));
               const { cleaned, dirty } = _cleanColumnNames(rawColumns);
@@ -11366,7 +11423,40 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               resolve({ rows, columns: cleaned, errors: res.errors, dirtyColumnNames: dirty });
             },
             error: (err) => reject(err)
-          });
+          };
+          if (useStreaming){
+            // Streaming: ~1MB chunks, callback de progresso por chunk parseado.
+            let accRows = 0;
+            const accAll = [];
+            let errAll = [];
+            cfg.chunkSize = 1024 * 1024;
+            cfg.chunk = (results) => {
+              accRows += results.data.length;
+              if (results.data && results.data.length) accAll.push(...results.data);
+              if (results.errors && results.errors.length) errAll.push(...results.errors);
+              try { onProgress(accRows); } catch(_){}
+            };
+            cfg.complete = () => {
+              // No chunk mode, res.data está vazio — usamos accAll
+              const firstRow = accAll[0];
+              const rawColumns = dialect.hasHeader
+                ? (firstRow ? Object.keys(firstRow) : [])
+                : (firstRow ? Object.keys(firstRow) : []);
+              const { cleaned, dirty } = _cleanColumnNames(rawColumns);
+              let rows = accAll;
+              if (dirty.length && dialect.hasHeader && rawColumns){
+                const map = {};
+                rawColumns.forEach((c, i) => { map[c] = cleaned[i]; });
+                rows = accAll.map(r => {
+                  const out = {};
+                  for (const k in r) out[map[k] || k] = r[k];
+                  return out;
+                });
+              }
+              resolve({ rows, columns: cleaned, errors: errAll, dirtyColumnNames: dirty });
+            };
+          }
+          Papa.parse(text, cfg);
         });
       }
       // Fallback manual mínimo (CSV simples sem aspas escapadas em multi-linha)
@@ -11581,7 +11671,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       onStep('parse', 'running');
       // Auditoria 2026 (B-02 / A-402): parseText agora retorna Promise para
       // suportar Papa.parse worker:true. CSVs grandes não bloqueiam mais a UI.
-      const { rows, columns, errors, dirtyColumnNames } = await parseText(text, dialect);
+      // PL-01 (Sprint 2): emite progresso por chunk em arquivos >= 5MB.
+      const { rows, columns, errors, dirtyColumnNames } = await parseText(text, dialect, {
+        onProgress: (rowsSoFar) => {
+          onStep('parse', 'running', { rowsSoFar });
+        }
+      });
       if (!rows.length){
         onStep('parse', 'error');
         SolsticeErrors.show('CSV_EMPTY');
@@ -11767,6 +11862,31 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      ============================================================ */
   const SolsticeEditor = (function(){
 
+    // RC-03 (Sprint 2): hash determinístico (não-criptográfico — DJB2 + base36).
+    // Mesmo valor → mesmo hash em qualquer execução, permitindo joins anonimizados.
+    function _solsticeHash(s){
+      let h = 5381;
+      const str = String(s == null ? '' : s);
+      for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+      return 'h_' + Math.abs(h).toString(36);
+    }
+    function _solsticeFakeName(seed){
+      const first = ['Ana','Bruno','Carla','Diego','Elena','Felipe','Gabriela','Hugo','Isabel','João','Karen','Lucas','Marina','Nathan','Olívia'];
+      const last  = ['Silva','Souza','Oliveira','Santos','Lima','Costa','Pereira','Rodrigues','Almeida','Carvalho','Gomes','Martins','Ferreira'];
+      const h = Math.abs(parseInt(_solsticeHash(seed).slice(2), 36) || 0);
+      return first[h % first.length] + ' ' + last[(h >> 4) % last.length];
+    }
+    function _solsticeFakeEmail(seed){
+      const h = Math.abs(parseInt(_solsticeHash(seed).slice(2), 36) || 0);
+      return 'user' + (h % 10000) + '@example.com';
+    }
+    function _solsticeFakePhone(seed){
+      const h = Math.abs(parseInt(_solsticeHash(seed).slice(2), 36) || 0);
+      const a = String(11 + (h % 89)).padStart(2,'0');
+      const b = String((h >> 4) % 100000000).padStart(8,'0');
+      return '(' + a + ') 9' + b.slice(0,4) + '-' + b.slice(4);
+    }
+
     const TRANSFORMATIONS = {
       'trim':       { label:'Aparar espaços', fn: v => typeof v === 'string' ? v.trim() : v },
       'upper':      { label:'MAIÚSCULAS',    fn: v => typeof v === 'string' ? v.toUpperCase() : v },
@@ -11776,7 +11896,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Auditoria 2026 (R-01b / A-301): "Forçar número" honra pt-BR.
       'parseNum':   { label:'Forçar número', fn: v => { const n = SolsticeBR.toNumber(v); return isNaN(n) ? v : n; } },
       'parseDate':  { label:'Forçar data ISO', fn: v => { const d = new Date(v); return isNaN(d) ? v : d.toISOString().slice(0,10); } },
-      'removeAccent': { label:'Sem acentos', fn: v => typeof v === 'string' ? v.normalize('NFD').replace(/[̀-ͯ]/g,'') : v }
+      'removeAccent': { label:'Sem acentos', fn: v => typeof v === 'string' ? v.normalize('NFD').replace(/[̀-ͯ]/g,'') : v },
+
+      // RC-03 (Sprint 2): anonimização LGPD/PII one-click. 4 estratégias.
+      'anonMaskCpf': { label:'🔒 Anonimizar (mascarar CPF)', fn: v => {
+        if (v == null || v === '') return v;
+        if (typeof SolsticeBR !== 'undefined' && SolsticeBR.maskCPF) return SolsticeBR.maskCPF(v);
+        const s = String(v).replace(/\D/g, '');
+        return s.length === 11 ? s.slice(0,3) + '.***.***-' + s.slice(9) : v;
+      }},
+      'anonHash':    { label:'🔒 Anonimizar (hash determinístico)', fn: v => (v == null || v === '') ? v : _solsticeHash(v) },
+      'anonRedact':  { label:'🔒 Anonimizar (redigir totalmente)', fn: v => (v == null || v === '') ? v : '[redigido]' },
+      'anonFakeName':{ label:'🔒 Anonimizar (nome fictício)',   fn: v => (v == null || v === '') ? v : _solsticeFakeName(v) },
+      'anonFakeEmail':{label:'🔒 Anonimizar (email fictício)',  fn: v => (v == null || v === '') ? v : _solsticeFakeEmail(v) },
+      'anonFakePhone':{label:'🔒 Anonimizar (telefone fictício)',fn: v => (v == null || v === '') ? v : _solsticeFakePhone(v) }
     };
 
     function _renameColumn(rows, columns, oldName, newName){
@@ -13125,6 +13258,166 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     /** Polish v8a: ações rápidas (Criar coluna + Tabela) ABAIXO do resumo do dataset.
      *  Antes ficavam no topo isolado; agora estão no contexto certo (entre resumo e colunas). */
+    /**
+     * RC-03 (Sprint 2): Auto-detector de PII + modal de anonimização.
+     * Heurística:
+     *  1. Nome da coluna: cpf, cnpj, email, telefone, nome, endereco, rg, etc
+     *  2. Sample de até 50 valores: testa CPF/CNPJ/email/phone via regex+validador
+     *
+     * Para cada coluna detectada, sugere uma estratégia padrão (mask/hash/fake/redact)
+     * mas usuário pode trocar. Aplica em batch com undo.
+     */
+    const PII_PATTERNS = {
+      cpf:      { rxName: /\bcpf\b/i,                     rxVal: /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/,                            defaultStrategy:'anonMaskCpf', label:'CPF' },
+      cnpj:     { rxName: /\bcnpj\b/i,                    rxVal: /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/,                    defaultStrategy:'anonHash',    label:'CNPJ' },
+      email:    { rxName: /e[\-_ ]?mail|email/i,          rxVal: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,                                defaultStrategy:'anonFakeEmail', label:'Email' },
+      phone:    { rxName: /telefone|fone|celular|whats/i, rxVal: /^\(?\d{2}\)?\s*9?\s*\d{4,5}[\-\s]?\d{4}$/,                  defaultStrategy:'anonFakePhone', label:'Telefone' },
+      name:     { rxName: /\b(nome|cliente|paciente|aluno|usuario|colaborador|funcionario|atendente|vendedor)\b/i, rxVal: null, defaultStrategy:'anonFakeName', label:'Nome' },
+      rg:       { rxName: /\brg\b|identidade/i,           rxVal: /^\d{1,2}\.?\d{3}\.?\d{3}-?[\dX]$/i,                         defaultStrategy:'anonHash',    label:'RG' },
+      address:  { rxName: /endereco|endereço|rua|logradouro|cep/i, rxVal: null,                                                defaultStrategy:'anonRedact',  label:'Endereço' }
+    };
+    function _detectPII(ingest){
+      const out = []; // [{col, type, label, suggested, matches}]
+      if (!ingest || !ingest.columns) return out;
+      const sampleN = Math.min(50, (ingest.rows || []).length);
+      ingest.columns.forEach(col => {
+        const sample = [];
+        for (let i = 0; i < sampleN; i++){
+          const v = ingest.rows[i] && ingest.rows[i][col];
+          if (v != null && v !== '') sample.push(String(v));
+          if (sample.length >= 20) break;
+        }
+        for (const key in PII_PATTERNS){
+          const pat = PII_PATTERNS[key];
+          const nameHit = pat.rxName && pat.rxName.test(col);
+          let valHits = 0;
+          if (pat.rxVal && sample.length){
+            sample.forEach(s => { if (pat.rxVal.test(s.replace(/\s+/g,''))) valHits++; });
+          }
+          // Critério: nome bate OU >=50% do sample bate o padrão de valor
+          if (nameHit || (sample.length && valHits / sample.length >= 0.5)){
+            out.push({
+              col, type: key, label: pat.label,
+              suggested: pat.defaultStrategy,
+              matches: nameHit ? 'nome' : (valHits + '/' + sample.length + ' valores')
+            });
+            break; // primeira detecção ganha
+          }
+        }
+      });
+      return out;
+    }
+    async function _openAnonymizeModal(){
+      const ingest = SolsticeStore.get('ingest');
+      if (!ingest || !ingest.rows || !ingest.rows.length){
+        SolsticeToast.warn('Sem dataset', 'Importe um CSV primeiro.');
+        return;
+      }
+      const detected = _detectPII(ingest);
+      // Estado mutável: por coluna, escolha do usuário {col, strategy, enabled}
+      const choices = detected.map(d => ({ col: d.col, label: d.label, matches: d.matches, strategy: d.suggested, enabled: true }));
+
+      function _build(close){
+        const body = SolsticeUtils.el('div');
+        body.appendChild(SolsticeUtils.el('div', {
+          style:'padding:10px 12px;background:color-mix(in srgb,var(--c-warn) 10%, var(--c-surface-2));border-radius:6px;border-left:3px solid var(--c-warn);font-size:12px;margin-bottom:12px;line-height:1.5;'
+        }, '🔒 ', SolsticeUtils.el('strong', null, 'LGPD · privacidade'),
+           ': anonimização é determinística (mesmo valor → mesmo resultado), o que preserva contagens/joins. Hash não é reversível. ',
+           SolsticeUtils.el('strong', null, 'Ctrl+Z desfaz.')));
+
+        if (!choices.length){
+          body.appendChild(SolsticeUtils.el('div', { style:'padding:20px;text-align:center;color:var(--c-text-2);font-size:13px;' },
+            '✓ Nenhuma coluna com PII detectada automaticamente.',
+            SolsticeUtils.el('br'),
+            SolsticeUtils.el('small', { style:'color:var(--c-muted);' },
+              'Se você quer anonimizar uma coluna específica, use o ⚡ da preview (opções "🔒 Anonimizar …").')));
+          return body;
+        }
+
+        body.appendChild(SolsticeUtils.el('div', {
+          style:'font-size:11px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;'
+        }, choices.length + ' coluna(s) detectada(s) — escolha estratégia:'));
+
+        const STRAT_OPTIONS = [
+          ['anonMaskCpf',   'Mascarar (123.***.***-45)'],
+          ['anonHash',      'Hash determinístico (h_a1b2c3)'],
+          ['anonFakeName',  'Substituir por nome fictício'],
+          ['anonFakeEmail', 'Substituir por email fictício'],
+          ['anonFakePhone', 'Substituir por telefone fictício'],
+          ['anonRedact',    'Redigir totalmente ([redigido])']
+        ];
+
+        choices.forEach((c, idx) => {
+          const row = SolsticeUtils.el('div', {
+            style:'display:grid;grid-template-columns:auto 1fr 200px;gap:10px;align-items:center;padding:8px;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;margin-bottom:6px;'
+          });
+          const cb = SolsticeUtils.el('input', { type:'checkbox', checked: c.enabled,
+            onchange: e => { c.enabled = e.target.checked; }
+          });
+          row.appendChild(cb);
+          const info = SolsticeUtils.el('div');
+          info.appendChild(SolsticeUtils.el('div', { style:'font-weight:600;font-size:13px;' },
+            c.col, SolsticeUtils.el('span', { style:'color:var(--c-muted);font-weight:400;font-size:11px;margin-left:6px;' },
+              '· ' + c.label + ' (' + c.matches + ')')));
+          row.appendChild(info);
+          const sel = SolsticeUtils.el('select', { style:'font-size:12px;padding:4px 6px;border-radius:4px;border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-text);',
+            onchange: e => { c.strategy = e.target.value; }
+          });
+          STRAT_OPTIONS.forEach(([v, l]) => {
+            const opt = SolsticeUtils.el('option', { value: v }, l);
+            if (v === c.strategy) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          row.appendChild(sel);
+          body.appendChild(row);
+        });
+
+        return body;
+      }
+
+      const action = await new Promise(resolve => {
+        SolsticeModal.show({
+          title: '🔒 Anonimizar dados pessoais',
+          size: 'lg',
+          body: _build,
+          footer: (close) => [
+            SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => { resolve(null); close(null); }}, 'Cancelar'),
+            choices.length ? SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary', onclick: () => { resolve('apply'); close('apply'); }}, 'Aplicar anonimização') : null
+          ].filter(Boolean)
+        });
+      });
+      if (action !== 'apply') return;
+
+      // Aplicar transformação por coluna
+      const active = choices.filter(c => c.enabled);
+      if (!active.length){ SolsticeToast.info('Nada a fazer', 'Nenhuma coluna marcada.'); return; }
+
+      const before = SolsticeUtils.deepClone(ingest);
+      if (typeof SolsticeUndo !== 'undefined' && SolsticeUndo.pushCustom){
+        SolsticeUndo.pushCustom({
+          label: 'Anonimização de ' + active.length + ' coluna(s)',
+          restore: () => {
+            SolsticeStore.set('ingest', before);
+            render(); renderPreview(); updateQualityCard();
+          }
+        });
+      }
+      let newRows = ingest.rows;
+      active.forEach(c => {
+        newRows = _applyTransform(newRows, c.col, c.strategy);
+      });
+      SolsticeStore.set('ingest', { ...ingest, rows: newRows });
+      render(); renderPreview(); updateQualityCard();
+      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+        SolsticeAudit.record({
+          action: 'anonymize_pii',
+          details: { columns: active.map(c => ({ col: c.col, strategy: c.strategy })) }
+        });
+      }
+      SolsticeToast.success('Anonimizado · Ctrl+Z para desfazer',
+        active.length + ' coluna(s) anonimizada(s)');
+    }
+
     function renderDataActions(){
       const host = document.getElementById('data-actions');
       if (!host) return;
@@ -13160,6 +13453,18 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       wrap.appendChild(calcBtn);
 
       host.appendChild(wrap);
+
+      // RC-03 (Sprint 2): botão Auto-Anonimizar PII detectado.
+      // Saúde, jurídico e financeiro precisam dessa one-click feature.
+      const anonRow = SolsticeUtils.el('div', { style:'display:flex;gap:6px;margin-top:6px;' });
+      const anonBtn = SolsticeUtils.el('button', {
+        class:'solstice__btn',
+        style:'flex:1;justify-content:center;font-size:11px;border-color:color-mix(in srgb, var(--c-warn) 30%, var(--c-border));',
+        title:'Detecta colunas com CPF/CNPJ/email/telefone/nome e anonimiza com 1 clique',
+        onclick: _openAnonymizeModal
+      }, '🔒 Anonimizar PII');
+      anonRow.appendChild(anonBtn);
+      host.appendChild(anonRow);
 
       // Lista de colunas calculadas — CALC1 v4: cards com fórmula visível
       if (SolsticeStore.get('ingest') && SolsticeStore.get('ingest').derivedColumns){
@@ -14354,6 +14659,51 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       setTimeout(() => URL.revokeObjectURL(url), 250);
     }
 
+    /* RC-04 (Sprint 2): exports adicionais — CSV e JSON.
+       Pesquisa científica e LGPD/audit exigem formatos parseáveis. */
+    function _escapeCsv(v){
+      if (v == null) return '';
+      const s = String(v);
+      if (s.indexOf(',') < 0 && s.indexOf('"') < 0 && s.indexOf('\n') < 0 && s.indexOf('\r') < 0) return s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    function toCSV(filter){
+      const entries = list(filter);
+      const header = ['ts','action','componentId','target','details'].map(_escapeCsv).join(',');
+      const rows = entries.map(e => [
+        e.ts,
+        e.action,
+        e.componentId || '',
+        e.target || '',
+        e.details ? (typeof e.details === 'string' ? e.details : JSON.stringify(e.details)) : ''
+      ].map(_escapeCsv).join(','));
+      return [header].concat(rows).join('\r\n');
+    }
+    function toJSON(filter){
+      return JSON.stringify({
+        exportedAt: new Date().toISOString(),
+        source: 'solstice-audit',
+        version: 1,
+        filter: filter || {},
+        entries: list(filter)
+      }, null, 2);
+    }
+    function _download(blob, name){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 250);
+    }
+    function exportCsv(filter){
+      _download(new Blob([toCSV(filter)], { type:'text/csv;charset=utf-8' }),
+        'solstice-audit-' + Date.now() + '.csv');
+    }
+    function exportJson(filter){
+      _download(new Blob([toJSON(filter)], { type:'application/json' }),
+        'solstice-audit-' + Date.now() + '.json');
+    }
+
     async function openModal(filter){
       let activeFilter = filter || {};
 
@@ -14385,8 +14735,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           { class:'solstice__btn', onclick: () => { activeFilter = {}; close('refresh'); openModal(); } },
           'Todas decisões'));
         filterRow.appendChild(SolsticeUtils.el('button',
-          { class:'solstice__btn', onclick: () => exportMd(activeFilter) },
-          '📥 Exportar Markdown'));
+          { class:'solstice__btn', onclick: () => exportMd(activeFilter), title:'Formato legível humano' },
+          '📥 Markdown'));
+        // RC-04 (Sprint 2): formatos parseáveis para auditoria/LGPD/compliance
+        filterRow.appendChild(SolsticeUtils.el('button',
+          { class:'solstice__btn', onclick: () => exportCsv(activeFilter), title:'Abrir em Excel/planilha' },
+          '📥 CSV'));
+        filterRow.appendChild(SolsticeUtils.el('button',
+          { class:'solstice__btn', onclick: () => exportJson(activeFilter), title:'Para integração com outros sistemas' },
+          '📥 JSON'));
         body.appendChild(filterRow);
 
         const list = SolsticeUtils.el('div', { class:'solstice__audit-list' });
@@ -14471,7 +14828,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    return { record, log, list, subscribe, clear, toMarkdown, exportMd, openModal, openProvenance };
+    return { record, log, list, subscribe, clear, toMarkdown, toCSV, toJSON, exportMd, exportCsv, exportJson, openModal, openProvenance };
   })();
 
   /* ============================================================
@@ -37347,7 +37704,85 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       try { return parse(formula).deps; } catch(e){ return []; }
     }
 
-    return { parse, validate, evaluate, evaluateColumn, dependencies, FUNCTIONS, OPS };
+    /* ============================================================
+       LE-01 (Sprint 2): API DAX-like — CALCULATE, FILTER, SUMIF, AVGIF, COUNTIF
+       Não estende o tokenizer (precisaria refator grande); expõe helpers
+       programáticos chamados por SolsticeMeasures e ad-hoc por dashboards.
+
+       Exemplos:
+         SolsticeFormula.calculate('SUM({receita})', allRows, { regiao: 'Sul' })
+         SolsticeFormula.sumIf('receita', allRows, { regiao: 'Sul' })
+         SolsticeFormula.filter(allRows, { regiao: 'Sul', ativo: true })
+       ============================================================ */
+
+    /** Aplica filtro em forma de objeto { col: value } | { col: { op, value } }.
+        Operadores suportados: 'eq' (default), 'neq', 'gt', 'lt', 'gte', 'lte', 'in', 'contains'. */
+    function _matchesFilter(row, filterObj){
+      for (const col in filterObj){
+        const spec = filterObj[col];
+        const cell = row[col];
+        if (spec == null || typeof spec !== 'object'){
+          // Igualdade simples
+          if (cell != spec) return false; // eslint-disable-line eqeqeq
+          continue;
+        }
+        const op = spec.op || 'eq';
+        const v = spec.value;
+        switch (op){
+          case 'eq':       if (cell != v) return false; break; // eslint-disable-line eqeqeq
+          case 'neq':      if (cell == v) return false; break; // eslint-disable-line eqeqeq
+          case 'gt':       if (!(parseFloat(cell) >  parseFloat(v))) return false; break;
+          case 'lt':       if (!(parseFloat(cell) <  parseFloat(v))) return false; break;
+          case 'gte':      if (!(parseFloat(cell) >= parseFloat(v))) return false; break;
+          case 'lte':      if (!(parseFloat(cell) <= parseFloat(v))) return false; break;
+          case 'in':       if (!Array.isArray(v) || v.indexOf(cell) < 0) return false; break;
+          case 'contains': if (String(cell || '').toLowerCase().indexOf(String(v || '').toLowerCase()) < 0) return false; break;
+          default: return false;
+        }
+      }
+      return true;
+    }
+    /** filter(allRows, filterObj) → subset de rows que satisfazem o filtro. */
+    function filterRows(allRows, filterObj){
+      if (!filterObj || !Object.keys(filterObj).length) return allRows || [];
+      return (allRows || []).filter(r => _matchesFilter(r, filterObj));
+    }
+    /** calculate(formula, allRows, filterObj) → reavalia formula sobre rows filtradas.
+        Equivalente a CALCULATE(formula, FILTER(table, predicate)) do DAX. */
+    function calculate(formula, allRows, filterObj){
+      const subset = filterRows(allRows, filterObj);
+      try {
+        const { rpn } = parse(formula);
+        // _evalRPN com row=null e allRows=subset usa as agregações sobre o subset
+        return _evalRPN(rpn, null, subset);
+      } catch(_){ return null; }
+    }
+    /** sumIf(targetCol, allRows, filterObj) → soma dos valores da coluna nas rows filtradas. */
+    function sumIf(targetCol, allRows, filterObj){
+      const subset = filterRows(allRows, filterObj);
+      let sum = 0;
+      for (const r of subset){
+        const v = parseFloat(r[targetCol]);
+        if (!isNaN(v)) sum += v;
+      }
+      return sum;
+    }
+    function avgIf(targetCol, allRows, filterObj){
+      const subset = filterRows(allRows, filterObj);
+      let sum = 0, n = 0;
+      for (const r of subset){
+        const v = parseFloat(r[targetCol]);
+        if (!isNaN(v)){ sum += v; n++; }
+      }
+      return n ? sum / n : null;
+    }
+    function countIf(allRows, filterObj){
+      return filterRows(allRows, filterObj).length;
+    }
+
+    return { parse, validate, evaluate, evaluateColumn, dependencies, FUNCTIONS, OPS,
+             // LE-01 DAX-like API
+             filter: filterRows, calculate, sumIf, avgIf, countIf };
   })();
 
   /* ============================================================

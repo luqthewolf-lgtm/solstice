@@ -82,6 +82,38 @@ ${formulaCoreBody}
 `;
 writeFileSync(resolve(DIST, 'formula-core.mjs'), formulaCore);
 
+// ============================================================
+// SolsticeStats (BS-01 — Sprint 2)
+// Stats é puro (sem deps externas) — pega como está.
+// ============================================================
+const statsBody = extractIIFE(content, 'SolsticeStats');
+const stats = `
+// Auto-extraído de solstice_baseline.html — NÃO EDITAR À MÃO.
+export const SolsticeStats = (function(){
+${statsBody}
+})();
+`;
+writeFileSync(resolve(DIST, 'stats.mjs'), stats);
+
+// ============================================================
+// SolsticeFormula (BS-01 — Sprint 2)
+// Depende de SolsticeFormulaCore (lexer) + SolsticeStats (min/max).
+// ============================================================
+const formulaBody = extractIIFE(content, 'SolsticeFormula');
+const formula = `
+// Auto-extraído de solstice_baseline.html — NÃO EDITAR À MÃO.
+import { SolsticeFormulaCore } from './formula-core.mjs';
+import { SolsticeStats } from './stats.mjs';
+globalThis.SolsticeFormulaCore = SolsticeFormulaCore;
+globalThis.SolsticeStats = SolsticeStats;
+export const SolsticeFormula = (function(){
+${formulaBody}
+})();
+`;
+writeFileSync(resolve(DIST, 'formula.mjs'), formula);
+
 console.log('✓ Módulos extraídos para tests/dist/');
 console.log('  - br.mjs (stub)');
 console.log('  - formula-core.mjs (' + formulaCoreBody.length + ' chars)');
+console.log('  - stats.mjs (' + statsBody.length + ' chars)');
+console.log('  - formula.mjs (' + formulaBody.length + ' chars)');
