@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-success?style=flat-square)](#)
 [![Audit Score](https://img.shields.io/badge/audit_score-85%2F100-success?style=flat-square)](#)
 [![Single file](https://img.shields.io/badge/single--file-yes-blueviolet?style=flat-square)](#)
+[![Site](https://img.shields.io/badge/type-static_site-orange?style=flat-square)](#)
 
 ---
 
@@ -57,7 +58,7 @@ Ferramentas de BI tradicionais (Power BI, Tableau, Metabase, Hex…) são podero
 3. Drag-and-drop um CSV no canvas
 4. Pronto.
 
-### Opção 2 — Servir via HTTP (recomendado em produção)
+### Opção 2 — Servir via HTTP
 ```bash
 # Python (já instalado em 99% das máquinas)
 python -m http.server 8765
@@ -69,9 +70,6 @@ npx serve
 ```
 
 Abra `http://localhost:8765/solstice_baseline.html`.
-
-### Opção 3 — PWA (instalável)
-Sirva via HTTPS, instale como app (Chrome ▾ Instalar). Funciona offline depois do primeiro load. Veja [PWA setup](#-pwa-setup).
 
 ---
 
