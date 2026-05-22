@@ -519,6 +519,7 @@
     .solstice__header-ask-kbd { display: none; }
     .solstice__header-ask-placeholder { font-size: var(--fs-xs); }
   }
+  
   /* Botão genérico */
   .solstice__btn {
     display: inline-flex; align-items: center; justify-content: center;
@@ -963,6 +964,8 @@
     .solstice__app.has-inspector .solstice__analysis { right: 0; }
   }
 
+  /* B7-r2: mobile (< 768px) sidebar e inspector somem; drawer vira full-width */
+  
   /* ============================================================
      BLOCO 8 — INSIGHTS · NARRATIVA · AGENTE · INCONSISTÊNCIAS · ASK
      ============================================================ */
@@ -2981,7 +2984,7 @@
     max-width: 920px;
     margin-bottom: var(--sp-4);
   }
-  .solstice__welcome-path {
+    .solstice__welcome-path {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -3005,25 +3008,13 @@
     outline: 2px solid var(--c-accent);
     outline-offset: 2px;
   }
-  /* DC-3: Card primário (Importar CSV) — borda accent + sombra leve para
-     "saltar" visualmente sobre o secundário (Express). Diferenciação clara
-     pro usuário identificar o caminho recomendado em 1 segundo. */
+  /* Primary path (Express) — borda accent destacada */
   .solstice__welcome-path--primary {
     border-color: var(--c-accent);
-    border-width: 2px;
     background: color-mix(in srgb, var(--c-accent) 8%, var(--c-surface-2));
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--c-accent) 18%, transparent);
   }
   .solstice__welcome-path--primary:hover {
     background: color-mix(in srgb, var(--c-accent) 14%, var(--c-surface));
-    box-shadow: 0 8px 22px color-mix(in srgb, var(--c-accent) 28%, transparent);
-  }
-  /* Card secundário (Express) — visualmente mais sutil */
-  .solstice__welcome-path:not(.solstice__welcome-path--primary) {
-    opacity: 0.85;
-  }
-  .solstice__welcome-path:not(.solstice__welcome-path--primary):hover {
-    opacity: 1;
   }
   .solstice__welcome-path-icon {
     font-size: 36px;
@@ -3857,7 +3848,7 @@
     display: grid; grid-template-columns: 1fr 1fr;
     gap: var(--sp-3);
   }
-  .solstice__cat-card {
+    .solstice__cat-card {
     display: flex; flex-direction: column;
     background: var(--c-surface);
     border: 1px solid var(--c-border);
@@ -5063,6 +5054,8 @@
     max-width: 880px;
     width: 100%;
   }
+  /* Em telas pequenas (notebook ~1024px ou menos) reduz pra 2 colunas, depois 1 */
+    
   /* Grid de domínio: visualmente separado com header próprio */
   .solstice__empty-templates-domain-label {
     margin-top: var(--sp-4);
@@ -5228,6 +5221,8 @@
     padding: 8px 10px;
     font-size: var(--fs-xs);
   }
+  /* Em painéis estreitos, força 2 colunas mínimas pra não voltar ao "vazio à direita" */
+  
   /* Polish v8a: ações rápidas (Tabela + Coluna calc) ENTRE resumo e quality.
      Botões lado a lado, ocupam largura igual, font 12px (não 11px). */
   .solstice__data-actions {
@@ -5680,7 +5675,8 @@
   .solstice__hidden { display: none !important; }
   
 
-}
+  /* Mobile */
+  }
 
 /* ============================================================
    SOLSTICE v5.6 — PATCH CSS (responsividade universal + bugfixes)
@@ -5795,8 +5791,17 @@
     .solstice__app.has-inspector { grid-template-columns: 220px 1fr 280px; }
   }
 
-  /* Solstice é desktop-only — drawer mobile + hambúrguer removidos no DC-1. */
-
+  /* 4) Tablet/mobile portrait — sidebar como drawer flutuante (toggle "Dados") */
+  
+  /* 5) Botão hambúrguer mobile (toggle sidebar) — só aparece <=900 */
+  .v56-sidebar-toggle {
+    display: none;
+    background: transparent; border: 0; cursor: pointer;
+    width: 36px; height: 36px; align-items: center; justify-content: center;
+    border-radius: var(--rad-sm, 6px); color: var(--c-text, #fff); font-size: 18px;
+  }
+  .v56-sidebar-toggle:hover { background: var(--c-surface-2, rgba(255,255,255,0.06)); }
+  
   /* 6) Tamanho consistente para todos os ícones em botões */
   .solstice__btn,
   .solstice__pill,
@@ -6103,8 +6108,7 @@
       background: rgba(0,0,0,0.78);
     }
   }
-  /* DC-1: media query mobile (BR-01 fix) removida — desktop-only. */
-}
+  }
 </style>
 </head>
 
@@ -25955,12 +25959,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         wrap.appendChild(SolsticeUtils.el('div', { style:'font-size:42px;line-height:1;margin-bottom:var(--sp-2);' }, '🌗'));
         wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-brand' }, 'Solstice'));
         wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-sub' },
-          'Comece importando um CSV.'));
+          'Importe seu CSV ou pergunte em linguagem natural.'));
 
-        // ===== DC-2: Cards de import vêm PRIMEIRO (CTA primário) =====
-        // 90% dos usuários têm CSV em mãos quando chegam aqui. Mostrar Importar
-        // primeiro destrava o caminho principal. Ask vem depois como complemento
-        // (precisa de dataset pra funcionar de verdade).
+        // ===== Chat NO TOPO (não esconde por causa de cards acima) =====
+        const chatWrap = SolsticeUtils.el('div', { class:'solstice__welcome-chat' });
+        chatWrap.appendChild(_renderQueryChat());
+        wrap.appendChild(chatWrap);
+
+        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-divider' },
+          SolsticeUtils.el('span', null, 'ou importe um arquivo')));
+
+        // ===== Cards de import (2 padrão · 3 com exemplo se showExample) =====
         const paths = SolsticeUtils.el('div', { class:'solstice__welcome-paths' });
 
         // (a) IMPORTAR NORMAL (com modais de filtro/dicionário) — primary
@@ -26022,16 +26031,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           paths.appendChild(pathB);
         }
         wrap.appendChild(paths);
-
-        // ===== DC-2: Ask aparece DEPOIS dos cards, como complemento =====
-        // Antes ficava no topo, competindo com os cards de import. Agora é
-        // a opção alternativa pra quem prefere texto natural (mas precisa
-        // de dataset carregado pra Query funcionar de verdade).
-        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-divider' },
-          SolsticeUtils.el('span', null, 'ou pergunte em linguagem natural')));
-        const chatWrap = SolsticeUtils.el('div', { class:'solstice__welcome-chat' });
-        chatWrap.appendChild(_renderQueryChat());
-        wrap.appendChild(chatWrap);
 
         // Presets de domínio (secondary — colapsado por <details>)
         const presets = SolsticeDictionary.presets || {};
@@ -26124,9 +26123,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         class:'solstice__welcome-input',
         type:'text', autocomplete:'off', spellcheck:'false',
         placeholder:"Ex: 'qual a tendência de receita?'",
-        // DC-4 (a11y): aria-label porque placeholder não é label semântica.
-        // Leitor de tela narrava só o placeholder; agora narra o propósito.
-        'aria-label':'Pergunte sobre seus dados em linguagem natural',
         style:'flex:1;border:none;background:transparent;outline:none;font-size:14px;color:var(--c-text);padding:6px 0;'
       });
       const sendBtn = SolsticeUtils.el('button', {
