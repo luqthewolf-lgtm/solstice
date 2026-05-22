@@ -14234,8 +14234,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (colCfg && aggCfg && values.length){
         if (aggCfg === 'sum')      result = SolsticeLocale.decimal(values.reduce((a,b)=>a+b,0), 2);
         else if (aggCfg === 'avg') result = SolsticeLocale.decimal(values.reduce((a,b)=>a+b,0)/values.length, 2);
-        else if (aggCfg === 'min') result = SolsticeLocale.decimal(Math.min(...values), 2);
-        else if (aggCfg === 'max') result = SolsticeLocale.decimal(Math.max(...values), 2);
+        else if (aggCfg === 'min') result = SolsticeLocale.decimal(SolsticeStats.min(values), 2);
+        else if (aggCfg === 'max') result = SolsticeLocale.decimal(SolsticeStats.max(values), 2);
         else if (aggCfg === 'count') result = SolsticeLocale.integer(values.length);
       }
 
@@ -14394,9 +14394,37 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return modes;
     }
 
-    function min(values){ const c = clean(values); return c.length ? Math.min.apply(null, c) : null; }
-    function max(values){ const c = clean(values); return c.length ? Math.max.apply(null, c) : null; }
-    function range(values){ const lo = min(values), hi = max(values); return (lo == null || hi == null) ? null : hi - lo; }
+    /* Code Review 2026: min/max via loop simples — Math.min.apply / spread
+       estouram stack em arrays grandes (>~125k em V8). Loop é O(n) idêntico
+       em performance e seguro pra qualquer tamanho de dataset. */
+    function min(values){
+      const c = clean(values);
+      if (!c.length) return null;
+      let m = c[0];
+      for (let i = 1; i < c.length; i++) if (c[i] < m) m = c[i];
+      return m;
+    }
+    function max(values){
+      const c = clean(values);
+      if (!c.length) return null;
+      let m = c[0];
+      for (let i = 1; i < c.length; i++) if (c[i] > m) m = c[i];
+      return m;
+    }
+    /** Code Review 2026: retorna [min, max] numa passada — economiza 50%
+        vs chamar min(values) + max(values) separadamente. */
+    function minMax(values){
+      const c = clean(values);
+      if (!c.length) return [null, null];
+      let mn = c[0], mx = c[0];
+      for (let i = 1; i < c.length; i++){
+        const v = c[i];
+        if (v < mn) mn = v;
+        else if (v > mx) mx = v;
+      }
+      return [mn, mx];
+    }
+    function range(values){ const [lo, hi] = minMax(values); return (lo == null || hi == null) ? null : hi - lo; }
     function distinctCount(values){ const c = clean(values); return new Set(c).size; }
 
     /* ---------- Dispersão ---------- */
@@ -15906,8 +15934,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     return {
       // núcleo
       clean, sorted, sum, count, countNulls,
-      // descritivas
-      mean, median, mode, min, max, range, distinctCount,
+      // descritivas (Code Review 2026: minMax exposto pra evitar 2 passadas)
+      mean, median, mode, min, max, minMax, range, distinctCount,
       // dispersão
       variance, variancePop, stdDev, mad, cv,
       // percentis
@@ -17621,7 +17649,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       svg.setAttribute('preserveAspectRatio', 'none');
       svg.style.cssText = 'display:block;width:100%;height:28px;';
       if (!values.length) return svg;
-      const min = Math.min(...values), max = Math.max(...values);
+      const [min, max] = SolsticeStats.minMax(values); /* code review 2026: minMax safe */
       const range = max - min || 1;
       const step = 240 / Math.max(1, values.length - 1);
       let d = '';
@@ -17691,8 +17719,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         let value;
         if (agg === 'sum')        value = values.reduce((a,b)=>a+b, 0);
         else if (agg === 'avg' || agg === 'mean')  value = values.reduce((a,b)=>a+b, 0) / values.length;
-        else if (agg === 'min')   value = Math.min(...values);
-        else if (agg === 'max')   value = Math.max(...values);
+        else if (agg === 'min')   value = SolsticeStats.min(values);
+        else if (agg === 'max')   value = SolsticeStats.max(values);
         else if (agg === 'count') value = values.length;
         else if (agg === 'median'){
           const s = values.slice().sort((a,b)=>a-b);
@@ -17773,8 +17801,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             // Reusa o cálculo do mesmo agg
             if (agg === 'sum')   return values.reduce((a,b)=>a+b, 0);
             if (agg === 'avg' || agg === 'mean') return values.length ? values.reduce((a,b)=>a+b,0)/values.length : 0;
-            if (agg === 'min')   return Math.min(...values);
-            if (agg === 'max')   return Math.max(...values);
+            if (agg === 'min')   return SolsticeStats.min(values);
+            if (agg === 'max')   return SolsticeStats.max(values);
             if (agg === 'count') return values.length;
             return 0;
           })();
@@ -18173,7 +18201,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const binned = SolsticeCompCache.get(slot.id, cfg, ctx.rows, () => {
             const vs = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
             if (!vs.length) return null;
-            const mn = Math.min(...vs), mx = Math.max(...vs);
+            const [mn, mx] = SolsticeStats.minMax(vs); /* code review 2026: minMax safe */
             const st = (mx - mn) / nBins || 1;
             const bs = Array(nBins).fill(0);
             vs.forEach(v => {
@@ -18187,7 +18215,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             return;
           }
           const { values, min, max, step, bins } = binned;
-          const maxC = Math.max(...bins);
+          const maxC = SolsticeStats.max(bins);
 
           // HOTFIX v5.5 #110: Lucas "Distribution com eixo Y completo cadê o valor?"
           // Causa: preserveAspectRatio='none' distorce texto (fica ilegível em proporções
@@ -18396,7 +18424,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         for (const c of ctx.columns){
           if (SolsticeTypes.group(ctx.types[c] && ctx.types[c].type) === 'numeric'){
             const vs = ctx.rows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
-            if (vs.length) heats[c] = { min: Math.min(...vs), max: Math.max(...vs) };
+            if (vs.length) heats[c] = { min: SolsticeStats.min(vs), max: SolsticeStats.max(vs) };
           }
         }
 
@@ -18466,8 +18494,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (agg === 'sum') return c.reduce((a,b)=>a+b,0);
         if (agg === 'avg') return c.reduce((a,b)=>a+b,0) / c.length;
         if (agg === 'count') return values.length;
-        if (agg === 'min') return Math.min(...c);
-        if (agg === 'max') return Math.max(...c);
+        if (agg === 'min') return SolsticeStats.min(c);
+        if (agg === 'max') return SolsticeStats.max(c);
         return null;
       }
 
@@ -18912,13 +18940,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const tier = _tierFor(host);
         const W = tier.W, H = tier.H, pad = tier.isCompact ? 20 : 36;
         const xs = pts.map(p => p[0]); const ys = pts.map(p => p[1]);
-        const xMin = Math.min(...xs), xMax = Math.max(...xs);
-        const yMin = Math.min(...ys), yMax = Math.max(...ys);
+        const [xMin, xMax] = SolsticeStats.minMax(xs); /* code review 2026: minMax safe */
+        const [yMin, yMax] = SolsticeStats.minMax(ys); /* code review 2026: minMax safe */
         const xR = xMax - xMin || 1; const yR = yMax - yMin || 1;
         function px(x){ return pad + ((x - xMin) / xR) * (W - 2*pad); }
         function py(y){ return H - pad - ((y - yMin) / yR) * (H - 2*pad); }
-        const sMin = sizeVals.length ? Math.min(...sizeVals) : 0;
-        const sMax = sizeVals.length ? Math.max(...sizeVals) : 0;
+        const sMin = sizeVals.length ? SolsticeStats.min(sizeVals) : 0;
+        const sMax = sizeVals.length ? SolsticeStats.max(sizeVals) : 0;
         function pr(i){
           if (!cfg.sizeColumn || !sizeVals.length) return 3.2;
           const v = sizeVals[i]; const r = sMax === sMin ? 0.5 : (v - sMin) / (sMax - sMin);
@@ -19071,7 +19099,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           return;
         }
         const values = Array.from(byDay.values());
-        const vMax = Math.max(...values);
+        const vMax = SolsticeStats.max(values);
         function level(v){
           if (!v) return 0;
           const r = v / vMax;
@@ -19163,8 +19191,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
         let v;
         if (cfg.agg === 'sum') v = values.reduce((a,b)=>a+b,0);
-        else if (cfg.agg === 'min') v = Math.min(...values);
-        else if (cfg.agg === 'max') v = Math.max(...values);
+        else if (cfg.agg === 'min') v = SolsticeStats.min(values);
+        else if (cfg.agg === 'max') v = SolsticeStats.max(values);
         else v = values.reduce((a,b)=>a+b,0) / values.length;
 
         const lo = parseFloat(cfg.min) || 0;
@@ -19446,7 +19474,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const computed = entries.map(([g, vs]) => ({ group: g, q: _quartiles(vs) })).filter(x => x.q);
 
         const allVals = computed.flatMap(c => [c.q.min, c.q.max, ...c.q.outliers]);
-        const yMin = Math.min(...allVals), yMax = Math.max(...allVals);
+        const [yMin, yMax] = SolsticeStats.minMax(allVals); /* code review 2026: minMax safe */
         const yR = yMax - yMin || 1;
         const tier = _tierFor(host);
         const W = tier.W, H = tier.H;
@@ -19974,7 +20002,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             if (sl.config.target && sl.config.target.value != null){
               const tgt = parseFloat(sl.config.target.value);
               const agg = sl.config.agg || 'sum';
-              const curr = agg === 'sum' ? vals.reduce((a,b)=>a+b,0) : agg === 'avg' || agg === 'mean' ? (vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0) : agg === 'max' ? Math.max(...vals) : agg === 'min' ? Math.min(...vals) : vals.length;
+              const curr = agg === 'sum' ? vals.reduce((a,b)=>a+b,0) : agg === 'avg' || agg === 'mean' ? (vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0) : agg === 'max' ? SolsticeStats.max(vals) : agg === 'min' ? SolsticeStats.min(vals) : vals.length;
               const meta = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[col];
               const hib = meta && meta.higherIsBetter;
               const hit = (hib === false) ? curr <= tgt : curr >= tgt;
@@ -20185,7 +20213,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Sem valores numéricos.'));
           return;
         }
-        const dmin = Math.min(...vals), dmax = Math.max(...vals);
+        const [dmin, dmax] = SolsticeStats.minMax(vals); /* code review 2026: minMax safe */
         const curMin = cfg.minVal != null ? cfg.minVal : dmin;
         const curMax = cfg.maxVal != null ? cfg.maxVal : dmax;
         const step = (dmax - dmin) / 100 || 1;
@@ -20912,24 +20940,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     /** Auditoria 2026 (RT-02): reseta size customizado do slot. */
     function _resetSlotSize(slot){
-      const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
-      for (const s of sections) for (const r of s.rows){
-        const sl = r.slots.find(x => x.id === slot.id);
-        if (sl){
-          if (sl.config && sl.config.size){ delete sl.config.size; }
-          if (r.layout === 'custom' && Array.isArray(r.widths)){
-            r.widths = Array(r.slots.length).fill(100 / r.slots.length);
-          }
-          SolsticeStore.set('canvas.sections', sections);
-          SolsticeAudit.record({
-            action:'reset_slot_size', target: slot.id, componentId: slot.id,
-            details: { from: { size: slot.config && slot.config.size, layout: 'custom' } }
-          });
-          SolsticeToast.info('Tamanho resetado', 'Componente volta ao layout automático');
-          setTimeout(() => SolsticeProps.select(slot.id), 80);
-          return;
+      // Code Review 2026 (#2): usa SolsticeCanvas.withSlot — antes era busca
+      // manual aninhada section/row/slot duplicada em 37 sites.
+      const prevSize = slot.config && slot.config.size;
+      const found = SolsticeCanvas.withSlot(slot.id, (sl, row) => {
+        if (sl.config && sl.config.size) delete sl.config.size;
+        if (row.layout === 'custom' && Array.isArray(row.widths)){
+          row.widths = Array(row.slots.length).fill(100 / row.slots.length);
         }
-      }
+      });
+      if (!found) return;
+      SolsticeAudit.record({
+        action:'reset_slot_size', target: slot.id, componentId: slot.id,
+        details: { from: { size: prevSize, layout: 'custom' } }
+      });
+      SolsticeToast.info('Tamanho resetado', 'Componente volta ao layout automático');
+      setTimeout(() => SolsticeProps.select(slot.id), 80);
     }
 
     /** Auditoria 2026 (RT-02): confirm + remoção do componente do slot. */
@@ -22279,16 +22305,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           class:'solstice__props-select',
           style:'width:100%;margin-top:8px;font-size:12px;',
           onchange: (e) => {
-            const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
-            for (const s of sections) for (const r of s.rows){
-              const sl = r.slots.find(x => x.id === slot.id);
-              if (sl){
-                sl.config = sl.config || {};
-                sl.config[m.settingKey] = e.target.value;
-                break;
-              }
-            }
-            SolsticeStore.set('canvas.sections', sections);
+            // Code Review 2026 (#2): substitui busca aninhada de section/row/slot
+            // por SolsticeCanvas.withSlot — mesma semântica, sem boilerplate.
+            SolsticeCanvas.withSlot(slot.id, sl => {
+              sl.config = sl.config || {};
+              sl.config[m.settingKey] = e.target.value;
+            });
             try { SolsticeAudit.record({ action:'change_method', target: slot.id, details:{ method: m.name, settingKey: m.settingKey, value: e.target.value } }); } catch(_){}
             SolsticeToast.info('Método alterado', m.name + ' → ' + e.target.value);
           }
@@ -22663,8 +22685,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           .filter(d => !isNaN(d));
         if (!dates.length) return '';
         let chosen;
-        if (cfg.dateFunction === 'min') chosen = new Date(Math.min(...dates));
-        else chosen = new Date(Math.max(...dates));
+        if (cfg.dateFunction === 'min') chosen = new Date(SolsticeStats.min(dates));
+        else chosen = new Date(SolsticeStats.max(dates));
         return SolsticeLocale.date(chosen);
       }
       return '';
@@ -23454,8 +23476,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (!values.length) return null;
       if (agg === 'sum')        return values.reduce((a,b)=>a+b, 0);
       if (agg === 'avg' || agg === 'mean') return values.reduce((a,b)=>a+b, 0) / values.length;
-      if (agg === 'min')        return Math.min(...values);
-      if (agg === 'max')        return Math.max(...values);
+      if (agg === 'min')        return SolsticeStats.min(values);
+      if (agg === 'max')        return SolsticeStats.max(values);
       if (agg === 'count')      return values.length;
       if (agg === 'median'){
         const s = values.slice().sort((a,b)=>a-b);
@@ -25600,6 +25622,61 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function _get(){ return SolsticeStore.get(PATH) || []; }
     function _set(arr){ SolsticeStore.set(PATH, arr); }
 
+    /* Code Review 2026 (#2/#4): helpers para o padrão repetido em 76+ sites:
+       const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
+       for (const s of sections) for (const r of s.rows){
+         const sl = r.slots.find(x => x.id === slotId);
+         if (sl){ ...; SolsticeStore.set('canvas.sections', sections); }
+       }
+
+       Centralizar tem 3 benefícios:
+       - elimina duplicação massiva
+       - facilita otimizar (ex: cache slotId -> {sec, row} se virar gargalo)
+       - obriga padrão "clone + mutate + commit" (vs mutar referência viva)
+    */
+
+    /** Edita o array de sections em um lugar só: clona, deixa o mutator
+        mexer, e persiste no Store. Se mutator retorna false, NÃO persiste
+        (útil pra abortar). Retorna o que o mutator retornou (ou o array). */
+    function _editSections(mutator){
+      const sections = SolsticeUtils.deepClone(_get());
+      const r = mutator(sections);
+      if (r === false) return false;
+      _set(sections);
+      return r === undefined ? sections : r;
+    }
+
+    /** Acha um slot pelo id e roda mutator(slot, row, section). Persiste se
+        encontrou (e mutator não retornou false). Retorna true se achou. */
+    function withSlot(slotId, mutator){
+      let found = false;
+      const r = _editSections(sections => {
+        for (const s of sections){
+          for (const row of s.rows){
+            const sl = row.slots.find(x => x.id === slotId);
+            if (sl){
+              found = true;
+              return mutator(sl, row, s);  // false aborta
+            }
+          }
+        }
+        return false; // não achou — não persiste
+      });
+      return found && r !== false;
+    }
+
+    /** Versão read-only: acha o slot e roda inspector. Sem clone, sem set. */
+    function findSlot(slotId){
+      const sections = _get();
+      for (const s of sections){
+        for (const row of s.rows){
+          const sl = row.slots.find(x => x.id === slotId);
+          if (sl) return { slot: sl, row, section: s };
+        }
+      }
+      return null;
+    }
+
     function _newSection(title){
       return {
         id: SolsticeUtils.uuid(),
@@ -27043,7 +27120,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       addRow, removeRow, duplicateRow, moveRow, changeRowLayout,
       applyTemplate, clear,
       render, init,
-      _get: () => _get()
+      _get: () => _get(),
+      // Code Review 2026 (#2/#4): helpers expostos pra centralizar mutação de slot.
+      withSlot, findSlot, editSections: _editSections
     };
   })();
 
@@ -27825,7 +27904,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       numericCols.slice(0, 8).forEach(col => {
         const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
         if (values.length < 20) return;
-        const mn = Math.min(...values), mx = Math.max(...values);
+        const [mn, mx] = SolsticeStats.minMax(values); /* code review 2026: minMax safe */
         const avg = SolsticeStats.mean(values);
         if (!avg || avg === 0) return;
         const ratio = (mx - mn) / Math.abs(avg);
@@ -28513,8 +28592,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         let val;
         if (aggFn === 'sum')        val = arr.reduce((a,b) => a+b, 0);
         else if (aggFn === 'count') val = arr.length;
-        else if (aggFn === 'max')   val = Math.max(...arr);
-        else if (aggFn === 'min')   val = Math.min(...arr);
+        else if (aggFn === 'max')   val = SolsticeStats.max(arr);
+        else if (aggFn === 'min')   val = SolsticeStats.min(arr);
         else                        val = arr.reduce((a,b) => a+b, 0) / arr.length;
         out.push({ key: k, value: val, n: arr.length });
       }
@@ -31163,7 +31242,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const rows = ing.rows || [];
       const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
       if (!vals.length) return null;
-      const min = Math.min(...vals), max = Math.max(...vals);
+      const [min, max] = SolsticeStats.minMax(vals); /* code review 2026: minMax safe */
       const f = _filters()[col] || { min, max };
       const curMin = f.min != null ? f.min : min;
       const curMax = f.max != null ? f.max : max;
@@ -31229,8 +31308,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const rows = ing.rows || [];
       const dates = rows.map(r => new Date(r[col])).filter(d => !isNaN(d));
       if (!dates.length) return null;
-      const dMin = new Date(Math.min(...dates));
-      const dMax = new Date(Math.max(...dates));
+      const dMin = new Date(SolsticeStats.min(dates));
+      const dMax = new Date(SolsticeStats.max(dates));
       const f = _filters()[col] || {};
 
       const wrap = SolsticeUtils.el('div', { class:'solstice__filter' });
@@ -33752,8 +33831,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           const sorted = vals.slice().sort((a,b)=>a-b);
           const median = sorted.length % 2 ? sorted[(sorted.length-1)/2] : (sorted[sorted.length/2-1] + sorted[sorted.length/2]) / 2;
           summaryRows.push(['Mediana de ' + friendly, median, c, '']);
-          summaryRows.push(['Mín ' + friendly, Math.min(...vals), c, '']);
-          summaryRows.push(['Máx ' + friendly, Math.max(...vals), c, '']);
+          summaryRows.push(['Mín ' + friendly, SolsticeStats.min(vals), c, '']);
+          summaryRows.push(['Máx ' + friendly, SolsticeStats.max(vals), c, '']);
         }
         const ws = XLSX.utils.aoa_to_sheet(summaryRows);
         ws['!cols'] = [{ wch: 32 }, { wch: 16 }, { wch: 20 }, { wch: 24 }];
@@ -33861,8 +33940,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (agg === 'sum') aoa.push(['Soma', vals.reduce((a,b)=>a+b,0)]);
           if (agg === 'avg') aoa.push(['Média', vals.reduce((a,b)=>a+b,0)/vals.length]);
           if (agg === 'count') aoa.push(['Contagem', vals.length]);
-          if (agg === 'min') aoa.push(['Mínimo', Math.min(...vals)]);
-          if (agg === 'max') aoa.push(['Máximo', Math.max(...vals)]);
+          if (agg === 'min') aoa.push(['Mínimo', SolsticeStats.min(vals)]);
+          if (agg === 'max') aoa.push(['Máximo', SolsticeStats.max(vals)]);
           if (agg === 'median'){
             const s = vals.slice().sort((a,b)=>a-b);
             aoa.push(['Mediana', s.length % 2 ? s[(s.length-1)/2] : (s[s.length/2-1]+s[s.length/2])/2]);
@@ -36733,8 +36812,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     const FUNCTIONS = {
       SUM:    { arity:'col',     apply: (vals) => vals.reduce((a,b)=>a+b,0) },
       AVG:    { arity:'col',     apply: (vals) => vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0 },
-      MIN:    { arity:'col',     apply: (vals) => vals.length ? Math.min(...vals) : 0 },
-      MAX:    { arity:'col',     apply: (vals) => vals.length ? Math.max(...vals) : 0 },
+      MIN:    { arity:'col',     apply: (vals) => vals.length ? SolsticeStats.min(vals) : 0 },
+      MAX:    { arity:'col',     apply: (vals) => vals.length ? SolsticeStats.max(vals) : 0 },
       COUNT:  { arity:'col',     apply: (vals) => vals.length },
       MEDIAN: { arity:'col',     apply: (vals) => {
         const s = vals.slice().sort((a,b)=>a-b);
@@ -36944,8 +37023,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       ROUND:    { arity: [1, 2], fn: (a, b) => a == null ? null : (b != null ? +a.toFixed(b|0) : Math.round(a)) },
       FLOOR:    { arity: 1, fn: (a) => a == null ? null : Math.floor(a) },
       CEIL:     { arity: 1, fn: (a) => a == null ? null : Math.ceil(a) },
-      MIN:      { arity: [1, Infinity], fn: (...args) => { const f = args.filter(v => v != null); return f.length ? Math.min(...f) : null; } },
-      MAX:      { arity: [1, Infinity], fn: (...args) => { const f = args.filter(v => v != null); return f.length ? Math.max(...f) : null; } },
+      MIN:      { arity: [1, Infinity], fn: (...args) => { const f = args.filter(v => v != null); return f.length ? SolsticeStats.min(f) : null; } },
+      MAX:      { arity: [1, Infinity], fn: (...args) => { const f = args.filter(v => v != null); return f.length ? SolsticeStats.max(f) : null; } },
       IF:       { arity: 3, fn: (cond, a, b) => cond ? a : b },
       AND:      { arity: [1, Infinity], fn: (...args) => args.every(Boolean) },
       OR:       { arity: [1, Infinity], fn: (...args) => args.some(Boolean) },
@@ -38422,8 +38501,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           const m = Math.floor(s.length/2);
           return s.length % 2 ? s[m] : (s[m-1]+s[m])/2;
         },
-        min: (vs) => { const c = fns.clean(vs); return c.length ? Math.min(...c) : null; },
-        max: (vs) => { const c = fns.clean(vs); return c.length ? Math.max(...c) : null; },
+        min: (vs) => { const c = fns.clean(vs); return c.length ? SolsticeStats.min(c) : null; },
+        max: (vs) => { const c = fns.clean(vs); return c.length ? SolsticeStats.max(c) : null; },
         count: (vs) => fns.clean(vs).length,
         stddev: (vs) => {
           const c = fns.clean(vs); if (c.length < 2) return null;
