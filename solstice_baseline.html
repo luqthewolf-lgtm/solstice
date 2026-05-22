@@ -106,7 +106,11 @@
   a { color: inherit; text-decoration: none; }
   img, svg { display: block; max-width: 100%; }
   ul, ol { list-style: none; }
-  :focus { outline: 0; }
+  /* Design System (DS-3): remove outline default só para foco via MOUSE.
+     Foco via teclado (:focus-visible) continua mostrando — a regra abaixo
+     repinta o halo. Antes era `:focus { outline: 0; }` que apagava TODOS
+     os focos (acessibilidade ruim em browsers sem :focus-visible). */
+  :focus:not(:focus-visible) { outline: 0; }
   /* Auditoria 2026 (L-C-3 / A-608): focus-visible com halo do background
      garante contraste mesmo em temas onde --c-accent é próximo do fundo
      (ex.: Dark Ocean tem accent azul sobre surface azul escuro). */
@@ -155,6 +159,16 @@
     /* Z-index — Auditoria 2026: --z-canvas e --z-overlay removidos (sem uso). */
     --z-sticky: 50;
     --z-modal: 200; --z-toast: 300; --z-modal-prompt: 350; --z-debug: 400;
+  }
+
+  /* Design System 2026 (DS-1): tier tokens semânticos.
+     Padrão "high/med/low" repete em 3 componentes (dict-badge, quality-score,
+     rec-item-confidence). Centralizar como tier permite mudar globalmente
+     a cor do "nível alto" sem caçar 3 lugares. */
+  :root {
+    --c-tier-high: var(--c-success);  /* confiança alta, qualidade boa */
+    --c-tier-med:  var(--c-warn);     /* confiança média, atenção */
+    --c-tier-low:  var(--c-error);    /* confiança baixa, problema */
   }
 
   /* Densidade — tokens globais + tokens específicos do editor (Bloco 2 r2) */
@@ -5498,7 +5512,11 @@
     background: var(--c-accent); color: #fff; border-color: var(--c-accent);
   }
 
-  /* Botão variante perigo */
+  /* Design System (DS-3): --danger vs --destructive — visuais DIFERENTES, intencionalmente:
+       --danger      = fill vermelho sólido (ex: "Sair sem salvar", confirm de ação ruim)
+       --destructive = outline sutil em vermelho (ex: "Remover componente" no inspector)
+     Use --danger quando a ação É O foco do modal/confirm.
+     Use --destructive quando é uma ação secundária permanente. */
   .solstice__btn--danger {
     background: var(--c-error); color: #fff; border-color: transparent;
   }
@@ -6674,7 +6692,24 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     const destructiveBtn = _btnFactory('solstice__btn solstice__btn--destructive');
     const baseBtn = _btnFactory('solstice__btn');
 
-    return { uuid, debounce, throttle, clamp, deepClone, hash, seededRandom, qs, qsa, el, on, fire, escapeHtml, trackListener, cleanupListeners, primaryBtn, ghostBtn, destructiveBtn, baseBtn };
+    /* ========================================================
+       Design System 2026 (DS-2) — helpers de tokens em JS inline.
+       Antes: 696 'XXpx' e 289 hex hardcoded em style:'...' das chamadas
+       de el(). Esses NÃO usam os tokens declarados em CSS.
+       Agora: sp(n)/col(name)/rad(name) retornam var(--TOKEN) prontos
+       pra concatenar em style strings.
+
+       Uso:
+         el('div', { style:`padding:${sp(2)} ${sp(3)};color:${col('accent')};` })
+         el('span', { style:`border-radius:${rad('sm')};` })
+       ======================================================== */
+    const sp  = (n) => 'var(--sp-' + n + ')';
+    const col = (name) => 'var(--c-' + name + ')';
+    const rad = (size) => 'var(--rad-' + size + ')';
+    const fs  = (size) => 'var(--fs-' + size + ')';
+    const fw  = (weight) => 'var(--fw-' + weight + ')';
+
+    return { uuid, debounce, throttle, clamp, deepClone, hash, seededRandom, qs, qsa, el, on, fire, escapeHtml, trackListener, cleanupListeners, primaryBtn, ghostBtn, destructiveBtn, baseBtn, sp, col, rad, fs, fw };
   })();
 
   /* ============================================================
