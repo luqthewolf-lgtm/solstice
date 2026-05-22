@@ -179,14 +179,60 @@ Suite cobre:
 
 ---
 
+## ❓ FAQ
+
+### Meus dados ficam seguros?
+**Sim.** Tudo roda 100% no seu navegador. Nada de servidor, nada de upload, nada de telemetria. O badge `🔒 100% local` no header está lá pra te lembrar. Se você fechar o navegador sem exportar/salvar snapshot, perde — mas é porque o produto não tem onde guardar nada fora da sua máquina.
+
+### Funciona offline?
+**Sim.** Depois que o `.html` baixou (e as libs do CDN ficaram em cache no Chrome/Firefox), basta abrir o arquivo direto do disco. Pra garantir offline real, abra uma vez online → o navegador cacheia as libs → depois funciona sem rede.
+
+### Preciso instalar algo?
+**Não.** É um único arquivo `.html`. Dois cliques (ou `python -m http.server`) e abre.
+
+### Qual o tamanho máximo de CSV?
+Testado com confiança até **~100k linhas × 20 colunas**. Acima disso o parse fica lento (uns 5–10s) e a tabela pode travar. Streaming/virtualização está no roadmap v5.7.
+
+### Posso usar em produção / no trabalho?
+Sim, mas leia a licença (MIT). Não há suporte comercial — é projeto pessoal. Pra dúvidas use [GitHub Issues](#-canal-de-suporte).
+
+### Funciona no Excel / Power BI ao mesmo tempo?
+Solstice **importa** Excel/CSV e **exporta** Excel/PNG/PDF. Não é integrado em tempo real com Power BI — é uma alternativa leve pra quem não quer/pode usar BI pesado.
+
+### Por que single-file (e não uma SPA "normal")?
+Porque eu quis. É deliberado: portabilidade total, zero build, zero deploy. Trade-off é bundle de 2 MB e edição menos confortável. Se você precisa de algo escalável pra time grande, use Hex / Metabase / Power BI.
+
+### Funciona em mobile / tablet?
+**Não.** Solstice é desktop-only por design (apartir de notebook). Mobile foi removido intencionalmente — gráficos densos e edição de dashboard não fazem sentido em tela pequena.
+
+### Como reporto bug / pedir feature?
+Vá em [Issues](https://github.com/lucas/solstice/issues/new/choose) → escolha o template apropriado. Veja seção abaixo.
+
+---
+
+## 💬 Canal de suporte
+
+Para reportar bugs, sugerir features ou tirar dúvidas:
+
+- **🐛 Bug** → [abrir issue de bug](https://github.com/lucas/solstice/issues/new?template=bug.md)
+- **✨ Feature** → [abrir issue de feature](https://github.com/lucas/solstice/issues/new?template=feature.md)
+- **❓ Dúvida** → [abrir pergunta](https://github.com/lucas/solstice/issues/new?template=question.md)
+
+Templates de issue estão em [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/).
+
+> Como projeto pessoal, não há SLA. Respostas no melhor esforço.
+
+---
+
 ## 🤝 Contribuindo
 
-Esse é um projeto pessoal de Lucas. Issues e PRs são bem-vindos, mas a direção arquitetural é deliberada (single-file, vanilla JS, zero dependências de build).
+Esse é um projeto pessoal de Lucas. Issues e PRs são bem-vindos, mas a direção arquitetural é deliberada (single-file, vanilla JS, zero dependências de build, desktop-only).
 
 Antes de abrir PR:
-1. Rode smoke test manual no Chrome / Firefox / Safari
-2. Se mexer em estado, valide a suite de regressão das fórmulas
+1. Rode smoke test manual no Chrome / Firefox / Edge (desktop)
+2. Se mexer em estado, valide a suite de regressão das fórmulas (`npm test`)
 3. Use os helpers existentes (`SolsticeUtils.sp/col/rad`, `SolsticeStorage.safeSet`, `SolsticeCanvas.withSlot`) em vez de hardcodar
+4. Mantenha o single-file (nada de extrair pra arquivos separados)
 
 ---
 
