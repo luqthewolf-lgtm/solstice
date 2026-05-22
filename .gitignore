@@ -5,3 +5,13 @@
 *.tmp
 *.bak
 *.log
+
+# Dependências
+node_modules/
+
+# Saída de build/extract
+tests/dist/
+
+# Sistema
+.DS_Store
+Thumbs.db

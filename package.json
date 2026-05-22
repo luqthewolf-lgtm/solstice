@@ -1,0 +1,29 @@
+{
+  "name": "solstice",
+  "version": "5.6.0-patched",
+  "description": "BI single-file portátil — dashboards interativos sem servidor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extract": "node tests/extract-modules.mjs",
+    "test": "npm run extract && vitest run",
+    "test:watch": "npm run extract && vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0"
+  },
+  "keywords": [
+    "dashboard",
+    "bi",
+    "single-file",
+    "csv",
+    "offline-first",
+    "pwa"
+  ],
+  "author": "Lucas",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luqthewolf-lgtm/solstice.git"
+  }
+}

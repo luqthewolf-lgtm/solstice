@@ -1,0 +1,88 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Vitest (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Extract modules from single-file HTML
+        run: npm run extract
+
+      - name: Run tests
+        run: npx vitest run --reporter=verbose
+
+  audit:
+    name: Static audit (file integrity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify HTML structure
+        run: |
+          # Garante que o arquivo termina com </html> (estrutura íntegra)
+          if ! tail -n 5 solstice_baseline.html | grep -q '</html>'; then
+            echo "::error::solstice_baseline.html não termina com </html>"
+            exit 1
+          fi
+          # Tamanho razoável (entre 500KB e 5MB)
+          SIZE=$(wc -c < solstice_baseline.html)
+          if [ "$SIZE" -lt 500000 ] || [ "$SIZE" -gt 5000000 ]; then
+            echo "::warning::Tamanho do arquivo fora do esperado: $SIZE bytes"
+          fi
+          # Boot sentinel presente
+          if ! grep -q '\[Solstice\] boot OK' solstice_baseline.html; then
+            echo "::error::Boot sentinel '[Solstice] boot OK' ausente — boot pode estar quebrado"
+            exit 1
+          fi
+          echo "✓ HTML estrutura OK ($SIZE bytes)"
+
+      - name: Check SRI hashes on CDN scripts
+        run: |
+          # Garante que os 3 scripts CDN têm integrity= e crossorigin=
+          for lib in "chart.js" "papaparse" "xlsx"; do
+            if ! grep -E "cdn\.jsdelivr\.net.*${lib}" solstice_baseline.html | grep -q 'integrity="sha384-'; then
+              echo "::error::SRI ausente para $lib"
+              exit 1
+            fi
+          done
+          echo "✓ SRI presente em todas as libs CDN"
+
+      - name: Check CSP meta tag
+        run: |
+          if ! grep -q 'Content-Security-Policy' solstice_baseline.html; then
+            echo "::error::CSP meta tag ausente"
+            exit 1
+          fi
+          echo "✓ CSP meta tag presente"
+
+      - name: Check XSS regression
+        run: |
+          # Garante que o pattern do XSS original NÃO voltou
+          if grep -E "left\.innerHTML\s*=\s*'👤'" solstice_baseline.html; then
+            echo "::error::Regressão XSS detectada! left.innerHTML com c.author voltou."
+            exit 1
+          fi
+          echo "✓ AP-01 ainda fechado"

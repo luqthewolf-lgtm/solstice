@@ -48,7 +48,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Solstice — Dashboard Studio v5.6 (patched). BI single-file agnóstico para qualquer CSV. Multi-CSV, virtualização, comparação de períodos, export de imagem/PDF e responsividade universal.">
+
+<!--
+  ============================================================
+  CONTENT SECURITY POLICY (PRD-3)
+  ============================================================
+  Trava a superfície de ataque do single-file:
+   - script-src: só CDN jsdelivr (libs pinned + SRI abaixo) e inline (precisamos
+     pra IIFEs do app). 'unsafe-eval' é necessário pra DuckDB-WASM (opt-in).
+   - style-src: inline + Google Fonts.
+   - img-src/font-src: data: pra ícones inline; https: pra CDN.
+   - connect-src: 'self' pra fetch interno; api.openai/anthropic/groq se LLM
+     opt-in for usado (browser ignora origins não listados).
+   - frame-ancestors: 'none' (ninguém pode embedar Solstice em iframe).
+  Se você for hostear em produção, sirva via header HTTP em vez de meta tag
+  (CSP via meta tem subset reduzido — não suporta frame-ancestors, report-uri).
+-->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' data: https://fonts.gstatic.com;
+  img-src 'self' data: blob: https:;
+  connect-src 'self' https://api.openai.com https://api.anthropic.com https://api.groq.com https://api.x.ai http://localhost:11434;
+  worker-src 'self' blob:;
+  child-src blob:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+">
+
 <title>Solstice · Dashboard Studio v5.6 patched</title>
+
+<!-- PWA (PRD-4): manifest + theme-color. Estes ficam SEPARADOS porque PWA
+     exige arquivos individuais (não dá pra fazer manifest inline em <link>).
+     Quem usar o single-file isoladamente (file://) não tem PWA — funciona
+     normalmente. Quem servir via HTTP/HTTPS com manifest.json+sw.js na mesma
+     pasta ganha install + offline.
+     theme-color pinta a barra do browser pra integrar com o tema dark. -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5BA8FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Solstice">
+
+<!-- Service Worker registration (defer pra não bloquear boot do app).
+     Falha silenciosa: SW é opcional, app funciona sem ele. -->
+<script>
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .catch(function(e){ /* silencioso: SW é opt-in */ });
+    });
+  }
+</script>
 
 <!-- FOUC prevention: aplica tema antes do CSS pintar -->
 <script>
@@ -70,11 +123,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<!-- Libs externas (preparadas para blocos futuros) -->
-<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<!-- Libs externas (preparadas para blocos futuros)
+     PRD-3: integrity (SRI) trava o hash dos bundles — se a CDN for comprometida
+     ou o arquivo mudar, o browser recusa carregar. crossorigin obrigatório
+     pra SRI com origem cross-domain. -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+  integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+  crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"
+  integrity="sha384-D/t0ZMqQW31H3az8ktEiNb39wyKnS82iFY52QPACM+IjKW3jDUhyIgh2PApRqJZs"
+  crossorigin="anonymous"></script>
 <!-- Prompt 12 v5.4: SheetJS (XLSX export). Carregado defer; usa só quando usuário pede export XLSX. -->
-<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+  integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw"
+  crossorigin="anonymous"></script>
 
 <style>
 /* ============================================================
