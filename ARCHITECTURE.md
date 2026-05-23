@@ -242,7 +242,20 @@ Exemplo: usuário edita o título de uma seção do dashboard.
 
 ### CI (`.github/workflows/test.yml`)
 - Vitest matrix Node 20/22 em cada push/PR.
-- Audit estático: HTML integrity, SRI presente, CSP presente, regressão XSS (AP-01) verificada.
+- Audit estático com **10+ regressão checks**:
+  - HTML integrity (`</html>` no fim, tamanho razoável)
+  - SRI presente nas 3 libs CDN (chart.js, papaparse, xlsx)
+  - CSP meta tag presente
+  - Regressão XSS AP-01 verificada
+  - `B7-01` Parse-check anti SyntaxError silencioso (cada `<script>` inline passa por `new Function()`)
+  - `B7-02` Anti-duplicação de IIFEs `Solstice*`
+  - Audit `innerHTML` usage (com escape próximo)
+  - **ADR-186** — `console.warn` direto bloqueado fora da whitelist (Auditoria 2026.3)
+  - **ADR-185/186** — cabeçalhos preservados no topo do arquivo
+  - **Sprint 9** — voz pessoal zerada (`Lucas:`, `Diretor:`, palavrões)
+  - **Sprint 12** — `role="grid"` + `aria-rowcount` na Vtable
+  - **Sprint 13a** — ≥4 `role="dialog"` (modais)
+  - **Sprint 18** — `kind: 'anomaly'` + `rolling-median-mad` presentes
 
 ### Lacunas conhecidas
 - Sem testes E2E (Playwright)
@@ -254,20 +267,26 @@ Exemplo: usuário edita o título de uma seção do dashboard.
 ## Roadmap arquitetural
 
 ### Curto prazo
-- [ ] Migrar mais sites de `deepClone(Store.get('canvas.sections'))` para `SolsticeCanvas.editSections` / `withSlot` (35 sites → 0)
+- [ ] Migrar 35 sites de `deepClone(Store.get('canvas.sections'))` para `SolsticeCanvas.editSections` / `withSlot` (Sprint 11 da Auditoria 2026.4 marcada como roadmap por exigir testes de regressão por componente)
 - [ ] Cobertura de testes para `SolsticeStats` e `SolsticeFormula`
-- [ ] Reduzir catches silenciosos com `SolsticeLog.warn` em pontos críticos
+- [x] **Reduzir catches silenciosos com `SolsticeLog.warn` em pontos críticos** — feito (Auditoria 2026.3 MC-04 + 2026.4 MC-09 + Sprint 10)
 
 ### Médio prazo
 - [ ] Streaming de CSV (parse incremental, não bloqueia UI)
-- [ ] Virtualização real de tabelas (>50k rows)
+- [ ] Virtualização real de tabelas (>50k rows) — *parcial: Vtable já virtualiza (windowing puro JS) com a11y completa (Sprint 12). Falta streaming.*
 - [ ] `Promise.all` no boot (paralelizar inits independentes)
 - [ ] Quebrar `SolsticeV56` (3.814 linhas — bloco histórico de patches)
+- [x] **A11y completa de Vtable** (Sprint 12 — `role="grid"`, `aria-rowcount`, `aria-sort`, `aria-rowindex`/`aria-colindex`)
+- [x] **A11y de modais** (Sprint 13a — `role="dialog"` + `aria-modal` + `aria-labelledby` nos 4 modais)
+- [x] **Anomaly detection inline** (Sprint 18 — rolling median + MAD)
+- [x] **Status saved persistente "Salvo há Xs"** (Sprint 15 — benchmark Notion/Google Docs)
+- [x] **Auto-save banner com confirmação no boot** (Auditoria 2026.4 BR-A5)
 
 ### Longo prazo
 - [ ] Quebra do single-file em módulos ESM (com build opcional)
 - [ ] DuckDB-WASM como query engine real (não só opt-in)
 - [ ] Testes E2E com Playwright
+- [ ] Detecção de diff slot-a-slot no canvas render (substituir `innerHTML='' + reconstrução total`) — tentado em RT-08 da Auditoria 2026.4 via rAF throttle, **revertido honestamente** porque rAF pausa em aba inativa. Caminho certo é diff real, refactor estrutural.
 
 ---
 
@@ -275,11 +294,27 @@ Exemplo: usuário edita o título de uma seção do dashboard.
 
 1. **Hardcodar cor/spacing inline** sem usar `var(--token)` ou helpers `sp()/col()`.
 2. **Mutar referência ao vivo de `SolsticeStore.get()`** — sempre clone primeiro (`deepClone` ou spread).
-3. **`innerHTML = 'string com ' + variavel`** — política DOM proíbe.
+3. **`innerHTML = 'string com ' + variavel`** — política DOM proíbe (HV-01).
 4. **Pollution de `window`** — exporte só via `window.Solstice` no fim do arquivo.
 5. **`addEventListener` em document/window sem `trackListener`** — vaza em sessão longa.
-6. **Catch silencioso** — pelo menos logue via `SolsticeLog.debug` ou `console.warn`.
-7. **Boot dependente de DOM ainda não pronto** — use `DOMContentLoaded` ou `setTimeout(..., 0)`.
+6. **Catch silencioso** — use `SolsticeLog.warn`/`debug` ou ao menos `console.warn` quando o erro deve ser visível. **Catch vazio em `forEach`/loop de subscribers invisibiliza bugs** (ADR-186, Auditoria 2026.3 MC-04/MC-09).
+7. **`console.warn` direto em fallback** — use `SolsticeLog.warn` (sempre visível) ou `SolsticeLog.debug` (gated). `console.warn` direto reservado a 3 casos explícitos documentados no topo do arquivo (ADR-186).
+8. **Boot dependente de DOM ainda não pronto** — use `DOMContentLoaded` ou `setTimeout(..., 0)`.
+9. **Citação pessoal / voz interna em comentário** — comentário de produto descreve **o porquê técnico**, não cita o stakeholder (Sprint 9 da Auditoria 2026.4). Padrão: "Auditoria 2026.X (ID): descrição neutra" em vez de "Diretor: 'X é foda'".
+10. **Modal sem `role="dialog"` + `aria-modal` + `aria-labelledby`** — leitor de tela não anuncia (Sprint 13a / WCAG 4.1.2).
+11. **Tabela virtualizada sem `role="grid"` + `aria-rowcount`** — leitor de tela não navega corretamente (Sprint 12 / WCAG 4.1.2).
+12. **Subscriber de subscribers (cb)** silenciado com `catch(_){}` — propague via `SolsticeLog.warn` com contexto (ADR-186, MC-04/MC-09).
+
+## Invariantes documentadas no topo do arquivo (cabeçalho HTML)
+
+Os 4 cabeçalhos `<!-- ... -->` no topo de `solstice_baseline.html` declaram as convenções de oro:
+
+1. **POLÍTICA DE DOM SEGURO (HV-01)** — dado dinâmico só via `el()`/`textContent`/`escapeHtml`.
+2. **CONVENÇÃO DE IGUALDADE (JM-03)** — `===` / `!==` sempre; única exceção `x == null`.
+3. **CANAL DE FALLBACK PADRÃO (ADR-186 — Auditoria 2026.3)** — `SolsticeLog` é o canal padrão de fallback.
+4. **HIERARQUIA DE PERSISTÊNCIA (ADR-185 — Auditoria 2026.3)** — 5 camadas: Snapshots / SavedViews / AutoSave / Workspace / IDB.
+
+CI verifica que esses cabeçalhos não são removidos.
 
 ---
 
