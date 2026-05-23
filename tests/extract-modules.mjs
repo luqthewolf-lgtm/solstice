@@ -112,8 +112,64 @@ ${formulaBody}
 `;
 writeFileSync(resolve(DIST, 'formula.mjs'), formula);
 
+// ============================================================
+// B4-05 (v6-autonomous) — módulos novos
+// ============================================================
+
+// SolsticeConfig (constantes Object.freeze — sem deps)
+const configBody = extractIIFE(content, 'SolsticeConfig');
+writeFileSync(resolve(DIST, 'config.mjs'), `
+// Auto-extraído. Constantes Object.freeze.
+export const SolsticeConfig = (function(){
+${configBody}
+})();
+`);
+
+// SolsticeUtils.rafThrottle e debounce isolados — stub leve sem dependências DOM
+writeFileSync(resolve(DIST, 'utils-light.mjs'), `
+// Subset isolado de SolsticeUtils — só funções puras testáveis sem DOM.
+// Cópia direta da implementação no solstice_baseline.html
+export const SolsticeUtils = {
+  debounce(fn, ms){
+    let t;
+    return function(){
+      const ctx = this, args = arguments;
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(ctx, args), ms);
+    };
+  },
+  throttle(fn, ms){
+    let last = 0, t;
+    return function(){
+      const now = Date.now(), ctx = this, args = arguments;
+      if (now - last >= ms){ last = now; fn.apply(ctx, args); }
+      else { clearTimeout(t); t = setTimeout(()=>{ last = Date.now(); fn.apply(ctx, args); }, ms - (now - last)); }
+    };
+  },
+  rafThrottle(fn){
+    let scheduled = false;
+    let lastArgs = null, lastCtx = null;
+    return function(){
+      lastArgs = arguments;
+      lastCtx = this;
+      if (scheduled) return;
+      scheduled = true;
+      // Em ambiente teste (sem rAF browser), usa fallback setTimeout(0)
+      const raf = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : (cb) => setTimeout(cb, 0);
+      raf(() => {
+        scheduled = false;
+        try { fn.apply(lastCtx, lastArgs); } catch(e){ /* swallow */ }
+      });
+    };
+  },
+  clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+};
+`);
+
 console.log('✓ Módulos extraídos para tests/dist/');
 console.log('  - br.mjs (stub)');
 console.log('  - formula-core.mjs (' + formulaCoreBody.length + ' chars)');
 console.log('  - stats.mjs (' + statsBody.length + ' chars)');
 console.log('  - formula.mjs (' + formulaBody.length + ' chars)');
+console.log('  - config.mjs (' + configBody.length + ' chars)');
+console.log('  - utils-light.mjs (subset puro)');

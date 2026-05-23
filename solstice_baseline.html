@@ -312,7 +312,13 @@
     --c-text: #F4F7FF; --c-text-2: #C5D0E8; --c-muted: #8090B0; --c-border: #34427A;
     --c-accent: #5BA8FF; --c-accent-hi: #87C2FF; --c-accent-lo: #2980E5;
     --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    /* B4-03 (v6-autonomous / DS-03 — Helena/Vercel): 3 elevações documentadas.
+       --sh-1: hover sutil em cards e botões (lift mínimo)
+       --sh-2: dropdown, popover, tooltip (média intensidade)
+       --sh-3: modal, drawer, overlay (máxima — flutua acima de tudo)
+       --sh-glow: estado de foco/destaque (não-elevação) — usar em focus-visible. */
     --sh-1: 0 2px 4px rgba(0,0,0,.5); --sh-2: 0 6px 16px rgba(0,0,0,.55); --sh-3: 0 14px 32px rgba(0,0,0,.65);
+    --sh-glow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 40%, transparent);
   }
   :root[data-palette="ocean"][data-mode="light"] {
     --c-bg: #E8EEFA; --c-surface: #FFFFFF; --c-surface-2: #F4F7FE; --c-surface-3: #E2EAF7;
@@ -10926,6 +10932,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     if (SolsticeOnboarding.isFirstTime()){
       setTimeout(() => SolsticeOnboarding.show(), 400);
     }
+
+    // B4-02 (v6-autonomous / RES-03): auto-save de estado a cada 5s
+    // + tenta restaurar se boot abrir com canvas vazio e há snapshot fresco
+    try {
+      if (typeof SolsticeAutoSave !== 'undefined'){
+        SolsticeAutoSave.init();
+        setTimeout(() => SolsticeAutoSave.tryRestore(), 600);
+      }
+    } catch(e){ console.warn('[AutoSave init]', e); }
 
     // B1-04 (v6-autonomous): tenta restaurar pasta atrelada + auto-refresh
     // se permissão ainda granted. Roda async no fundo, não bloqueia boot.
@@ -34655,6 +34670,257 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      Estado salvo:
        canvas.sections + filters + params + canvas.header + dictionary
      ============================================================ */
+  /* ============================================================
+     B4-01 (v6-autonomous / PW-03 — Augusto power user) — SolsticeViews
+     Views salvas LEVES (vs SolsticeSnapshots que captura estado COMPLETO).
+     Uma View memoriza só preferências de visualização:
+       • filtros globais
+       • cross-filter ativo
+       • página ativa (multi-page)
+       • collapsed states (insights, filterbar)
+
+     Caso de uso: analista que vive 5h/dia no produto, alterna entre
+     visões "Mensal", "Por região Sul", "Top 10 clientes". Cada uma é
+     1 click pra restaurar.
+
+     API:
+       SolsticeViews.list()                   → array<{id, name, savedAt, payload}>
+       SolsticeViews.save(name)               → cria view nova com estado atual
+       SolsticeViews.apply(id)                → restaura filtros/página
+       SolsticeViews.remove(id)               → deleta
+       SolsticeViews.rename(id, newName)      → renomeia
+     ============================================================ */
+  const SolsticeViews = (function(){
+    const STORAGE_KEY = 'solstice.views.v1';
+
+    function _read(){
+      try {
+        const raw = (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeGet)
+          ? SolsticeStorage.safeGet(STORAGE_KEY)
+          : localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch(_){ return []; }
+    }
+
+    function _write(arr){
+      try {
+        const json = JSON.stringify(arr);
+        if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeSet){
+          SolsticeStorage.safeSet(STORAGE_KEY, json);
+        } else {
+          localStorage.setItem(STORAGE_KEY, json);
+        }
+        return true;
+      } catch(_){ return false; }
+    }
+
+    function _captureState(){
+      const state = {
+        filters: SolsticeStore.get('filters') || {},
+        crossfilter: SolsticeStore.get('crossfilter') || null
+      };
+      try {
+        if (typeof SolsticePages !== 'undefined' && SolsticePages.activeId){
+          state.pageId = SolsticePages.activeId();
+        }
+      } catch(_){}
+      try {
+        state.ui = {
+          insightsCollapsed: !!SolsticeStore.get('ui.insights.collapsed'),
+          filtersCollapsed: !!SolsticeStore.get('ui.filters.collapsed')
+        };
+      } catch(_){}
+      return state;
+    }
+
+    function list(){
+      return _read().map(v => ({ id: v.id, name: v.name, savedAt: v.savedAt }));
+    }
+
+    function save(name){
+      name = String(name || '').trim();
+      if (!name) return null;
+      const arr = _read();
+      const view = {
+        id: 'view_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        name,
+        savedAt: new Date().toISOString(),
+        payload: _captureState()
+      };
+      arr.unshift(view);
+      // Limit a 20 views — power user precisa mas não pode explodir
+      if (arr.length > 20) arr.length = 20;
+      _write(arr);
+      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+        SolsticeAudit.record({ action: 'view_save', target: name, details: { id: view.id } });
+      }
+      return view;
+    }
+
+    function apply(id){
+      const arr = _read();
+      const v = arr.find(x => x.id === id);
+      if (!v || !v.payload) return false;
+      const p = v.payload;
+      try {
+        if (p.filters) SolsticeStore.set('filters', p.filters);
+        if (p.crossfilter !== undefined) SolsticeStore.set('crossfilter', p.crossfilter);
+        if (p.pageId && typeof SolsticePages !== 'undefined' && SolsticePages.switchTo){
+          SolsticePages.switchTo(p.pageId);
+        }
+        if (p.ui){
+          if (typeof p.ui.insightsCollapsed === 'boolean') SolsticeStore.set('ui.insights.collapsed', p.ui.insightsCollapsed);
+          if (typeof p.ui.filtersCollapsed === 'boolean') SolsticeStore.set('ui.filters.collapsed', p.ui.filtersCollapsed);
+        }
+      } catch(e){ console.warn('[Views.apply]', e); return false; }
+      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+        SolsticeAudit.record({ action: 'view_apply', target: v.name, details: { id } });
+      }
+      return true;
+    }
+
+    function remove(id){
+      const arr = _read().filter(x => x.id !== id);
+      _write(arr);
+    }
+
+    function rename(id, newName){
+      const arr = _read();
+      const v = arr.find(x => x.id === id);
+      if (!v) return false;
+      v.name = String(newName || '').trim() || v.name;
+      _write(arr);
+      return true;
+    }
+
+    return { list, save, apply, remove, rename };
+  })();
+
+  /* ============================================================
+     B4-02 (v6-autonomous / RES-03 — Sofia/Auth0) — SolsticeAutoSave
+     Auto-save de estado em localStorage pra recuperação após crash/
+     refresh acidental. Diferente de SolsticeSnapshots:
+       • Roda silenciosamente em intervalos
+       • 1 slot único (sempre sobrescreve o anterior)
+       • NÃO substitui snapshots manuais — é safety net
+       • Restaura no boot SE último estado for de hoje
+         (estado antigo é stale — usuário esquece)
+
+     Salva:
+       • canvas.sections (estrutura de componentes)
+       • canvas.header (título)
+       • filters globais
+       • página ativa multi-page
+
+     Não salva:
+       • ingest (dataset bruto — pode ser MB)
+       • dictionary (presets pré-carregados)
+     ============================================================ */
+  const SolsticeAutoSave = (function(){
+    const STORAGE_KEY = 'solstice.autosave.v1';
+    const INTERVAL_MS = (typeof SolsticeConfig !== 'undefined') ? SolsticeConfig.AUTOSAVE_INTERVAL_MS : 5000;
+    const STALE_MS = 24 * 60 * 60 * 1000; // 24h — estado mais antigo é descartado
+    let _timer = null;
+    let _lastSnapshot = '';
+
+    function _capture(){
+      try {
+        const snap = {
+          ts: Date.now(),
+          sections: SolsticeStore.get('canvas.sections') || [],
+          header: SolsticeStore.get('canvas.header') || null,
+          filters: SolsticeStore.get('filters') || {},
+          pageId: (typeof SolsticePages !== 'undefined' && SolsticePages.activeId) ? SolsticePages.activeId() : null
+        };
+        return snap;
+      } catch(_){ return null; }
+    }
+
+    function _tick(){
+      const snap = _capture();
+      if (!snap) return;
+      // Só salva se tem algo (não persiste estado vazio)
+      if (!snap.sections.length) return;
+      const json = JSON.stringify(snap);
+      // Evita escrita se nada mudou (poupa I/O)
+      if (json === _lastSnapshot) return;
+      _lastSnapshot = json;
+      try {
+        if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeSet){
+          SolsticeStorage.safeSet(STORAGE_KEY, json, { silent: true });
+        } else {
+          localStorage.setItem(STORAGE_KEY, json);
+        }
+      } catch(_){}
+    }
+
+    function _read(){
+      try {
+        const raw = (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeGet)
+          ? SolsticeStorage.safeGet(STORAGE_KEY)
+          : localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        // Descarta se velho demais
+        if (parsed.ts && (Date.now() - parsed.ts) > STALE_MS) return null;
+        return parsed;
+      } catch(_){ return null; }
+    }
+
+    /** Restaura silenciosamente no boot se houver auto-save fresco
+        E o canvas estiver vazio (sem sobrescrever trabalho ativo). */
+    function tryRestore(){
+      const snap = _read();
+      if (!snap) return false;
+      const current = SolsticeStore.get('canvas.sections') || [];
+      if (current.length > 0) return false; // não sobrescreve
+      try {
+        if (snap.sections && snap.sections.length){
+          SolsticeStore.set('canvas.sections', snap.sections);
+          if (snap.header) SolsticeStore.set('canvas.header', snap.header);
+          if (snap.filters) SolsticeStore.set('filters', snap.filters);
+          if (snap.pageId && typeof SolsticePages !== 'undefined' && SolsticePages.switchTo){
+            try { SolsticePages.switchTo(snap.pageId); } catch(_){}
+          }
+          // Toast leve avisando o usuário
+          setTimeout(() => {
+            if (typeof SolsticeToast !== 'undefined') {
+              const minsAgo = Math.round((Date.now() - snap.ts) / 60000);
+              SolsticeToast.info('💾 Auto-save restaurado',
+                'Recuperado estado de ~' + minsAgo + ' min atrás. ' +
+                (snap.sections.length + ' componente' + (snap.sections.length > 1 ? 's' : '')));
+            }
+          }, 1500);
+          return true;
+        }
+      } catch(e){ console.warn('[AutoSave.restore]', e); }
+      return false;
+    }
+
+    function init(){
+      if (_timer) return;
+      _timer = setInterval(_tick, INTERVAL_MS);
+      // Salva também ao sair da página (best effort)
+      window.addEventListener('beforeunload', _tick);
+    }
+
+    function stop(){ if (_timer) { clearInterval(_timer); _timer = null; } }
+
+    function clear(){
+      try {
+        if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeRemove){
+          SolsticeStorage.safeRemove(STORAGE_KEY);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch(_){}
+    }
+
+    return { init, stop, clear, tryRestore };
+  })();
+
   const SolsticeSnapshots = (function(){
 
     const LS_KEY_PREFIX = 'solstice.snapshots.';
