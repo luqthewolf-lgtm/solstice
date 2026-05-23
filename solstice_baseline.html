@@ -8429,7 +8429,105 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
              null;
     }
 
-    return { detectDomain, resolveColumn };
+    /* ============================================================
+       HC-04 (Sprint 3) — Recommendations via TF-IDF + cosine similarity
+       Resolve o problema "receita" vs "vendas" sem embeddings reais:
+         - Tokeniza nome de coluna + sinônimos em bag of unigrams + bigrams
+         - Calcula vetor TF-IDF para cada (presetId, columnTargetKey)
+         - Para um nome de coluna desconhecido, calcula sim cosseno
+           contra TODOS os targets e retorna top match (se score > threshold)
+
+       Não substitui resolveColumn — é um fallback usado quando exact+
+       substring falham. Custo: O(N_tokens × N_dict_entries) por coluna.
+       ============================================================ */
+    function _tokenize(s){
+      const norm = _normalize(s).replace(/[^a-z0-9]+/g, ' ').trim();
+      if (!norm) return [];
+      const words = norm.split(/\s+/).filter(w => w.length >= 2);
+      // Sinônimos pt-BR/EN comuns expandidos
+      const SYN = {
+        venda: ['vendas','vendido','revenue','sale','sales'],
+        receita: ['vendas','revenue','sale','sales','faturamento','faturado'],
+        cliente: ['clientes','customer','user','usuario','consumidor'],
+        produto: ['produtos','product','item','sku'],
+        valor: ['preco','price','custo','cost','amount','total'],
+        data: ['date','dt','timestamp','ts','periodo','dia'],
+        regiao: ['region','area','zona','filial','local','localizacao'],
+        canal: ['channel','origem','source','meio']
+      };
+      const out = [];
+      words.forEach(w => {
+        out.push(w);
+        if (SYN[w]) SYN[w].forEach(s2 => out.push(s2));
+      });
+      // Bigrams (capturam compostos: 'data_venda' vira 'data' 'venda' 'data_venda')
+      for (let i = 0; i < words.length - 1; i++){
+        out.push(words[i] + '_' + words[i+1]);
+      }
+      return out;
+    }
+
+    function _tfVector(tokens){
+      const v = {};
+      tokens.forEach(t => { v[t] = (v[t] || 0) + 1; });
+      // Normaliza por sqrt(soma) — variante do TF
+      const norm = Math.sqrt(Object.values(v).reduce((s, c) => s + c * c, 0)) || 1;
+      for (const k in v) v[k] = v[k] / norm;
+      return v;
+    }
+
+    function _cosine(a, b){
+      let dot = 0;
+      for (const k in a){
+        if (b[k]) dot += a[k] * b[k];
+      }
+      // a e b já normalizados — dot é cosseno
+      return dot;
+    }
+
+    /** matchByEmbedding(unknownName, dictionary, opts) — fuzzy match semântico
+        @returns { key, score, label } | null */
+    function matchByEmbedding(unknownName, dictionary, opts){
+      opts = opts || {};
+      const threshold = opts.threshold != null ? opts.threshold : 0.35;
+      if (!unknownName || !dictionary || !dictionary.columns) return null;
+      const queryVec = _tfVector(_tokenize(unknownName));
+      if (!Object.keys(queryVec).length) return null;
+
+      let best = null;
+      for (const key in dictionary.columns){
+        const def = dictionary.columns[key];
+        // Concatena key + synonyms + friendlyName + description em uma string
+        const text = [key]
+          .concat(def.synonyms || [])
+          .concat(def.friendlyName || [])
+          .concat(def.description || [])
+          .join(' ');
+        const targetVec = _tfVector(_tokenize(text));
+        if (!Object.keys(targetVec).length) continue;
+        const score = _cosine(queryVec, targetVec);
+        if (score >= threshold && (!best || score > best.score)){
+          best = { key, score, label: def.friendlyName || key };
+        }
+      }
+      return best;
+    }
+
+    /** Versão batch: resolve colunas desconhecidas em lote para 1 dataset. */
+    function matchColumnsBatch(csvCols, dictionary, opts){
+      opts = opts || {};
+      const out = [];
+      csvCols.forEach(c => {
+        // Pula se já tem match direto
+        const exact = dictionary.columns && dictionary.columns[_normalize(c)];
+        if (exact) return;
+        const m = matchByEmbedding(c, dictionary, opts);
+        if (m) out.push({ csvCol: c, dictKey: m.key, score: m.score, friendlyName: m.label });
+      });
+      return out;
+    }
+
+    return { detectDomain, resolveColumn, matchByEmbedding, matchColumnsBatch };
   })();
 
   /* ============================================================
@@ -10378,7 +10476,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             { value:'html',  icon:'📰', label:'HTML standalone',  desc:'Dashboard completo · self-contained com dados' },
             { value:'csv',   icon:'📄', label:'CSV (dados)',       desc:'Linhas filtradas atualmente visíveis' },
             { value:'json',  icon:'🧬', label:'JSON (dados)',      desc:'Mesmo escopo do CSV, em JSON' },
+            { value:'svg',   icon:'🖼️', label:'SVG do componente',  desc:'Gráfico vetorial editável (Illustrator/Inkscape)' },
             { value:'pdf',   icon:'📄', label:'PDF',               desc:'Via print do navegador (escolha "Salvar como PDF")' },
+            { value:'embed', icon:'🌐', label:'Código de embed',    desc:'iframe pra incorporar dashboard em site externo' },
             { value:'link',  icon:'🔗', label:'Link compartilhável', desc:'URL com state codificado (cap 50KB)' }
           ],
           confirmLabel:'Exportar',
@@ -10387,6 +10487,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (!choice) return;
         if (choice === 'html') SolsticeExport.openExportModal();
         else if (choice === 'csv' || choice === 'json') SolsticeExportData.openModal({ format: choice });
+        else if (choice === 'svg') SolsticeExportSVG.open();  // JD-01 Sprint 3
+        else if (choice === 'embed') SolsticeEmbed.open();    // JD-03 Sprint 3
         else if (choice === 'pdf') SolsticePDF.export();
         else if (choice === 'link') SolsticeShare.copy();
       });
@@ -17426,10 +17528,62 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   const SolsticeComponents = (function(){
 
     const registry = {};
+    const _registerListeners = [];
 
-    function register(def){ registry[def.id] = def; }
+    /**
+     * register(def) — adiciona componente ao registry.
+     *
+     * RT-05 (Sprint 3): valida shape mínimo + emite evento pra terceiros que
+     * queiram saber quando novos tipos são registrados.
+     *
+     * def precisa ter: { id: string, name: string, render: function }
+     * Opcionais: icon, description, defaultConfig (fn ou objeto)
+     *
+     * Plugin externo de exemplo (em outro <script> injetado pós-load):
+     *   Solstice.Components.register({
+     *     id: 'my-chart', name: 'Meu Chart', icon: '📊',
+     *     defaultConfig: (ctx) => ({ column: ctx.columns[0] }),
+     *     render(slot, host, ctx){
+     *       host.appendChild(document.createElement('div')).textContent = 'Hello';
+     *     }
+     *   });
+     */
+    function register(def){
+      if (!def || typeof def !== 'object'){
+        console.warn('[SolsticeComponents.register] def inválido (não é objeto)');
+        return false;
+      }
+      if (!def.id || typeof def.id !== 'string'){
+        console.warn('[SolsticeComponents.register] def.id obrigatório (string)');
+        return false;
+      }
+      if (typeof def.render !== 'function'){
+        console.warn('[SolsticeComponents.register] def.render obrigatório (function)');
+        return false;
+      }
+      const isReplace = !!registry[def.id];
+      registry[def.id] = def;
+      // Notifica listeners (catálogo de componentes, command palette, etc.)
+      _registerListeners.forEach(cb => { try { cb(def, isReplace); } catch(_){} });
+      return true;
+    }
+    /** RT-05: hook pra terceiros saberem quando novos componentes são registrados. */
+    function onRegister(cb){
+      if (typeof cb !== 'function') return () => {};
+      _registerListeners.push(cb);
+      return () => {
+        const idx = _registerListeners.indexOf(cb);
+        if (idx >= 0) _registerListeners.splice(idx, 1);
+      };
+    }
     function get(id){ return registry[id]; }
     function list(){ return Object.values(registry); }
+    /** RT-05: remove componente (plugin desabilitado). */
+    function unregister(id){
+      const had = !!registry[id];
+      delete registry[id];
+      return had;
+    }
 
     /** Constrói contexto para o componente: dataset, dicionário, types, locale. */
     // Auditoria 2026 (U-13): _ctx aceita datasetId opcional.
@@ -18717,6 +18871,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                   grid: { display: showGrid, color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' },
                   ticks: { color: isDark ? '#B8C4E0' : '#334155', font: { size: 10 } }
                 }
+              },
+              // LE-04 (Sprint 3): cross-filter automático ao clicar num ponto.
+              // Filtra os outros componentes pela categoria/data clicada.
+              onClick: (event, elements, chart) => {
+                if (!elements || !elements.length) return;
+                const el = elements[0];
+                const label = chart.data.labels[el.index];
+                const xCol = cfg.xColumn || cfg.x || cfg.column;
+                if (xCol && label != null && typeof SolsticeCrossFilter !== 'undefined'){
+                  SolsticeCrossFilter.activate(xCol, label);
+                }
+              },
+              onHover: (event, elements, chart) => {
+                event.native && event.native.target && (event.native.target.style.cursor = elements.length ? 'pointer' : 'default');
               }
             },
             plugins: dataLabelsPlugin ? [dataLabelsPlugin] : []
@@ -20500,6 +20668,18 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                 x: { grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}},
                 yCount: { position:'left',  beginAtZero:true, grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text:'Contagem', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}},
                 ySum:   { position:'right', beginAtZero:true, grid: { drawOnChartArea:false }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text:'Valor', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}}
+              },
+              // LE-04 (Sprint 3): cross-filter automático
+              onClick: (event, elements, chart) => {
+                if (!elements || !elements.length) return;
+                const label = chart.data.labels[elements[0].index];
+                const xCol = cfg.xColumn || cfg.category || cfg.column;
+                if (xCol && label != null && typeof SolsticeCrossFilter !== 'undefined'){
+                  SolsticeCrossFilter.activate(xCol, label);
+                }
+              },
+              onHover: (event, elements) => {
+                event.native && event.native.target && (event.native.target.style.cursor = elements.length ? 'pointer' : 'default');
               }
             }
           });
@@ -21233,7 +21413,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // implementações divergentes (Components._ctx + Props._ctx). Props agora
     // delega para esta — ganha Relationships.enrich e medidas calculadas
     // automaticamente. Single source of truth para contexto de componente.
-    return { register, get, list, render, addByType, ctx: _ctx };
+    return { register, unregister, onRegister, get, list, render, addByType, ctx: _ctx };
   })();
 
   /* ============================================================
@@ -29860,23 +30040,93 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
     };
 
+    /**
+     * HC-02 (Sprint 3) — RAG sobre o dataset.
+     * Antes: só nome+tipo das colunas + 5 sample rows.
+     * Agora: enriquece com aggregations + distinct counts + min/max + nulls
+     * por coluna. Isso é "RAG estilo BI" — sem embeddings, mas com sumário
+     * que dá ao LLM contexto real sobre o shape dos dados.
+     *
+     * Custo: ~1KB extra por coluna no prompt. Para 20 colunas, ~20KB —
+     * cabe folgado em qualquer LLM (Claude=200K, GPT4o=128K).
+     */
     function _buildSystemPrompt(ctx, includeSample){
-      const cols = (ctx.columns || []).map(c => ({
-        name: c,
-        type: (ctx.types && ctx.types[c] && ctx.types[c].type) || 'string',
-        friendlyName: (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[c] && ctx.dictionary.columns[c].friendlyName) || null,
-        unit: (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[c] && ctx.dictionary.columns[c].unit) || null
-      }));
+      const rows = ctx.rows || [];
+      const N = rows.length;
+      const cols = (ctx.columns || []).map(c => {
+        const t = (ctx.types && ctx.types[c]) || {};
+        const group = (typeof SolsticeTypes !== 'undefined' && SolsticeTypes.group) ? SolsticeTypes.group(t.type) : null;
+        const colInfo = {
+          name: c,
+          type: t.type || 'string',
+          group,
+          friendlyName: (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[c] && ctx.dictionary.columns[c].friendlyName) || null,
+          unit: (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[c] && ctx.dictionary.columns[c].unit) || null
+        };
+        // HC-02: estatística leve por coluna (RAG context)
+        try {
+          if (group === 'numeric' && typeof SolsticeStats !== 'undefined'){
+            const vals = rows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+            if (vals.length){
+              colInfo.stats = {
+                count: vals.length,
+                min: SolsticeStats.min(vals),
+                max: SolsticeStats.max(vals),
+                mean: Math.round(SolsticeStats.mean(vals) * 100) / 100,
+                median: SolsticeStats.median(vals),
+                nulls: N - vals.length
+              };
+            }
+          } else if (group === 'categorical' || group === 'id'){
+            const freq = new Map();
+            rows.forEach(r => {
+              const v = r[c];
+              if (v == null || v === '') return;
+              const k = String(v);
+              freq.set(k, (freq.get(k) || 0) + 1);
+            });
+            colInfo.stats = {
+              distinct: freq.size,
+              nulls: N - Array.from(freq.values()).reduce((a, b) => a + b, 0)
+            };
+            // Top 3 valores mais frequentes (insight valioso pro LLM)
+            const top = Array.from(freq.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            if (top.length) colInfo.stats.top3 = top.map(([k, n]) => k + ' (' + n + ')');
+          } else if (group === 'temporal'){
+            const dates = rows.map(r => new Date(r[c])).filter(d => !isNaN(d));
+            if (dates.length){
+              colInfo.stats = {
+                count: dates.length,
+                minDate: new Date(Math.min.apply(null, dates.map(d => d.getTime()))).toISOString().slice(0, 10),
+                maxDate: new Date(Math.max.apply(null, dates.map(d => d.getTime()))).toISOString().slice(0, 10),
+                nulls: N - dates.length
+              };
+            }
+          }
+        } catch(_){ /* não bloqueia se stats falhar pra uma coluna */ }
+        return colInfo;
+      });
+
       let prompt = `Você é assistente analítico do Solstice (dashboard BI single-file).
-Dataset atual: ${(ctx.rows && ctx.rows.length) || 0} linhas, colunas: ${JSON.stringify(cols)}.
+
+Dataset: ${N} linhas, ${cols.length} colunas.
+
+Schema enriquecido (RAG):
+${JSON.stringify(cols, null, 2)}
 
 Responda em PT-BR conciso (máx 4 parágrafos).
+Use os números do schema enriquecido como evidência (min/max/mean/distinct).
 Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` no final, com formato:
 { "componentType": "kpi|time-series|scatter|boxplot|sankey|distribution|table",
   "config": { /* campos específicos */ } }`;
-      if (includeSample && ctx.rows && ctx.rows.length > 0){
-        const sample = ctx.rows.slice(0, 5);
-        prompt += '\n\nAmostra (5 linhas):\n' + JSON.stringify(sample, null, 2);
+
+      if (includeSample && rows.length > 0){
+        // HC-02: sample expandida — 5 primeiras + 3 do meio + 2 últimas
+        const samp = [];
+        samp.push(...rows.slice(0, 5));
+        if (N > 10) samp.push(...rows.slice(Math.floor(N / 2), Math.floor(N / 2) + 3));
+        if (N > 8) samp.push(...rows.slice(-2));
+        prompt += '\n\nAmostra estratégica (' + samp.length + ' linhas):\n' + JSON.stringify(samp, null, 2);
       }
       return prompt;
     }
@@ -36908,6 +37158,233 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       }, 500);
     }
     return { export: exportPDF };
+  })();
+
+  /* ============================================================
+     JD-01 (Sprint 3) — SolsticeExportSVG
+     Exporta componentes como SVG vetorial editável. Chart.js render
+     em <canvas>; convertemos via duas estratégias:
+       1) Chart.toBase64Image('image/svg+xml') quando disponível
+       2) Snapshot do canvas → embed em <svg><image href=dataurl>
+          (rasterizado mas dentro de SVG container — abre em Inkscape)
+     Componentes não-Chart (KPI/BigNum/Tabela) viram <svg> simples
+     com texto.
+     ============================================================ */
+  const SolsticeExportSVG = (function(){
+
+    function _allSlots(){
+      const sections = SolsticeStore.get('canvas.sections') || [];
+      const out = [];
+      sections.forEach(sec => (sec.rows || []).forEach(row => (row.slots || []).forEach(slot => out.push(slot))));
+      return out;
+    }
+
+    function _slotToSvg(slot){
+      const el = document.querySelector('[data-slot-id="' + slot.id + '"]');
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      const w = Math.max(200, Math.round(rect.width));
+      const h = Math.max(120, Math.round(rect.height));
+
+      // Tenta achar canvas de Chart.js dentro do slot
+      const canvas = el.querySelector('canvas');
+      if (canvas){
+        try {
+          const dataUrl = canvas.toDataURL('image/png');
+          return [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">',
+            '  <title>' + (slot.config && slot.config.title || slot.type) + '</title>',
+            '  <desc>Exportado de Solstice — ' + new Date().toISOString() + '</desc>',
+            '  <image x="0" y="0" width="' + w + '" height="' + h + '" xlink:href="' + dataUrl + '"/>',
+            '</svg>'
+          ].join('\n');
+        } catch(_){}
+      }
+
+      // Sem canvas: gera SVG com texto (KPI/BigNum/Tabela)
+      const text = (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+      const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">',
+        '  <title>' + (slot.config && slot.config.title || slot.type) + '</title>',
+        '  <rect x="0" y="0" width="' + w + '" height="' + h + '" fill="#fff" stroke="#ccc"/>',
+        '  <foreignObject x="8" y="8" width="' + (w-16) + '" height="' + (h-16) + '">',
+        '    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:system-ui,sans-serif;font-size:13px;color:#333;">',
+        '      ' + safe,
+        '    </div>',
+        '  </foreignObject>',
+        '</svg>'
+      ].join('\n');
+    }
+
+    async function open(){
+      const slots = _allSlots();
+      if (!slots.length){
+        SolsticeToast.warn('Canvas vazio', 'Adicione componentes antes de exportar SVG.');
+        return;
+      }
+      // Modal de seleção de componente
+      const options = slots.map(s => ({
+        value: s.id,
+        icon: '📊',
+        label: (s.config && s.config.title) || s.type,
+        desc: 'Slot ' + s.id.slice(0,6) + ' · tipo ' + s.type
+      }));
+      options.unshift({ value: '__all__', icon:'📦', label:'Todos os componentes', desc: slots.length + ' SVGs em um .zip… (1 por slot, baixados em sequência)' });
+
+      const choice = await SolsticeModal.select({
+        title:'🖼️ Exportar SVG',
+        message:'Escolha o componente:',
+        options,
+        confirmLabel:'Exportar'
+      });
+      if (!choice) return;
+
+      const targets = choice === '__all__' ? slots : slots.filter(s => s.id === choice);
+      let n = 0;
+      for (const s of targets){
+        const svg = _slotToSvg(s);
+        if (!svg) continue;
+        const blob = new Blob([svg], { type:'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'solstice-' + s.type + '-' + s.id.slice(0,6) + '.svg';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+        n++;
+        // Pequeno delay entre downloads pra não confundir o navegador
+        if (targets.length > 1) await new Promise(r => setTimeout(r, 200));
+      }
+      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+        SolsticeAudit.record({ action:'export_svg', details:{ count: n } });
+      }
+      SolsticeToast.success('SVG exportado', n + ' arquivo(s) baixado(s)');
+    }
+
+    return { open };
+  })();
+
+  /* ============================================================
+     JD-03 (Sprint 3) — SolsticeEmbed
+     Gera snippet HTML/iframe para incorporar dashboard em site externo.
+     Trade-off: como o single-file é 2MB, o embed real é via data:URL
+     compacta com snapshot LZ-comprimido. Para dashboards menores
+     (<300KB compactos), funciona inline. Acima disso, oferecemos
+     a alternativa "publique solstice_baseline.html em /your-cdn/
+     e use <iframe src='https://yourdomain.com/dashboard.html'>".
+     ============================================================ */
+  const SolsticeEmbed = (function(){
+    function _genSnippet(opts){
+      opts = opts || {};
+      const w = opts.width || '100%';
+      const h = opts.height || '600px';
+      // Snapshot serializável (mesmo do compartilhamento)
+      let snap = '';
+      try {
+        if (typeof SolsticeSnapshot !== 'undefined' && SolsticeSnapshot.captureCompressed){
+          snap = SolsticeSnapshot.captureCompressed();
+        } else if (typeof SolsticeShare !== 'undefined' && SolsticeShare.encodeState){
+          snap = SolsticeShare.encodeState();
+        }
+      } catch(e){ console.warn('[Embed] snapshot failed', e); }
+
+      const inlineLimit = 300 * 1024;
+      const fits = snap && snap.length < inlineLimit;
+
+      if (fits){
+        // Embed via data: URL (totalmente self-contained)
+        // O usuário precisa hospedar o solstice_baseline.html no mesmo domínio
+        // e o iframe carrega com ?state=...
+        return {
+          mode: 'url-state',
+          snippet: '<iframe src="https://YOUR-CDN/solstice_baseline.html#state=' + encodeURIComponent(snap) + '"\n' +
+                   '        width="' + w + '" height="' + h + '"\n' +
+                   '        style="border:0;border-radius:8px;"\n' +
+                   '        title="Solstice dashboard"\n' +
+                   '        allow="clipboard-write">\n' +
+                   '</iframe>',
+          note: 'Substitua "YOUR-CDN" pela URL onde você hospedou solstice_baseline.html.'
+        };
+      }
+      return {
+        mode: 'too-large',
+        snippet: '<!-- Snapshot grande demais para URL inline. -->\n' +
+                 '<!-- 1) Salve snapshot (Ctrl+S) ou export HTML standalone -->\n' +
+                 '<!-- 2) Hospede o arquivo .html no seu CDN -->\n' +
+                 '<iframe src="https://YOUR-CDN/your-dashboard.html"\n' +
+                 '        width="' + w + '" height="' + h + '"\n' +
+                 '        style="border:0;border-radius:8px;"\n' +
+                 '        title="Solstice dashboard">\n' +
+                 '</iframe>',
+        note: 'Snapshot (' + Math.round((snap || '').length/1024) + ' KB) ultrapassa limite de URL — use HTML standalone hospedado.'
+      };
+    }
+    async function open(){
+      const hasData = SolsticeStore.get('dataset.ready');
+      if (!hasData){
+        SolsticeToast.warn('Sem dashboard', 'Importe dados + monte componentes antes de gerar embed.');
+        return;
+      }
+      let width = '100%', height = '600px';
+      SolsticeModal.show({
+        title: '🌐 Código de embed',
+        size: 'lg',
+        body: (close) => {
+          const body = SolsticeUtils.el('div');
+          body.appendChild(SolsticeUtils.el('div', {
+            style:'padding:10px 12px;background:color-mix(in srgb,var(--c-accent) 8%, var(--c-surface-2));border-left:3px solid var(--c-accent);border-radius:6px;font-size:12px;margin-bottom:12px;line-height:1.5;'
+          },
+            '🌐 ', SolsticeUtils.el('strong', null, 'Incorporar em site externo'),
+            ': use o snippet abaixo. Edite ', SolsticeUtils.el('code', null, 'YOUR-CDN'),
+            ' pra apontar pro arquivo hospedado.'));
+
+          // Width / height inputs
+          const dimRow = SolsticeUtils.el('div', { style:'display:flex;gap:8px;margin-bottom:12px;' });
+          const wIn = SolsticeUtils.el('input', { type:'text', value: width, style:'flex:1;padding:6px 8px;border:1px solid var(--c-border);border-radius:4px;background:var(--c-surface);color:var(--c-text);' });
+          const hIn = SolsticeUtils.el('input', { type:'text', value: height, style:'flex:1;padding:6px 8px;border:1px solid var(--c-border);border-radius:4px;background:var(--c-surface);color:var(--c-text);' });
+          dimRow.appendChild(SolsticeUtils.el('label', { style:'flex:1;font-size:12px;color:var(--c-text-2);' }, 'Largura: ', wIn));
+          dimRow.appendChild(SolsticeUtils.el('label', { style:'flex:1;font-size:12px;color:var(--c-text-2);' }, 'Altura: ', hIn));
+          body.appendChild(dimRow);
+
+          const out = SolsticeUtils.el('pre', {
+            style:'background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;padding:12px;font-size:11px;font-family:var(--font-mono);overflow:auto;max-height:300px;white-space:pre-wrap;word-break:break-all;'
+          });
+          const noteEl = SolsticeUtils.el('div', { style:'font-size:11px;color:var(--c-muted);margin-top:8px;' });
+
+          function render(){
+            const r = _genSnippet({ width: wIn.value, height: hIn.value });
+            out.textContent = r.snippet;
+            noteEl.textContent = r.note;
+          }
+          render();
+          wIn.addEventListener('input', render);
+          hIn.addEventListener('input', render);
+
+          body.appendChild(out);
+          body.appendChild(noteEl);
+
+          const copyBtn = SolsticeUtils.el('button', {
+            class:'solstice__btn solstice__btn--primary',
+            style:'margin-top:12px;',
+            onclick: () => {
+              navigator.clipboard.writeText(out.textContent).then(
+                () => SolsticeToast.success('Copiado', 'Snippet de embed na área de transferência'),
+                () => SolsticeToast.warn('Falhou', 'Copie manualmente o trecho acima')
+              );
+            }
+          }, '📋 Copiar snippet');
+          body.appendChild(copyBtn);
+          return body;
+        },
+        footer: (close) => [
+          SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => close(null) }, 'Fechar')
+        ]
+      });
+    }
+    return { open };
   })();
 
   /* ============================================================
