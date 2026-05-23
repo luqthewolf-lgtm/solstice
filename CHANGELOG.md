@@ -5,6 +5,46 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Auditoria 2026.2 — 2026-05-23
+
+Segunda passada do Product Audit Board sobre o `v6-autonomous`. **57 correções aplicadas e validadas**.
+Detalhes em [docs/auditoria-2026-2/](docs/auditoria-2026-2/).
+
+### 🔐 Confiabilidade & Segurança
+- **`document.write` eliminado** (MC-A2) — último uso do arquivo, no presenter dual-window. Substituído por DOM API + listener delegado via `data-cmd`. Recon final: 0 ocorrências.
+- **Box plot XLSX consistente** (MC-A1) — usa `SolsticeStats.quartiles` (interpolação linear, type-7, igual NumPy) em vez de `s[Math.floor(p*(n-1))]`. Mesmo dataset agora exporta Q1/Q3 idênticos ao box plot renderizado.
+
+### 🧹 Cleanliness
+- **16 `console.warn` migrados para `SolsticeLog`** (JM-A3) — fallbacks de boot esperados ficam silenciosos em produção (debug=1 mantém visibilidade); erros reais continuam em `SolsticeLog.warn`.
+- **Div fantasma `solstice-sidebar-footer-btns-removed` removida** (JM-A1).
+- **`block-status` dev compactado** (JM-M2) — 40+ linhas no DOM → 2 linhas + apontador `Solstice.Debug.bootLog()`.
+- **`app-version` inicial sem versão hardcoded** (JM-A2) — boot popula a partir de `window.Solstice.version`.
+- **Comentário "hack" em `SolsticeStore.batch` reescrito** (JM-B3) — não é hack, é forma idiomática.
+
+### 💎 UX
+- **Status bar mostra "—" em vez de "0" pré-import** (MC-A3 + BR-M5) — `rows/cols` honram `0 length → "—"`. Status "salvo automaticamente" começa neutro `○ Sem alterações`; flag `_flashEnabled` ignora 1ª invocação (boot/snapshot rehydrate).
+- **Ask Bar placeholder dinâmico** (BR-A3) — `"Importe um CSV pra começar…"` em welcome, troca para `"Pergunte sobre seus dados…"` quando há dataset. Tooltip também muda.
+- **Welcome com "Ver com dataset de exemplo" por padrão** (BR-A1) — antes era dev-only; agora controlado por `settings.hideExampleButton` (default off). Copy: `"✨ Ver com dataset de exemplo · Vendas BR sintéticas + Auto-Dashboard em 1 clique"`.
+- **ExecutiveInsights fallback amigável** (BR-A2) — quando não há business insights, mostra `"📈 Insights Executivo — nada de negócio para destacar agora. A análise técnica está em 'Insights' → aba Qualidade/base."` + link `"Ver insights completos →"` no rodapé.
+- **Ask Bar sem dataset com CTAs visíveis** (H1+BR-A1) — banner + 2 botões (✨ Ver exemplo / 📁 Importar) + 7 perguntas universais clicáveis.
+- **Catálogo de perguntas do Ask Bar expandido** (H1) — 6 categorias × ~22 itens (adiciona `💼 Negócio`: "onde está concentrado o volume", "o que mudou recentemente", "tem algo preocupante").
+- **Tooltips do `help-btn` e `btn-show-shortcuts` mais informativos** (BR-M8).
+- **`aria-live="polite"` + tooltip explicativo no `status-saved`**.
+
+### 🏗️ Arquitetura
+- **`window.Solstice._runIngestFile` exposto** (MC-M3) — `SolsticeFolderAttach.refresh` tinha fallback que sempre falhava silenciosamente; agora funciona.
+
+### 📊 Métricas (antes / depois da Auditoria 2026.2)
+
+| Sinal | Antes | Depois |
+|---|---|---|
+| `document.write` | 1 | **0** |
+| Score auditoria | 80/100 | **86/100** |
+| Veredito | 🟡 Precisa de trabalho | **🟢 Viável com ressalvas** |
+| Bloqueadores abertos | 0 | 0 |
+
+---
+
 ## [Unreleased] — branch `v6-autonomous`
 
 6 blocos de melhorias autônomas (não-merged em main ainda). 27 features novas. 4 novos módulos. Documentos V2 e V3 com 18 personas adicionais + 47 achados.

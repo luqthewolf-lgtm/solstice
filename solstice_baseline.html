@@ -47,7 +47,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Solstice — Dashboard Studio v5.6 (patched). BI single-file agnóstico para qualquer CSV. Multi-CSV, virtualização, comparação de períodos, export de imagem/PDF e responsividade universal.">
+<meta name="description" content="Solstice — Dashboard Studio v5.6.0-patched · Auditoria 2026.2. BI single-file agnóstico para qualquer CSV. Multi-CSV, virtualização, comparação de períodos, export imagem/PDF/XLSX, atrelar pasta e responsividade universal.">
 
 <!-- Open Graph (CF-03): preview rico em LinkedIn/Twitter/Slack quando alguém compartilha -->
 <meta property="og:title" content="Solstice — Dashboard Studio">
@@ -6418,9 +6418,10 @@
   <div style="font-size:14px;color:rgba(255,255,255,0.7);margin-top:8px;">Dashboard Studio</div>
 </div>
 
-<!-- Banner versão (dev-only — só visível com data-debug=true) -->
+<!-- Banner versão (dev-only — só visível com data-debug=true)
+     Auditoria 2026.2: atualizado para refletir Sprints 1-6 + v6-autonomous + Auditoria 2026.2 -->
 <div class="solstice__version-banner solstice__dev-section" role="status">
-  🌗 SOLSTICE v5.6 patched · Tabela virtualizada · Export PNG/PDF · Cross-filter em todos · Comparação de períodos · Multi-CSV · Responsivo universal
+  🌗 SOLSTICE v5.6.0-patched · Sprints 1-6 · v6-autonomous · Auditoria 2026 + 2026.2 · Vtable · PNG/PDF/XLSX · Cross-filter · Comparação · Multi-CSV · Atrelar pasta · Responsivo
 </div>
 
 <!-- App shell -->
@@ -6452,13 +6453,16 @@
     </div>
 
     <!-- Ask Bar central (estilo Notion/Linear) — sempre visível.
-         Clica/digita → abre SolsticeAsk modal de chat com prompt pré-preenchido. -->
+         Clica/digita → abre SolsticeAsk modal de chat com prompt pré-preenchido.
+         Auditoria 2026.2 (BR-A3): placeholder começa contextualizado pra
+         estado vazio. Boot atualiza para "Pergunte sobre seus dados…" assim
+         que dataset.ready vira true. -->
     <div class="solstice__header-ask" role="search">
       <button id="btn-header-ask" class="solstice__header-ask-input" type="button"
-              title="Pergunte sobre seus dados em português · Ctrl+P"
+              title="Importe um CSV → depois pergunte em português · Ctrl+P"
               aria-label="Abrir Pergunte ao Solstice">
         <span class="solstice__header-ask-icon" aria-hidden="true">💬</span>
-        <span class="solstice__header-ask-placeholder">Pergunte sobre seus dados…</span>
+        <span class="solstice__header-ask-placeholder" id="header-ask-placeholder">Importe um CSV pra começar…</span>
         <span class="solstice__header-ask-kbd" aria-hidden="true">Ctrl+P</span>
       </button>
     </div>
@@ -6546,11 +6550,19 @@
           <span id="profile-name">Lucas</span>
         </button>
 
-        <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="btn-show-shortcuts" title="Atalhos de teclado · Ctrl+/" aria-label="Ver atalhos de teclado">
+        <!-- Auditoria 2026.2 (BR-B): tooltip mais claro indicando atalho global Ctrl+/ -->
+        <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="btn-show-shortcuts"
+                title="Ver todos os atalhos de teclado · pressione Ctrl + / em qualquer lugar"
+                aria-label="Ver atalhos de teclado">
           ⌨️
         </button>
 
-        <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="help-btn" title="Ajuda · ?" aria-label="Abrir ajuda e onboarding">
+        <!-- Auditoria 2026.2 (BR-M8): tooltip + aria-label expandidos para
+             ajudar usuário novo. O onboarding é o caminho principal pra entender
+             o produto em < 2 minutos. -->
+        <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="help-btn"
+                title="Abrir tour de boas-vindas · primeiros passos · atalhos (tecla ?)"
+                aria-label="Abrir ajuda — tour, primeiros passos, atalhos">
           ?
         </button>
       </div>
@@ -6627,10 +6639,8 @@
     </div>
 
     <!-- SOL-G1/G2/G3/G5: footer da sidebar removido. Controles macro (⌨️ atalhos)
-         migraram para o header; ⚙️ Settings agora abre via #profile-btn (entry
-         point único). Modo Iniciante e Modo Amigável vivem em Settings →
-         Preferências (não mais espalhados no rodapé). -->
-    <div id="solstice-sidebar-footer-btns-removed" style="display:none;" aria-hidden="true"></div>
+         migraram para o header; ⚙️ Settings agora abre via #profile-btn.
+         Auditoria 2026.2 (JM-A1): div placeholder removida — era cruft literal. -->
 
     <!-- B12-r1 / ADR-091: Atalhos e Status são dev-sections — só visíveis com debug ativo -->
     <div class="solstice__sidebar-section solstice__dev-section">
@@ -6647,52 +6657,15 @@
       </div>
     </div>
 
+    <!-- Auditoria 2026.2 (JM-M2 / BR-M1): block-status dev compactado.
+         Antes: 40+ linhas de histórico no DOM mesmo escondido (~5KB).
+         Agora: resumo em 2 linhas; histórico completo via
+         Solstice.Debug.bootLog() no console quando debug=1. -->
     <div class="solstice__sidebar-section solstice__dev-section">
-      <div class="solstice__sidebar-title">Status do bloco (dev)</div>
+      <div class="solstice__sidebar-title">Status (dev)</div>
       <div id="block-status" style="font-size: var(--fs-sm); color: var(--c-text-2); line-height: 1.6;">
-        <strong style="color:var(--c-success)">✓</strong> Fundação (B1)<br>
-        <strong style="color:var(--c-success)">✓</strong> Locale + Erros + Dicionário (B1)<br>
-        <strong style="color:var(--c-success)">✓</strong> Ingestão + Tipos + Editor + Quality (B2)<br>
-        <strong style="color:var(--c-success)">✓</strong> Canvas + Layouts + Templates (B3)<br>
-        <strong style="color:var(--c-success)">✓</strong> Undo/Redo + Resize + DnD + Free Mode (B4)<br>
-        <strong style="color:var(--c-success)">✓</strong> 4 Componentes + Auditoria + Provenance (B5)<br>
-        <strong style="color:var(--c-success)">✓</strong> 6 Componentes avançados (Scatter, Heatmap, Gauge, MD, Box, Sankey) (B6)<br>
-        <strong style="color:var(--c-success)">✓</strong> Consolidação visual (SVGs responsivos · Props legível · Resumo do Dataset · Modal drag-safe) (B6-r1)<br>
-        <strong style="color:var(--c-success)">✓</strong> SolsticeStats — 35+ funções puras (descritiva · regressão · séries · outliers · correlação) (B7)<br>
-        <strong style="color:var(--c-success)">✓</strong> Aba "📈 Análise" no Props · "Por que esse número?" (B7)<br>
-        <strong style="color:var(--c-success)">✓</strong> Smart defaults Scatter/Gauge/Box Plot/Sankey ao adicionar componente (B7)<br>
-        <strong style="color:var(--c-success)">✓</strong> Cap de tamanho dos componentes (max-height por tier · sem estouro vertical) (B7-r1)<br>
-        <strong style="color:var(--c-success)">✓</strong> Inspector lateral direito (320px · accordion · grid 3-col) (B7-r2)<br>
-        <strong style="color:var(--c-success)">✓</strong> Drawer Análise inferior (📈 estatística separada do Inspector) (B7-r2)<br>
-        <strong style="color:var(--c-success)">✓</strong> Catálogo de componentes em accordion (Básicos/Avançados/Texto) (B7-r2)<br>
-        <strong style="color:var(--c-success)">✓</strong> Painel de Insights Executivos automáticos · 6 tipos detectados (B8)<br>
-        <strong style="color:var(--c-success)">✓</strong> Narrativa Automática · 3 tons · export markdown (Diferencial #2) (B8)<br>
-        <strong style="color:var(--c-success)">✓</strong> Agente Proativo · toasts contextuais com cap 3/sessão (B8)<br>
-        <strong style="color:var(--c-success)">✓</strong> SolsticeInconsistencies · 15 regras analíticas (B8)<br>
-        <strong style="color:var(--c-success)">✓</strong> "Pergunte ao Solstice" · Ctrl+P · parser NL simples (B8)<br>
-        <strong style="color:var(--c-success)">✓</strong> Empty state centralizado · canvas flex column (B8-r1)<br>
-        <strong style="color:var(--c-success)">✓</strong> Filtros Globais · multi-select + range + date presets (B9)<br>
-        <strong style="color:var(--c-success)">✓</strong> Cross-Filter por clique propaga filtro (B9)<br>
-        <strong style="color:var(--c-success)">✓</strong> Parâmetros globais · variáveis {{param.X}} (B9)<br>
-        <strong style="color:var(--c-success)">✓</strong> ColumnScore · 8 critérios compostos (B10)<br>
-        <strong style="color:var(--c-success)">✓</strong> Recommender · 15+ regras declarativas com confidence (B10)<br>
-        <strong style="color:var(--c-success)">✓</strong> Auto-Dashboard · pipeline com confirmação se conf &lt; 70% (B10)<br>
-        <strong style="color:var(--c-success)">✓</strong> Wizard · 11 intenções (7 agnósticas + 4 analíticas + customizada) (B10)<br>
-        <strong style="color:var(--c-success)">✓</strong> Snapshots em localStorage com LZ-String (B11)<br>
-        <strong style="color:var(--c-success)">✓</strong> Histórico de versões automático · 10 últimas (B11)<br>
-        <strong style="color:var(--c-success)">✓</strong> File System Access API + fallback download/upload (B11)<br>
-        <strong style="color:var(--c-success)">✓</strong> Export HTML standalone com dados embutidos (B11)<br>
-        <strong style="color:var(--c-success)">✓</strong> 3 templates Itaú pré-instalados (Carteira PJ · Inadimplência · Pipeline) (B11)<br>
-        <strong style="color:var(--c-success)">✓</strong> Aba "🧠 Dicionários" na sidebar — CRUD de dicionários salvos (B11)<br>
-        <strong style="color:var(--c-success)">✓</strong> 5 modos: Edit · Analyze · Review · Present · Slides (B12)<br>
-        <strong style="color:var(--c-success)">✓</strong> Modo Slides + Apresentador dual-window com notas e timer (B12)<br>
-        <strong style="color:var(--c-success)">✓</strong> Command Palette · Ctrl+K · fuzzy search com 30+ ações (B12)<br>
-        <strong style="color:var(--c-success)">✓</strong> Tour interativo · 9 passos · spotlight overlay (B12)<br>
-        <strong style="color:var(--c-success)">✓</strong> LTTB downsampling + microinterações + a11y polish (B12)<br>
-        <strong style="color:var(--c-success)">✓</strong> Patch Final UX: 9 bugs corrigidos · aba Dados sempre visível · 🔄 trocar componente · welcome screen refeita (B12-r1)<br>
-        <strong style="color:var(--c-success)">✓</strong> Bloco 13: Diferenciais Avançados · Comentários completo (threads) · Grafo de Métricas<br>
-        <!-- Auditoria 2026 (M-H-2 / A-103): "Próximo" mentia (Bloco 13 já entregue). -->
-        <strong style="color:var(--c-success)">✓</strong> Auditoria 2026 (B-01 a B-07 + R-01 a R-20): bloqueantes + ganhos rápidos aplicados (cf. RELATORIO.md)
+        <strong style="color:var(--c-success)">✓</strong> v5.6.0-patched · 13/13 blocos · Sprints 1-6 + v6-autonomous · Auditoria 2026 + 2026.2<br>
+        <span style="color:var(--c-muted);font-size:11px;">Histórico completo: <code>Solstice.Debug.bootLog()</code> no console</span>
       </div>
     </div>
   </aside>
@@ -6755,14 +6728,23 @@
       <span class="solstice__status-item">👤 <span id="status-profile">—</span></span>
     </div>
     <div class="solstice__status-group">
-      <span class="solstice__status-item">📊 <span id="status-rows">0</span> linhas · <span id="status-cols">0</span> col</span>
+      <!-- Auditoria 2026.2 (MC-A3): mostra "—" enquanto não há dataset.
+           Antes mostrava "0 linhas · 0 col" antes do import, confundindo
+           usuário novo que pensava "tem dataset com zero linhas?". O boot
+           popula com valor real quando ingest entra no Store. -->
+      <span class="solstice__status-item">📊 <span id="status-rows">—</span> linhas · <span id="status-cols">—</span> col</span>
     </div>
     <div class="solstice__status-group">
-      <span class="solstice__status-item" id="status-saved" title="Estado do auto-save" style="color:var(--c-success);">● Salvo automaticamente</span>
-      <!-- Auditoria 2026 (M-H-1 / A-102): texto inicial alinhado à única
-           fonte da verdade (window.Solstice.version, definida no boot).
-           O boot atualiza este span ao final da inicialização. -->
-      <span class="solstice__status-item" id="app-version">Solstice v5.6</span>
+      <!-- Auditoria 2026.2 (BR-M5): antes "● Salvo automaticamente" sempre,
+           mesmo sem nada salvo. Agora começa neutro até primeira mudança real.
+           A11y: aria-live="polite" para anunciar mudanças. -->
+      <span class="solstice__status-item" id="status-saved" aria-live="polite"
+            title="Indicador de auto-save: ○ Sem alterações · ● Alterações não salvas (pisca) · ● Salvo automaticamente"
+            style="color:var(--c-muted);">○ Sem alterações</span>
+      <!-- Auditoria 2026 (M-H-1 / A-102) + 2026.2 (JM-A2): texto inicial sem
+           versão hardcoded — evita flicker "v5.6" → "v5.6.0-patched". O boot
+           popula a partir de window.Solstice.version (única fonte de verdade). -->
+      <span class="solstice__status-item" id="app-version">Solstice</span>
     </div>
   </footer>
 
@@ -7313,8 +7295,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const buffered = [];
       const origNotify = _notify;
       muted = true;
-      // hack: substitui temporariamente _notify pra capturar paths
-      // que deveriam notificar (path exato ou ancestor em except).
+      // Auditoria 2026.2 (JM-B3): wrapper temporário do _notify pra capturar
+      // os paths em `except` durante o batch — não é "hack", é a forma idiomática
+      // de implementar exceções de notificação em um store com sub-paths.
+      // Substituição é revertida na linha seguinte (`_notify = origNotify`).
       _notify = function(path, val, prev){
         const isExcept = except.some(p => path === p || path.indexOf(p + '.') === 0);
         if (isExcept) buffered.push({ path, val, prev });
@@ -10733,7 +10717,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Roda autoDash em silent (modal só se conf < 40%)
       setTimeout(() => {
         try { SolsticeAutoDashboard.run({ silent: true }); }
-        catch (e) { console.warn('[Express] autoDash falhou:', e); }
+        catch (e) { SolsticeLog.debug('[Express] autoDash falhou:', e); }
       }, 200);
     } else {
       SolsticeDictionary.openConfigModal(result.dictDetection, result.columns, finalDict => {
@@ -11063,9 +11047,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     if (btnHeaderAsk){
       btnHeaderAsk.addEventListener('click', () => {
         try { SolsticeAsk.open(); }
-        catch(e){ console.warn('[AskBar]', e); }
+        catch(e){ SolsticeLog.warn('[AskBar]', e); }
       });
     }
+    // Auditoria 2026.2 (BR-A3): placeholder dinâmico — começa "Importe um CSV"
+    // (welcome state), troca para "Pergunte sobre seus dados…" quando há
+    // dataset. Reduz fricção de quem ainda não sabe o que o produto faz.
+    (function _initAskBarPlaceholder(){
+      const ph = document.getElementById('header-ask-placeholder');
+      const btn = document.getElementById('btn-header-ask');
+      if (!ph) return;
+      const _apply = (ready) => {
+        if (ready){
+          ph.textContent = 'Pergunte sobre seus dados…';
+          if (btn) btn.title = 'Pergunte sobre seus dados em português · Ctrl+P';
+        } else {
+          ph.textContent = 'Importe um CSV pra começar…';
+          if (btn) btn.title = 'Importe um CSV → depois pergunte em português · Ctrl+P';
+        }
+      };
+      _apply(!!SolsticeStore.get('dataset.ready'));
+      SolsticeStore.subscribe('dataset.ready', _apply);
+    })();
 
     // 4. Botões globais — 3 DROPDOWNS no header (Fix 2 da Camada 1):
     //    📁 Importar ▾ · 💾 Salvar ▾ · ⬇️ Exportar ▾
@@ -11360,7 +11363,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     // SOL-B1 + SOL-A1: instala Modelo de Dados (relacionamentos) em idle, depois
     // do primeiro paint do welcome — não bloqueia main thread no boot.
-    const _installRels = () => { try { SolsticeRelationships.install(); } catch(e){ console.warn('[SolsticeRelationships] install falhou', e); } };
+    // Auditoria 2026.2 (JM-A3): fallbacks de boot ficam em SolsticeLog —
+    // erros reais continuam visíveis (warn), debug em fallbacks silenciosos.
+    const _installRels = () => { try { SolsticeRelationships.install(); } catch(e){ SolsticeLog.warn('[SolsticeRelationships] install falhou', e); } };
     if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(_installRels, { timeout: 1200 });
     else setTimeout(_installRels, 200);
 
@@ -11511,7 +11516,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }, 1500);
 
     // Patch Final (ADR-140): SolsticeWorkspace init (selector no header + auto-save)
-    try { SolsticeWorkspace.init(); } catch(e){ console.warn('[Workspace] init falhou', e); }
+    try { SolsticeWorkspace.init(); } catch(e){ SolsticeLog.debug('[Workspace] init falhou', e); }
 
     // Patch Final (ADR-146): atalho vim-style g + key
     let gPending = false;
@@ -11541,11 +11546,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const ws = SolsticeWorkspace.active();
       const wsEl = document.getElementById('status-workspace');
       if (wsEl) wsEl.textContent = '📊 ' + (ws ? ws.name : '—');
+      // Auditoria 2026.2 (MC-A3): mantém "—" enquanto não há linhas/colunas
+      // reais. Mostrar "0" é semanticamente errado (sugere dataset vazio)
+      // e confunde usuário novo no welcome state.
       const ingest = SolsticeStore.get('ingest') || {};
+      const rows = ingest.rows || [];
+      const cols = ingest.columns || [];
       const rEl = document.getElementById('status-rows');
       const cEl = document.getElementById('status-cols');
-      if (rEl) rEl.textContent = (ingest.rows || []).length.toLocaleString('pt-BR');
-      if (cEl) cEl.textContent = String((ingest.columns || []).length);
+      if (rEl) rEl.textContent = rows.length ? rows.length.toLocaleString('pt-BR') : '—';
+      if (cEl) cEl.textContent = cols.length ? String(cols.length) : '—';
     }
     _refreshStatusBar();
     SolsticeStore.subscribe('ingest', _refreshStatusBar);
@@ -11553,8 +11563,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // Pisca o "salvo" amarelo brevemente em mudanças
     const savedEl = document.getElementById('status-saved');
     let savedTimer = null;
+    // Auditoria 2026.2 (BR-M5): subscriber ignora a 1ª invocação (re-hidratação
+    // do boot/snapshot load). Antes, o "● Salvo automaticamente" verde aparecia
+    // sempre, confundindo usuário no estado vazio ("salvo o quê?").
+    let _flashEnabled = false;
     const flashSaved = () => {
       if (!savedEl) return;
+      if (!_flashEnabled) { _flashEnabled = true; return; }  // ignora 1ª chamada
       savedEl.style.color = 'var(--c-warn)';
       savedEl.textContent = '● Alterações não salvas';
       clearTimeout(savedTimer);
@@ -11566,7 +11581,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     SolsticeStore.subscribe('canvas.sections', flashSaved);
 
     // Patch Final (ADR-143): SolsticeShare — verifica hash compartilhado
-    setTimeout(() => { try { SolsticeShare.checkHash(); } catch(e){ console.warn('[Share] checkHash falhou', e); } }, 400);
+    setTimeout(() => { try { SolsticeShare.checkHash(); } catch(e){ SolsticeLog.debug('[Share] checkHash falhou', e); } }, 400);
 
     // Patch 1B (ADR-125): SolsticeHints check inicial + após import
     setTimeout(() => { try { SolsticeHints.checkAndShow(); } catch(e){} }, 1200);
@@ -11646,7 +11661,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'Patch Corretivo · 10 bugs + 5 componentes novos (Pivot/Slider/EventTimeline/BigNum/Funnel) + edição inline + aba Estilo',
       'Camada 1 · Sticky v3 Twitter-like · Header 3 dropdowns · Toolbar enxuta · Busca catálogo · Atalhos Ctrl+/',
       'Camada Style · SolsticeStyle (7 presets + 7 paletas) · CSS vars universais · aba Estilo redesenhada',
-      'Auditoria 2026 · B-01 a B-07 + R-01 a R-20 + M-* (cf. RELATORIO.md)'
+      'Auditoria 2026 · B-01 a B-07 + R-01 a R-20 + M-* (cf. RELATORIO.md)',
+      'v6-autonomous · BLOCO 1-8 (i18n + boot tests + datasets demo + toast pos + annotations + FAB ajuda + brand-doctitle no DashHeader)',
+      'Auditoria 2026.2 · box plot XLSX consistente (MC-A1) · presenter sem doc.write (MC-A2) · status bar "—" pré-import (MC-A3) · placeholder Ask dinâmico (BR-A3) · welcome com exemplo default (BR-A1) · ExecutiveInsights fallback (BR-A2) · catálogo Ask expandido (H1) · console.warn gated · block-status compactado'
     ];
     if (typeof SolsticeDebug !== 'undefined' && SolsticeDebug.registerBootLog){
       SolsticeDebug.registerBootLog(_bootHistory);
@@ -11657,7 +11674,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // Auditoria 2026 (JM-02): banner público de boot via SolsticeLog.boot.
     // Banner principal SEMPRE visível (confirma que o app carregou).
     // Histórico de patches só em debug=1 (gated por _isDebug, mantém o gate).
-    SolsticeLog.boot('🌗 SOLSTICE v5.6 · 13/13 blocos · auditoria 2026 aplicada · pronto', '#4D9FFF');
+    SolsticeLog.boot('🌗 SOLSTICE v5.6.0-patched · 13/13 blocos · Sprints 1-6 + v6-autonomous + Auditoria 2026 + 2026.2 · pronto', '#4D9FFF');
     if (_isDebug){
       SolsticeLog.info('Histórico de patches (camadas que construíram esta versão):');
       _bootHistory.forEach(line => SolsticeLog.info('  • ' + line));
@@ -11989,7 +12006,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
           // Se fallback ou conf baixa, continua pra detecção por valor mas
           // preserva o audit pra UI.
-        } catch (e){ console.warn('[Types.inferColumn] Inference falhou, usando fallback:', e); }
+        } catch (e){ SolsticeLog.debug('[Types.inferColumn] Inference falhou, usando fallback:', e); }
       }
 
       // 2) Testa cada tipo
@@ -25823,7 +25840,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           newTypes[name] = SolsticeTypes.inferColumn(values);
           newTypes[name]._derived = true; // marca pra UI
         } catch(err){
-          console.warn('[FormulaRow] erro ao calcular ' + name + ':', err.message);
+          SolsticeLog.warn('[FormulaRow] erro ao calcular ' + name + ':', err.message);
           newRows.forEach(r => { r[name] = null; });
           newTypes[name] = { type: 'string', _derived: true, _error: err.message };
         }
@@ -27770,9 +27787,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function _renderEmptyState(){
       const wrap = SolsticeUtils.el('div', { class:'solstice__canvas-empty solstice__welcome' });
       const ds = SolsticeStore.get('dataset.ready');
-      // HOTFIX v5.5: dev-mode pra esconder botão "exemplo" em produção.
-      const showExample = document.documentElement.getAttribute('data-debug') === 'true' ||
-                          SolsticeStore.get('settings.showExampleButton') === true;
+      // Auditoria 2026.2 (BR-A1): "Carregar exemplo" agora visível por padrão.
+      // O super prompt e a Fase C mostraram que ofuscar o exemplo prejudica a
+      // primeira impressão — usuários sem CSV à mão (Camila, Wesley, Henrique
+      // avaliando) abandonam. Pra desabilitar, use settings.hideExampleButton.
+      const showExample = SolsticeStore.get('settings.hideExampleButton') !== true;
       if (!ds){
         // S4-05 (Sprint 4 / Lucas + Vanessa/Airbnb · VC-01): welcome sem dataset
         // tem AGORA UMA hierarquia clara: 1 CTA gigante "Importar". Chat de perguntas
@@ -27846,13 +27865,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         pathExp.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-cta' }, '⚡ Importar Express →'));
         paths.appendChild(pathExp);
 
-        // (c) Exemplo — só visível em dev-mode (data-debug=true OU setting)
+        // (c) Exemplo — Auditoria 2026.2 (BR-A1): default ativo. Permite que
+        // usuário veja o produto funcionando antes de buscar CSV próprio.
+        // Dados sintéticos, marcados claramente como "exemplo".
         if (showExample){
           const pathB = SolsticeUtils.el('button', {
             class:'solstice__welcome-path',
             type:'button',
-            'aria-label':'Carregar dataset de exemplo (dev-only)',
-            title:'Visível apenas em modo dev (data-debug=true ou settings.showExampleButton)',
+            'aria-label':'Carregar dataset de exemplo (vendas sintéticas) e ver Auto-Dashboard',
+            title:'Carrega um CSV sintético de vendas + AutoDash automático — pra você ver o produto sem precisar de dados próprios',
             onclick: () => {
               _loadDummyDataset();
               setTimeout(() => {
@@ -27861,11 +27882,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               }, 700);
             }
           });
-          pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-icon' }, '📊'));
-          pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-title' }, 'Dataset de exemplo'));
+          pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-icon' }, '✨'));
+          pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-title' }, 'Ver com dataset de exemplo'));
           pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-desc' },
-            'Carrega vendas BR sintético + AutoDash. Só pra testes.'));
-          pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-cta' }, '📊 Carregar →'));
+            'Vendas BR sintéticas + Auto-Dashboard em 1 clique. Pra explorar sem precisar de CSV próprio.'));
+          pathB.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-path-cta' }, '✨ Explorar →'));
           paths.appendChild(pathB);
         }
         wrap.appendChild(paths);
@@ -28037,7 +28058,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         style: 'display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid var(--c-border);border-radius:6px;font-size:12px;color:var(--c-text-2);cursor:pointer;transition:all 150ms;',
         onclick: () => {
           try { if (typeof SolsticeTour !== 'undefined') SolsticeTour.start(); }
-          catch(e){ console.warn('[Tour]', e); }
+          catch(e){ SolsticeLog.warn('[Tour]', e); }
         }
       });
       tourBtn.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true' }, '🧭'));
@@ -28057,7 +28078,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             setTimeout(() => {
               if (typeof SolsticeAutoDashboard !== 'undefined') SolsticeAutoDashboard.run({ force: true });
             }, 600);
-          } catch(e){ console.warn('[Showcase]', e); }
+          } catch(e){ SolsticeLog.warn('[Showcase]', e); }
         }
       });
       showcaseBtn.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true' }, '✨'));
@@ -28132,7 +28153,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               // Após carregar dummy, dispara Auto-Dashboard pra montar tudo
               setTimeout(() => {
                 try { if (typeof SolsticeAutoDashboard !== 'undefined') SolsticeAutoDashboard.run({ force: true }); }
-                catch(e){ console.warn('[AutoDashboard]', e); }
+                catch(e){ SolsticeLog.warn('[AutoDashboard]', e); }
               }, 600);
             }
           }, '📊 Exemplo + Auto-Dashboard'));
@@ -30276,7 +30297,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (!parentEl) return;
       if (SolsticeStore.get('ui.executive.hidden') === true) return;
       const items = compute();
-      if (!items.length) return;
+      // Auditoria 2026.2 (BR-A2): se não há business insights mas há dataset,
+      // mostra fallback explicativo em vez de não renderizar. Antes o painel
+      // sumia silenciosamente — usuário não sabia se a IA tinha sido executada.
+      if (!items.length){
+        const dsReady = !!SolsticeStore.get('dataset.ready');
+        if (!dsReady) return;
+        const allInsights = (typeof SolsticeInsights !== 'undefined') ? SolsticeInsights.compute() : [];
+        const onlyTech = allInsights.length > 0;
+        const fallback = SolsticeUtils.el('div', {
+          class: 'solstice__executive',
+          style: 'background: var(--c-surface-2);' +
+                 'border: 1px dashed var(--c-border);' +
+                 'border-radius: var(--rad-md); margin-bottom: var(--sp-3);' +
+                 'padding: 12px 14px; font-size: 12px; color: var(--c-text-2); line-height: 1.5;'
+        });
+        fallback.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true', style:'font-size:14px;margin-right:6px;' }, '📈'));
+        fallback.appendChild(SolsticeUtils.el('span', { style:'font-weight:600;color:var(--c-text);' }, 'Insights Executivo'));
+        fallback.appendChild(SolsticeUtils.el('span', null,
+          onlyTech
+            ? ' — nada de negócio para destacar agora. A análise técnica está em "Insights" → aba Qualidade/base.'
+            : ' — sem destaques relevantes neste dataset. Adicione KPIs ou tente outra base para gerar a narrativa executiva.'));
+        parentEl.appendChild(fallback);
+        return;
+      }
 
       const isCollapsed = !!SolsticeStore.get('ui.executive.collapsed');
       const wrap = SolsticeUtils.el('div', {
@@ -30338,6 +30382,24 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         row.appendChild(txt);
         body.appendChild(row);
       });
+      // Auditoria 2026.2: link "Ver insights completos" no rodapé do executivo.
+      // Atalho pro painel detalhado (Negócio + Qualidade).
+      const footer = SolsticeUtils.el('div', {
+        style:'padding:6px 14px 10px 14px;border-top:1px solid color-mix(in srgb, var(--c-accent) 12%, transparent);margin-top:4px;display:flex;justify-content:flex-end;'
+      });
+      const moreBtn = SolsticeUtils.el('button', {
+        type:'button',
+        style:'background:transparent;border:none;color:var(--c-accent);font-size:11px;cursor:pointer;padding:2px 4px;font-weight:600;',
+        title:'Pular para o painel Insights completo (Negócio + Qualidade)',
+        onclick: (e) => {
+          e.stopPropagation();
+          SolsticeStore.set('ui.insights.collapsed', false);
+          const el = document.querySelector('.solstice__insights');
+          if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+        }
+      }, 'Ver insights completos →');
+      footer.appendChild(moreBtn);
+      body.appendChild(footer);
       wrap.appendChild(body);
       parentEl.appendChild(wrap);
     }
@@ -32824,15 +32886,60 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const _catsG6   = _colsG6.filter(c => _grpG6(c) === 'categorical');
         const _tempsG6  = _colsG6.filter(c => _grpG6(c) === 'temporal');
 
-        // Sem dataset: mostra mensagem amigável + 3 perguntas universais
+        // Sem dataset: mensagem amigável + CTAs (importar/exemplo) + catálogo genérico
+        // Auditoria 2026.2 (BR-A1 + H1): em vez de só dizer "importe primeiro",
+        // oferecemos CTAs claras + 7 perguntas universais que funcionam mesmo
+        // sem CSV ainda. O super prompt pediu "catálogo genérico ~15-20 perguntas".
         if (_colsG6.length === 0){
-          bodyEl.appendChild(SolsticeUtils.el('div', {
+          const banner = SolsticeUtils.el('div', {
             style:'font-size:12px;color:var(--c-text-2);margin-bottom:10px;padding:10px 12px;background:var(--c-surface-2);border-radius:6px;border-left:2px solid var(--c-accent);'
-          }, '💡 Importe um CSV primeiro pra perguntas como "qual a média de X" ou "top 5 em Y".'));
-          const universals = ['quantos registros', 'resumo do dataset', 'liste as colunas'];
+          });
+          banner.appendChild(SolsticeUtils.el('div', { style:'font-weight:600;color:var(--c-text);margin-bottom:4px;' },
+            '💡 Importe um CSV primeiro'));
+          banner.appendChild(SolsticeUtils.el('div', null,
+            'Depois você poderá perguntar coisas como "qual a média de receita", "top 5 clientes", "tendência das vendas".'));
+          bodyEl.appendChild(banner);
+
+          const ctaWrap = SolsticeUtils.el('div', { style:'display:flex;gap:8px;margin-bottom:12px;' });
+          const ctaExample = SolsticeUtils.el('button', {
+            class:'solstice__btn solstice__btn--primary',
+            style:'flex:1;',
+            onclick: () => {
+              try {
+                close();
+                if (typeof _loadDummyDataset === 'function') _loadDummyDataset();
+                else if (window.Solstice && window.Solstice.Dummy && window.Solstice.Dummy.load) window.Solstice.Dummy.load();
+                setTimeout(() => {
+                  try { if (typeof SolsticeAutoDashboard !== 'undefined') SolsticeAutoDashboard.run({ silent: true }); }
+                  catch(_){}
+                }, 600);
+              } catch(_){}
+            }
+          }, '✨ Ver com dataset de exemplo');
+          const ctaImport = SolsticeUtils.el('button', {
+            class:'solstice__btn',
+            style:'flex:1;',
+            onclick: () => {
+              close();
+              const fi = document.getElementById('file-input');
+              if (fi) fi.click();
+            }
+          }, '📁 Importar meu CSV');
+          ctaWrap.append(ctaExample, ctaImport);
+          bodyEl.appendChild(ctaWrap);
+
           bodyEl.appendChild(SolsticeUtils.el('div',
             { style:'font-size:10px;color:var(--c-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;' },
-            'Perguntas universais'));
+            'Perguntas que você poderá fazer'));
+          const universals = [
+            'quantos registros',
+            'resumo do dataset',
+            'qual a tendência geral',
+            'onde está concentrado o volume',
+            'quais são os 5 maiores',
+            'existe algum valor fora do padrão',
+            'o que mudou em relação ao período anterior'
+          ];
           universals.forEach(s => {
             bodyEl.appendChild(SolsticeUtils.el('div', { class:'solstice__ask-suggestion',
               onclick: () => { input.value = s; doAsk(); }
@@ -32841,7 +32948,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           return;
         }
 
-        // Com dataset: agrupa por categoria de análise
+        // Auditoria 2026.2 (H1): biblioteca expandida — 20+ perguntas em 6
+        // categorias, mistura contextual (schema do dataset) + catálogo genérico
+        // de negócio que sempre aparece. Antes ~12 perguntas — agora ~22.
         const categories = [];
 
         // Estatística (precisa de coluna numérica)
@@ -32853,7 +32962,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             items: [
               'qual a média de ' + _numsG6[0],
               'soma de ' + _numsG6[0],
-              _numsG6[1] ? 'qual a mediana de ' + _numsG6[1] : null
+              'máximo de ' + _numsG6[0],
+              _numsG6[1] ? 'qual a mediana de ' + _numsG6[1] : null,
+              _numsG6[1] ? 'desvio padrão de ' + _numsG6[1] : null
             ].filter(Boolean)
           });
         }
@@ -32866,8 +32977,10 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             hint: 'rankings e melhores/piores',
             items: [
               'top 5 em ' + _catsG6[0] + ' por ' + _numsG6[0],
+              'top 10 em ' + _catsG6[0] + ' por ' + _numsG6[0],
               'quantas categorias em ' + _catsG6[0],
-              _catsG6[1] ? 'quantas categorias em ' + _catsG6[1] : null
+              _catsG6[1] ? 'quantas categorias em ' + _catsG6[1] : null,
+              _catsG6[0] ? 'qual ' + _catsG6[0] + ' tem maior volume' : null
             ].filter(Boolean)
           });
         }
@@ -32879,8 +32992,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             label: 'Tendência',
             hint: 'evolução ao longo do tempo',
             items: [
-              'tendência de ' + _numsG6[0] + ' ao longo de ' + _tempsG6[0]
-            ]
+              'tendência de ' + _numsG6[0] + ' ao longo de ' + _tempsG6[0],
+              'qual foi o melhor mês em ' + _numsG6[0],
+              'qual foi o pior mês em ' + _numsG6[0],
+              _numsG6[1] ? 'tendência de ' + _numsG6[1] : null
+            ].filter(Boolean)
           });
         }
 
@@ -32889,13 +33005,29 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           categories.push({
             icon: '🔍',
             label: 'Qualidade',
-            hint: 'outliers e distribuição',
+            hint: 'outliers e correlações',
             items: [
               'quantos outliers em ' + _numsG6[0],
-              _numsG6[1] ? 'correlação entre ' + _numsG6[0] + ' e ' + _numsG6[1] : null
+              _numsG6[1] ? 'correlação entre ' + _numsG6[0] + ' e ' + _numsG6[1] : null,
+              'existe algum valor fora do padrão',
+              _numsG6[1] ? 'distribuição de ' + _numsG6[1] : 'distribuição de ' + _numsG6[0]
             ].filter(Boolean)
           });
         }
+
+        // Negócio — sempre disponível, perguntas genéricas que NL processa
+        categories.push({
+          icon: '💼',
+          label: 'Negócio',
+          hint: 'perguntas executivas universais',
+          items: [
+            'onde está concentrado o volume',
+            'qual a participação de cada categoria no total',
+            'o que mudou recentemente',
+            'quais são os principais destaques',
+            'tem algo preocupante nesses dados'
+          ]
+        });
 
         // Universal (sempre disponível)
         categories.push({
@@ -32949,7 +33081,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             queryResult = SolsticeQuery.ask(text);
           }
         } catch (err){
-          console.warn('[Ask] SolsticeQuery threw, falling back to legacy parse:', err);
+          SolsticeLog.warn('[Ask] SolsticeQuery threw, falling back to legacy parse:', err);
         }
 
         // Adapta result do Query pra UI estruturada do Ask
@@ -35743,7 +35875,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         // Patch 1A (ADR-116): aplica migrations antes de hidratar
         if (typeof SolsticeMigrations !== 'undefined'){
           try { state = SolsticeMigrations.applyAll(state); }
-          catch(err){ console.warn('[Snapshot.load] migrations falhou', err); }
+          catch(err){ SolsticeLog.warn('[Snapshot.load] migrations falhou', err); }
         }
         // ADR-166 (Onda 3 / T5): REBIND RESILIENTE.
         // Antes: se o CSV semana seguinte mudou nome de coluna, slots
@@ -36194,7 +36326,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           try {
             await SolsticeIDB.set(IDB_HANDLE_KEY, handle);
             if (attachedSourceName) await SolsticeIDB.set(IDB_SOURCENAME_KEY, attachedSourceName);
-          } catch(e){ console.warn('[FolderAttach.persist]', e); }
+          } catch(e){ SolsticeLog.warn('[FolderAttach.persist]', e); }
         }
         if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
           SolsticeAudit.record({ action:'folder_attach', target: handle.name });
@@ -36202,7 +36334,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         return true;
       } catch(e){
         if (e && e.name === 'AbortError') return false;
-        console.warn('[FolderAttach]', e);
+        SolsticeLog.warn('[FolderAttach]', e);
         SolsticeToast.warn('Falha ao atrelar', e.message || 'Erro desconhecido');
         return false;
       }
@@ -36267,7 +36399,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         }
         return { restored: true, autoRefreshed: false };
       } catch(e){
-        console.warn('[FolderAttach.restoreFromStorage]', e);
+        SolsticeLog.warn('[FolderAttach.restoreFromStorage]', e);
         return { restored: false, autoRefreshed: false };
       }
     }
@@ -36308,7 +36440,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         }
         return true;
       } catch(e){
-        console.warn('[FolderAttach.refresh]', e);
+        SolsticeLog.warn('[FolderAttach.refresh]', e);
         if (!opts.silent){
           if (e && e.name === 'NotFoundError'){
             SolsticeToast.warn('Arquivo não encontrado', '"' + fileName + '" não está na pasta atrelada. Re-atrelar ou re-importar manualmente.');
@@ -36362,7 +36494,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           return true;
         } catch(e){
           if (e && e.name === 'AbortError') return false;
-          console.warn('[FS saveJSON]', e);
+          SolsticeLog.warn('[FS saveJSON]', e);
           // cai no fallback abaixo
         }
       }
@@ -36387,7 +36519,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           return JSON.parse(text);
         } catch(e){
           if (e && e.name === 'AbortError') return null;
-          console.warn('[FS openJSON]', e);
+          SolsticeLog.warn('[FS openJSON]', e);
         }
       }
       // Fallback input file
@@ -36953,16 +37085,21 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (!col) return null;
           const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
           if (!vals.length) return null;
-          const s = vals.slice().sort((a,b)=>a-b);
-          const q = (p) => s[Math.floor(p * (s.length-1))];
+          // Auditoria 2026.2 (MC-A1): usa SolsticeStats.quartiles (interpolação
+          // linear, type-7 igual NumPy) em vez da aproximação grosseira
+          // `s[Math.floor(p*(n-1))]`. Antes o XLSX exportava Q1/Q3 diferentes
+          // do box plot renderizado — auditor reabria caso de "número não bate".
+          const qres = SolsticeStats.quartiles(vals);
+          if (!qres) return null;
           return [
             ['Estatística', 'Valor'],
             ['N', vals.length],
-            ['Mín', s[0]],
-            ['Q1', q(0.25)],
-            ['Mediana', q(0.5)],
-            ['Q3', q(0.75)],
-            ['Máx', s[s.length-1]],
+            ['Mín', qres.min],
+            ['Q1', qres.q1],
+            ['Mediana', qres.median],
+            ['Q3', qres.q3],
+            ['Máx', qres.max],
+            ['IQR', qres.iqr],
             ['Coluna', friendly(col)]
           ];
         }
@@ -37217,7 +37354,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
     function set(mode){
       const valid = MODES.find(m => m.id === mode);
-      if (!valid){ console.warn('[Modes] modo inválido:', mode); return; }
+      if (!valid){ SolsticeLog.warn('[Modes] modo inválido:', mode); return; }
       // Saindo de slides ou present → restaura UI
       const prev = current();
       if (prev === 'slides') SolsticeSlides.exit();
@@ -37566,44 +37703,69 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const titleSafe = escTitle(sec.title || ('Slide ' + (slideIndex+1)));
       const notesSafe = escNotesAllowEm(sec.notes || '<em style="opacity:.6">Sem notas para esta seção.</em>');
       const nextTitleSafe = nextSec ? escTitle(nextSec.title || '') : '';
-      const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Apresentador · Solstice</title><style>${css}</style></head>
-        <body>
-          <h1>${titleSafe}</h1>
-          <div class="notes">📝 ${notesSafe}
-            ${nextSec ? '<hr style="opacity:.2;margin:16px 0"><strong>⏭️ PRÓXIMA:</strong> ' + nextTitleSafe : ''}
-          </div>
-          <div class="footer">
-            <div>
-              <button class="btn" onclick="bc.postMessage({type:'prev'})">← Anterior</button>
-              <button class="btn" onclick="bc.postMessage({type:'next'})">Próximo →</button>
-            </div>
-            <div class="timer" id="t">00:00</div>
-            <button class="btn" onclick="bc.postMessage({type:'close'});window.close()">✕ Fechar</button>
-          </div>
-          <script>
-            const bc = new BroadcastChannel('solstice-presenter');
-            const startTs = ${startTs};
-            // Auditoria 2026 (MC-02): guarda o handle do setInterval na window
-            // pra poder limpar em beforeunload. Sem isso o intervalo era criado
-            // anonimamente e ficava dependente do GC.
-            window._solsticePresenterTimer = setInterval(() => {
-              const e = Math.floor((Date.now()-startTs)/1000);
-              const mm = String(Math.floor(e/60)).padStart(2,'0');
-              const ss = String(e%60).padStart(2,'0');
-              const el = document.getElementById('t');
-              if (el) el.textContent = mm+':'+ss;
-            }, 1000);
-            window.addEventListener('beforeunload', () => {
-              if (window._solsticePresenterTimer){
-                clearInterval(window._solsticePresenterTimer);
-                window._solsticePresenterTimer = null;
-              }
-            });
-          <\/script>
-        </body></html>`;
-      presenterWin.document.open();
-      presenterWin.document.write(html);
-      presenterWin.document.close();
+      // Auditoria 2026.2 (MC-A2): elimina doc-write — único uso no arquivo.
+      // Antes: doc.write injetava todo o HTML da janela secundária. Agora
+      // construímos via DOM API (createElement) na janela existente; mesmo
+      // comportamento + listener delegado em data-cmd para botões.
+      const pdoc = presenterWin.document;
+      try { pdoc.documentElement.setAttribute('lang', 'pt-BR'); } catch(_){}
+      while (pdoc.documentElement.firstChild){
+        pdoc.documentElement.removeChild(pdoc.documentElement.firstChild);
+      }
+      const headEl = pdoc.createElement('head');
+      const charsetEl = pdoc.createElement('meta'); charsetEl.setAttribute('charset', 'utf-8');
+      const titleEl = pdoc.createElement('title'); titleEl.textContent = 'Apresentador · Solstice';
+      const styleEl = pdoc.createElement('style'); styleEl.textContent = css;
+      headEl.append(charsetEl, titleEl, styleEl);
+      const bodyEl = pdoc.createElement('body');
+      const h1 = pdoc.createElement('h1'); h1.textContent = sec.title || ('Slide ' + (slideIndex+1));
+      const notesDiv = pdoc.createElement('div'); notesDiv.className = 'notes';
+      notesDiv.appendChild(pdoc.createTextNode('📝 '));
+      const notesContent = pdoc.createElement('span');
+      notesContent.innerHTML = notesSafe;  // já filtrado por escNotesAllowEm
+      notesDiv.appendChild(notesContent);
+      if (nextSec){
+        const hr = pdoc.createElement('hr'); hr.style.opacity = '.2'; hr.style.margin = '16px 0';
+        notesDiv.appendChild(hr);
+        const strong = pdoc.createElement('strong'); strong.textContent = '⏭️ PRÓXIMA: ';
+        notesDiv.appendChild(strong);
+        notesDiv.appendChild(pdoc.createTextNode(nextSec.title || ''));
+      }
+      const footerEl = pdoc.createElement('div'); footerEl.className = 'footer';
+      const navWrap = pdoc.createElement('div');
+      const btnPrev = pdoc.createElement('button'); btnPrev.className = 'btn'; btnPrev.textContent = '← Anterior'; btnPrev.dataset.cmd = 'prev';
+      const btnNext = pdoc.createElement('button'); btnNext.className = 'btn'; btnNext.textContent = 'Próximo →'; btnNext.dataset.cmd = 'next';
+      navWrap.append(btnPrev, btnNext);
+      const timerElP = pdoc.createElement('div'); timerElP.className = 'timer'; timerElP.id = 't'; timerElP.textContent = '00:00';
+      const btnClose = pdoc.createElement('button'); btnClose.className = 'btn'; btnClose.textContent = '✕ Fechar'; btnClose.dataset.cmd = 'close';
+      footerEl.append(navWrap, timerElP, btnClose);
+      const scriptEl = pdoc.createElement('script');
+      scriptEl.textContent =
+        "(function(){\n" +
+        "  var bc = new BroadcastChannel('solstice-presenter');\n" +
+        "  var startTs = " + startTs + ";\n" +
+        "  function tick(){\n" +
+        "    var e = Math.floor((Date.now()-startTs)/1000);\n" +
+        "    var mm = String(Math.floor(e/60)).padStart(2,'0');\n" +
+        "    var ss = String(e%60).padStart(2,'0');\n" +
+        "    var el = document.getElementById('t');\n" +
+        "    if (el) el.textContent = mm+':'+ss;\n" +
+        "  }\n" +
+        "  window._solsticePresenterTimer = setInterval(tick, 1000);\n" +
+        "  window.addEventListener('beforeunload', function(){\n" +
+        "    if (window._solsticePresenterTimer){ clearInterval(window._solsticePresenterTimer); window._solsticePresenterTimer = null; }\n" +
+        "    try { bc.close(); } catch(_){}\n" +
+        "  });\n" +
+        "  document.addEventListener('click', function(ev){\n" +
+        "    var btn = ev.target && ev.target.closest && ev.target.closest('[data-cmd]');\n" +
+        "    if (!btn) return;\n" +
+        "    var cmd = btn.dataset.cmd;\n" +
+        "    if (cmd === 'close'){ bc.postMessage({type:'close'}); window.close(); }\n" +
+        "    else if (cmd === 'next' || cmd === 'prev'){ bc.postMessage({type:cmd}); }\n" +
+        "  });\n" +
+        "})();";
+      bodyEl.append(h1, notesDiv, footerEl, scriptEl);
+      pdoc.documentElement.append(headEl, bodyEl);
     }
 
     function close(){
@@ -38182,7 +38344,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       if (!state) return state;
       for (const m of MIGRATIONS){
         try { state = m.apply(state); }
-        catch(err){ console.warn('[Migrations] falha em ' + m.id, err); }
+        catch(err){ SolsticeLog.warn('[Migrations] falha em ' + m.id, err); }
       }
       return state;
     }
@@ -38622,10 +38784,10 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const json = JSON.stringify(state);
         const compressed = SolsticeLZ.compressToBase64(json);
         const ok = SolsticeStorage.safeSet(PREFIX + id, compressed);
-        if (!ok) console.warn('[Workspace] falha ao persistir', id);
+        if (!ok) SolsticeLog.warn('[Workspace] falha ao persistir', id);
         return ok;
       } catch(e){
-        console.warn('[Workspace] falha ao serializar workspace', id, e);
+        SolsticeLog.warn('[Workspace] falha ao serializar workspace', id, e);
         return false;
       }
     }
@@ -38635,7 +38797,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const raw = localStorage.getItem(PREFIX + id);
         if (!raw) return null;
         return JSON.parse(SolsticeLZ.decompressFromBase64(raw));
-      } catch(e){ console.warn('[Workspace] falha ao carregar', id, e); return null; }
+      } catch(e){ SolsticeLog.warn('[Workspace] falha ao carregar', id, e); return null; }
     }
 
     function _hydrate(state){
@@ -39350,7 +39512,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         } else if (typeof SolsticeShare !== 'undefined' && SolsticeShare.encodeState){
           snap = SolsticeShare.encodeState();
         }
-      } catch(e){ console.warn('[Embed] snapshot failed', e); }
+      } catch(e){ SolsticeLog.warn('[Embed] snapshot failed', e); }
 
       const inlineLimit = 300 * 1024;
       const fits = snap && snap.length < inlineLimit;
@@ -41946,12 +42108,12 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           ok ? p.resolve(result) : p.reject(new Error(error));
         };
         worker.onerror = (err) => {
-          console.warn('[StatsAsync] worker error', err);
+          SolsticeLog.warn('[StatsAsync] worker error', err);
           workerOk = false;
         };
         workerOk = true;
       } catch(err){
-        console.warn('[StatsAsync] Worker indisponível, fallback síncrono', err);
+        SolsticeLog.debug('[StatsAsync] Worker indisponível, fallback síncrono', err);
         workerOk = false;
       }
     }
@@ -46261,7 +46423,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     PeriodCompare: SolsticeV56.PeriodCompare,
     MultiCSV:    SolsticeV56.MultiCSV,
     // === SOLSTICE_SELF_AUDIT v2 (Briefing v2 · Seção 4) ===
-    SelfAudit:   SolsticeSelfAudit
+    SelfAudit:   SolsticeSelfAudit,
+    // Auditoria 2026.2 (MC-M3): expor _runIngestFile no namespace público para
+    // o SolsticeFolderAttach.refresh poder chamá-lo como fallback robusto.
+    // Antes a função vivia no closure do boot e o fallback `window.Solstice._runIngestFile`
+    // sempre falhava silenciosamente. Agora "atrelar pasta → refresh" funciona
+    // mesmo quando o módulo é chamado de outro escopo.
+    _runIngestFile: (typeof _runIngestFile === 'function') ? _runIngestFile : null
   };
 
 })();
