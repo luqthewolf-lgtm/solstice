@@ -6553,11 +6553,12 @@
            Aqui no header global fica só a brand (Solstice · Dashboard Studio). -->
     </div>
 
-    <!-- Sprint 1 (RC-01): Badge "100% local" — sinaliza ao usuário que dados
-         não saem do browser. Crítico pra saúde/legal/financeiro. -->
+    <!-- Sprint 1 (RC-01) + Sprint 27/F-11: Badge "100% local" agora explica
+         no tooltip onde e como os dados são guardados (localStorage + IDB)
+         pra dar transparência ao usuário sobre privacidade e persistência. -->
     <div class="solstice__privacy-badge"
-         title="Seus dados não saem do seu navegador. Tudo processa local — sem servidor, sem upload, sem rastreamento."
-         aria-label="100 por cento local — dados não saem do navegador">
+         title="Seus dados ficam exclusivamente no seu navegador. Persistência local:&#10;• localStorage — config + workspace recente&#10;• IndexedDB — snapshots históricos do dashboard&#10;Sem servidor · sem upload · sem rastreamento."
+         aria-label="100 por cento local — dados guardados em localStorage e IndexedDB, sem upload">
       <span aria-hidden="true">🔒</span>
       <span>100% local</span>
     </div>
@@ -6727,16 +6728,17 @@
              3. Ações rápidas (#data-actions: Criar coluna + Tabela)
              4. Quality card
              5. Editor de colunas (#editor-panel) -->
-      <!-- DADOS1 v4 (Auditoria 2026.4): nova ordem do painel Dados.
-           Sequência: Qualidade no TOPO (sinal mais crítico) → Medidas → Resumo
-           "o que dá pra construir" → Tabelas/Pastas → Ações no fim. Hierarquia
-           reflete prioridade de decisão do analista (problemas primeiro). -->
+      <!-- DADOS1 v5 (Sprint 27 / F-18): reorganizado por hierarquia de uso —
+           Quality (sinal crítico topo) → Dados Disponíveis (preview rápido)
+           → Ações Rápidas (Criar coluna + Tabela — agora antes do editor pra
+           não enterrar) → Medidas → Pastas/Editor com colunas. Espaçamento
+           vertical aumentado (sp-4) entre blocos pra dar respiro. -->
       <div id="data-panel" class="solstice__hidden" style="margin-top: var(--sp-4);">
         <div class="solstice__quality-card" id="quality-card"></div>
-        <div id="measures-panel" class="solstice__measures-panel solstice__hidden" style="margin-top: var(--sp-3);"></div>
-        <div id="dataset-summary" class="solstice__dataset-summary solstice__hidden" style="margin-top: var(--sp-3);"></div>
-        <div class="solstice__editor" id="editor-panel" style="margin-top: var(--sp-3);"></div>
-        <div id="data-actions" class="solstice__data-actions solstice__hidden" style="margin-top: var(--sp-3);"></div>
+        <div id="dataset-summary" class="solstice__dataset-summary solstice__hidden" style="margin-top: var(--sp-4);"></div>
+        <div id="data-actions" class="solstice__data-actions solstice__hidden" style="margin-top: var(--sp-4);"></div>
+        <div id="measures-panel" class="solstice__measures-panel solstice__hidden" style="margin-top: var(--sp-4);"></div>
+        <div class="solstice__editor" id="editor-panel" style="margin-top: var(--sp-4);"></div>
       </div>
 
       <!-- Bloco 5 / B7-r2: painel de componentes (catálogo accordion + lista) -->
@@ -6851,8 +6853,11 @@
       <!-- Auditoria 2026.2 (BR-M5): antes "● Salvo automaticamente" sempre,
            mesmo sem nada salvo. Agora começa neutro até primeira mudança real.
            A11y: aria-live="polite" para anunciar mudanças. -->
+      <!-- Sprint 27 / F-11: tooltip explica QUE auto-save funciona e ONDE
+           grava (localStorage), pra dar transparência ao usuário sobre
+           persistência. -->
       <span class="solstice__status-item" id="status-saved" aria-live="polite"
-            title="Indicador de auto-save: ○ Sem alterações · ● Alterações não salvas (pisca) · ● Salvo automaticamente"
+            title="Auto-save ativo · Grava no localStorage do navegador a cada 5s.&#10;Estados: ○ Sem alterações · ● Salvando… · ● Salvo há Xs.&#10;Para histórico de versões: Salvar → 📸 Snapshot (IndexedDB)."
             style="color:var(--c-muted);">○ Sem alterações</span>
       <!-- Auditoria 2026 (M-H-1 / A-102) + 2026.2 (JM-A2): texto inicial sem
            versão hardcoded — evita flicker "v5.6" → "v5.6.0-patched". O boot
