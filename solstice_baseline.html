@@ -10798,14 +10798,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     if (expressMode) {
-      // ADR-161: Express pula modal do dicionário → usa detect() direto
-      // e dispara Auto-Dashboard silent automaticamente.
+      // ADR-161 + Sprint 23 / UX-03: Express pula modal do dicionário (usa
+      // detect() direto), mas NÃO dispara mais Auto-Dashboard automaticamente.
+      // Usuário reportou que autorun do AutoDash ao importar era "agoniante" —
+      // quebra fluxo de quem só quer ver os dados. Em vez de silent, mostramos
+      // toast de oferta com botão "🪄 Gerar agora". Ainda é 1 clique pra usuário
+      // que quer dashboard montado, mas respeita quem só quer explorar os dados.
       SolsticeStore.set('dictionary', result.dictDetection);
       SolsticeEditor.renderPreview();
-      // Roda autoDash em silent (modal só se conf < 40%)
       setTimeout(() => {
-        try { SolsticeAutoDashboard.run({ silent: true }); }
-        catch (e) { SolsticeLog.debug('[Express] autoDash falhou:', e); }
+        try {
+          SolsticeToast.action({
+            title: '✅ Dataset pronto',
+            msg: 'Quer que eu monte um dashboard automaticamente?',
+            kind: 'success',
+            actionLabel: '🪄 Gerar agora',
+            actionFn: () => SolsticeAutoDashboard.run({ force: true }),
+            duration: 12000
+          });
+        } catch (e) { SolsticeLog.debug('[Express] toast falhou:', e); }
       }, 200);
     } else {
       SolsticeDictionary.openConfigModal(result.dictDetection, result.columns, finalDict => {
@@ -14715,11 +14726,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // são acionáveis no resumo do dataset — usuário não decide nada com elas.
       // Removemos o big text de "X linhas" e o título passa a ser direto.
       // A contagem continua disponível discreta via tooltip do head.
+      // Sprint 23 / UX-01: "O que dá pra construir" foi reportado pelo usuário
+      // como linguagem ruim (técnica, não business). Tira o texto: o painel já
+      // mostra os grupos de colunas — não precisa de label redundante no head.
+      // Mantém o título acessível via aria-label pro screen reader.
       const head = SolsticeUtils.el('div', {
         class:'solstice__dataset-summary-head',
-        title: SolsticeLocale.integer(sum.totalRows) + (sum.totalRows === 1 ? ' linha' : ' linhas')
+        title: SolsticeLocale.integer(sum.totalRows) + (sum.totalRows === 1 ? ' linha' : ' linhas'),
+        'aria-label': 'Resumo do dataset'
       },
-        SolsticeUtils.el('span', null, '📊 O que dá pra construir')
+        SolsticeUtils.el('span', null, '📊 Dados disponíveis')
       );
       host.appendChild(head);
       // Bloco "X linhas" em destaque foi REMOVIDO (SOL-H1). Mantido marcador
@@ -24661,20 +24677,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         class: cls,
         style: 'background:' + gradient + ';color:' + textColor + ';'
       });
-      // v6-autonomous / B1-01: título inline-editable. Click → contenteditable.
-      // Enter/blur salva via set({ title }), Esc reverte.
+      // v6-autonomous / B1-01 + Sprint 23 / UX-04: título inline-editable.
+      // Antes: click sempre seleciona o conteúdo inteiro → impede que o usuário
+      // clique no meio da palavra pra cursor naquela posição, e ainda quebrava
+      // quando o usuário arrastava pra selecionar texto. Agora:
+      //   - mousedown promove a contentEditable (não dispara select-all
+      //     automático), preservando a posição do clique do usuário.
+      //   - dblclick → seleciona tudo (intuitivo pra renomear rápido).
+      //   - blur com seleção ativa fora do elemento NÃO reverte (mantém edit).
       const titleEl = SolsticeUtils.el('h2', {
         class:'solstice__dash-header-title',
-        title: 'Clique pra renomear o dashboard',
+        title: 'Clique pra renomear o dashboard (duplo clique seleciona tudo)',
         style:'cursor:text;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;'
       }, cfg.title || 'Dashboard sem título');
-      titleEl.addEventListener('click', () => {
+      titleEl.addEventListener('mousedown', () => {
+        if (titleEl.contentEditable !== 'true'){
+          titleEl.contentEditable = 'true';
+          // não força focus/select-all aqui — mousedown nativo posiciona caret.
+        }
+      });
+      titleEl.addEventListener('dblclick', () => {
         titleEl.contentEditable = 'true';
         titleEl.focus();
         const r = document.createRange(); r.selectNodeContents(titleEl);
         const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
       });
       titleEl.addEventListener('blur', () => {
+        // Sprint 23 / UX-04: se há seleção ativa em qualquer lugar do documento,
+        // o usuário ainda está arrastando — não confirma o blur.
+        try {
+          const sel = window.getSelection && window.getSelection();
+          if (sel && sel.toString().length > 0 && sel.anchorNode && titleEl.contains(sel.anchorNode)){
+            // Ainda há seleção dentro do título — reabre.
+            setTimeout(() => { try { titleEl.contentEditable = 'true'; titleEl.focus(); } catch(_){} }, 0);
+            return;
+          }
+        } catch(_){}
         titleEl.contentEditable = 'false';
         const v = (titleEl.textContent || '').trim() || 'Dashboard sem título';
         titleEl.textContent = v;
@@ -24699,10 +24737,21 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return el;
     }
 
-    /** Renderiza o header dentro do canvas (como primeiro filho). Chamado por Canvas.render. */
-    function renderInto(canvasEl){
+    /**
+     * Renderiza o header dentro do canvas (como primeiro filho). Chamado por Canvas.render.
+     *
+     * Sprint 23 / UX-02: o welcome page (canvas vazio, dataset não carregado)
+     * mostrava "Dashboard sem título" no header — feedback do usuário foi de
+     * que era confuso ("Dashboard sem título não deve aparecer na tela inicial").
+     * Decisão: só renderiza o header se há canvas com sections OU se o usuário
+     * customizou o título (≠ default). Welcome puro fica sem header.
+     */
+    function renderInto(canvasEl, opts){
       const cfg = get();
       if (!cfg.enabled) return;
+      const isEmpty = !!(opts && opts.isEmpty);
+      const titleIsDefault = !cfg.title || cfg.title === DEFAULT.title;
+      if (isEmpty && titleIsDefault) return;
       const el = _buildEl(cfg);
       canvasEl.appendChild(el);
     }
@@ -27869,8 +27918,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       canvas.classList.toggle('solstice__canvas--empty', isEmpty);
       document.body.classList.toggle('solstice-blank', isEmpty);
 
-      // Patch B5-r4 / ADR-046: cabeçalho customizável acima da toolbar
-      if (typeof SolsticeDashHeader !== 'undefined') SolsticeDashHeader.renderInto(canvas);
+      // Patch B5-r4 / ADR-046 + Sprint 23 / UX-02: cabeçalho customizável acima
+      // da toolbar. Recebe isEmpty pra ocultar "Dashboard sem título" no welcome.
+      if (typeof SolsticeDashHeader !== 'undefined') SolsticeDashHeader.renderInto(canvas, { isEmpty });
 
       // Toolbar do canvas (sempre presente no DOM; CSS esconde quando empty)
       canvas.appendChild(_renderToolbar(sections.length));
@@ -29953,33 +30003,36 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         });
       });
 
-      // === INSIGHT 9 v3 (G2-08 / BUG-04): O QUE DÁ PRA CONSTRUIR ===
-      // Auditoria 2026.4: insights devem ser acionáveis, não inventário cru.
-      // Foco: o que dá pra MONTAR com as colunas (KPI, série, distribuição),
-      // não contagens triviais ("X colunas numéricas, Y temporais") que não
-      // mudam decisão.
+      // === INSIGHT 9 v4 (Sprint 23 / UX-01) — INVENTÁRIO DE COLUNAS ===
+      // Auditoria 2026.4 marcou esse insight como "O que dá pra construir".
+      // Sprint 23: user reportou que título era ruim ("Eu falei pra tirar também
+      // o que dá pra construir da esquerda") + linguagem técnica em vez de business.
+      // Novo título neutro descritivo. Continua opt-out via ui.insights.hideOverview,
+      // mas agora *default oculto* (line 30375) — não aparece a menos que o usuário
+      // peça. Texto também vira mais business: foco em "o que medir", não em "o que
+      // montar".
       (function _overviewActionable(){
         const _friendly = (col) => (dict && dict.columns && dict.columns[col] && dict.columns[col].friendlyName) || col;
         const _sampleNames = (arr, n) => arr.slice(0, n).map(_friendly).join(', ');
         const parts = [];
         if (numericCols.length) {
           parts.push('📊 ' + numericCols.length + ' medida' + (numericCols.length === 1 ? '' : 's') +
-                     ' (' + _sampleNames(numericCols, 3) + (numericCols.length > 3 ? '…' : '') +
-                     ') — KPI · Série Temporal · Distribuição');
+                     ' pronta(s) pra somar/calcular: ' + _sampleNames(numericCols, 3) +
+                     (numericCols.length > 3 ? '…' : ''));
         }
         if (tempCols.length) {
-          parts.push('📅 ' + tempCols.length + ' coluna' + (tempCols.length === 1 ? '' : 's') + ' de data' +
-                     ' (' + _sampleNames(tempCols, 2) + ') — Filtro temporal · Tendência');
+          parts.push('📅 ' + tempCols.length + ' coluna' + (tempCols.length === 1 ? '' : 's') +
+                     ' de tempo pra evolução/sazonalidade: ' + _sampleNames(tempCols, 2));
         }
         if (catCols.length) {
           parts.push('🏷️ ' + catCols.length + ' categoria' + (catCols.length === 1 ? '' : 's') +
-                     ' (' + _sampleNames(catCols, 3) + (catCols.length > 3 ? '…' : '') +
-                     ') — Pareto · Comparação · Filtro');
+                     ' pra segmentar/comparar: ' + _sampleNames(catCols, 3) +
+                     (catCols.length > 3 ? '…' : ''));
         }
         insights.push({
           id: 'overview',
           kind: 'overview', icon: '🧰',
-          title: 'O que dá pra construir',
+          title: 'Inventário de colunas',
           text: parts.join(' · '),
           severity: 'info',
           score: 20,
@@ -30370,9 +30423,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Setting persiste em localStorage; usuário pode reabilitar pela settings.
       if (SolsticeStore.get('ui.insights.hidden') === true) return;
       let insights = compute();
-      // S5-02 (Lucas / YT-04): "O que dá pra construir" especificamente
-      // removível. Filtra se setting tá ativo.
-      if (SolsticeStore.get('ui.insights.hideOverview') === true){
+      // Sprint 23 / UX-01: usuário pediu pra tirar "O que dá pra construir"
+      // do sidebar. Invertendo o default: agora overview fica OCULTO por padrão.
+      // User pode reabilitar via setting ui.insights.hideOverview = false.
+      // Antes: hideOverview === true → oculta (default false = mostra).
+      // Agora: hideOverview !== false → oculta (default ausente = oculta).
+      const _hideOverview = SolsticeStore.get('ui.insights.hideOverview');
+      if (_hideOverview !== false){
         insights = insights.filter(i => i.id !== 'overview' && i.kind !== 'overview');
       }
       insightsCache = insights;
