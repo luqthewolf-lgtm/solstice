@@ -42,6 +42,60 @@
   distinguir intenção proposital de descuido. A regra dá padrão claro
   e isola os usos legítimos. Ver achado JM-03 na Auditoria 2026.
   ============================================================
+
+  ============================================================
+  SOLSTICE — CANAL DE FALLBACK PADRÃO (Auditoria 2026.3 / ADR-186 / HV-03)
+  ============================================================
+  Toda chamada de fallback ("init falhou, segue sem", "feature opcional
+  indisponível", "erro em callback de subscriber") usa SolsticeLog:
+
+    • SolsticeLog.warn(...)   — sempre visível, sem gate. Use quando o
+      reviewer/operador precisa saber que algo falhou (mesmo se o app
+      seguiu funcionando). Ex: "[FormulaRow] erro ao calcular X".
+
+    • SolsticeLog.debug(...)  — gated por ?debug=1 ou
+      localStorage.solstice.debug='1'. Use quando o fallback é esperado
+      em produção e não merece ruído. Ex: "[Workspace] init falhou (módulo
+      opcional ausente)".
+
+    • console.warn/error direto — RESERVADO para:
+        (a) erros que devem aparecer SEMPRE, antes de SolsticeLog existir
+            (SolsticeErrorBoundary init, SolsticeUtils.rafThrottle, etc.)
+        (b) erros estruturais que o reviewer DEVE ver
+            (Parse warnings, Components.register inválido, Calc circular)
+        (c) wrappers explícitos como SolsticeErrors.show
+
+  Por que existe: a Auditoria 2026.2 migrou 16 chamadas pontuais mas os
+  módulos novos do v6-autonomous (SolsticeMultiTab, IDB, AutoSave,
+  SavedViews) repetiam o padrão antigo. Auditoria 2026.3 (HV-03) detectou
+  isso como problema sistêmico. Esta convenção fecha a porta.
+  Ver achados MC-04, MC-05, JM-04, JM-06, HV-03 na Auditoria 2026.3.
+  ============================================================
+
+  ============================================================
+  SOLSTICE — HIERARQUIA DE PERSISTÊNCIA (Auditoria 2026.3 / ADR-185 / HV-04)
+  ============================================================
+  5 camadas, cada uma com escopo definido. Não unificar — cada uma serve
+  um caso de uso distinto:
+
+    1. SolsticeSnapshots         — estado COMPLETO + nominado
+                                   (canvas + filters + params + dictionary
+                                    + ingest comprimido). Manual via Ctrl+S.
+    2. SolsticeSavedViews        — preferências LEVES de visualização
+                                   (filters + crossfilter + pageId +
+                                    ui.collapsed). Power user com >5 visões.
+    3. SolsticeAutoSave          — safety net 5s (sections + header +
+                                    filters + pageId). Restore sob confirmação
+                                    (banner não-modal). Sem ingest.
+    4. SolsticeWorkspace         — identidade da sessão (ws_id, ws_name).
+                                   Auto-load no boot.
+    5. SolsticeIDB / FolderAttach — handles persistentes (FS Access API).
+                                    IDB resolve com boolean (true=ok, false=falha).
+
+  Regra: ao adicionar nova feature de persistência, escolher a camada
+  EXISTENTE em vez de criar uma 6ª. Nova camada exige ADR.
+  Ver achados RT-06, RT-07, HV-04 na Auditoria 2026.3.
+  ============================================================
 -->
 <html lang="pt-BR" data-mode="dark" data-palette="ocean" data-density="comfortable">
 <head>
@@ -8078,7 +8132,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (def && def.action && typeof def.action.fn === 'function'){
         footer.appendChild(SolsticeUtils.el('button', {
           class: 'solstice__btn solstice__btn--primary',
-          onclick: () => { try { def.action.fn(); } catch(e){ console.warn('[err.action]', e); } close(); }
+          onclick: () => { try { def.action.fn(); } catch(e){ SolsticeLog.warn('[err.action]', e); } close(); }
         }, def.action.label || 'Resolver agora'));
         footer.appendChild(SolsticeUtils.el('button', { class: 'solstice__btn', onclick: close }, 'Fechar'));
       } else {
@@ -11392,7 +11446,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     // B6-02 (v6-autonomous / PW-06): sync multi-tab via BroadcastChannel
     try { if (typeof SolsticeMultiTab !== 'undefined') SolsticeMultiTab.init(); }
-    catch(e){ console.warn('[MultiTab init]', e); }
+    catch(e){ SolsticeLog.warn('[MultiTab init]', e); }
 
     // B4-02 (v6-autonomous / RES-03): auto-save de estado a cada 5s
     // + tenta restaurar se boot abrir com canvas vazio e há snapshot fresco
@@ -11401,7 +11455,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         SolsticeAutoSave.init();
         setTimeout(() => SolsticeAutoSave.tryRestore(), 600);
       }
-    } catch(e){ console.warn('[AutoSave init]', e); }
+    } catch(e){ SolsticeLog.warn('[AutoSave init]', e); }
 
     // B1-04 (v6-autonomous): tenta restaurar pasta atrelada + auto-refresh
     // se permissão ainda granted. Roda async no fundo, não bloqueia boot.
@@ -11663,7 +11717,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'Camada Style · SolsticeStyle (7 presets + 7 paletas) · CSS vars universais · aba Estilo redesenhada',
       'Auditoria 2026 · B-01 a B-07 + R-01 a R-20 + M-* (cf. RELATORIO.md)',
       'v6-autonomous · BLOCO 1-8 (i18n + boot tests + datasets demo + toast pos + annotations + FAB ajuda + brand-doctitle no DashHeader)',
-      'Auditoria 2026.2 · box plot XLSX consistente (MC-A1) · presenter sem doc.write (MC-A2) · status bar "—" pré-import (MC-A3) · placeholder Ask dinâmico (BR-A3) · welcome com exemplo default (BR-A1) · ExecutiveInsights fallback (BR-A2) · catálogo Ask expandido (H1) · console.warn gated · block-status compactado'
+      'Auditoria 2026.2 · box plot XLSX consistente (MC-A1) · presenter sem doc.write (MC-A2) · status bar "—" pré-import (MC-A3) · placeholder Ask dinâmico (BR-A3) · welcome com exemplo default (BR-A1) · ExecutiveInsights fallback (BR-A2) · catálogo Ask expandido (H1) · console.warn gated · block-status compactado',
+      'Auditoria 2026.3 (Sprint 7 · Disciplina e Estado Coerente) · MultiTab subscribers não silenciam erros (MC-04) · IDB resolve boolean em falha (MC-05/AP-04) · AutoSave restore com banner de confirmação (BR-A5) · visibilitychange + beforeunload (MC-06) · 4 console.warn residuais migrados (JM-04) · MultiTab fecha BroadcastChannel (MC-07) · _humanAge para tempo decorrido (BR-A6) · ADR-185/186/187 (hierarquia persistência, fallback canal, restore confirmado)'
     ];
     if (typeof SolsticeDebug !== 'undefined' && SolsticeDebug.registerBootLog){
       SolsticeDebug.registerBootLog(_bootHistory);
@@ -11674,7 +11729,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // Auditoria 2026 (JM-02): banner público de boot via SolsticeLog.boot.
     // Banner principal SEMPRE visível (confirma que o app carregou).
     // Histórico de patches só em debug=1 (gated por _isDebug, mantém o gate).
-    SolsticeLog.boot('🌗 SOLSTICE v5.6.0-patched · 13/13 blocos · Sprints 1-6 + v6-autonomous + Auditoria 2026 + 2026.2 · pronto', '#4D9FFF');
+    SolsticeLog.boot('🌗 SOLSTICE v5.6.0-patched · 13/13 blocos · Sprints 1-7 + v6-autonomous + Auditoria 2026 + 2026.2 + 2026.3 · pronto', '#4D9FFF');
     if (_isDebug){
       SolsticeLog.info('Histórico de patches (camadas que construíram esta versão):');
       _bootHistory.forEach(line => SolsticeLog.info('  • ' + line));
@@ -35407,11 +35462,20 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (!ev || !ev.data || !ev.data.type) return;
           const type = ev.data.type;
           const setCb = subs.get(type);
-          if (setCb) setCb.forEach(cb => { try { cb(ev.data.payload); } catch(_){} });
+          // Auditoria 2026.3 (MC-04 / HV-03): catches vazios silenciavam erros
+          // de subscribers cross-tab. Agora SolsticeLog.warn — erro em handler
+          // é informativo, não fatal.
+          if (setCb) setCb.forEach(cb => {
+            try { cb(ev.data.payload); }
+            catch(e){ SolsticeLog.warn('[MultiTab] subscriber error · type=' + type, e); }
+          });
           const wildSet = subs.get('*');
-          if (wildSet) wildSet.forEach(cb => { try { cb(ev.data); } catch(_){} });
+          if (wildSet) wildSet.forEach(cb => {
+            try { cb(ev.data); }
+            catch(e){ SolsticeLog.warn('[MultiTab] wildcard subscriber error', e); }
+          });
         };
-      } catch(e){ console.warn('[MultiTab]', e); bc = null; }
+      } catch(e){ SolsticeLog.warn('[MultiTab]', e); bc = null; }
       return bc;
     }
 
@@ -35438,6 +35502,12 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         SolsticeStore.subscribe('settings.theme.palette', (v) => notify('theme', { palette: v }));
         SolsticeStore.subscribe('settings.theme.mode',    (v) => notify('theme', { mode: v }));
       } catch(_){}
+      // Auditoria 2026.3 (MC-07): fecha o BroadcastChannel ao sair da página.
+      // Sem isso, o handle ficava dependente do GC — em sessão com muitas
+      // abas/fecha-abre, acumulava. Mesmo padrão do SolsticePresenter (MC-A2).
+      window.addEventListener('beforeunload', () => {
+        if (bc){ try { bc.close(); } catch(_){} bc = null; }
+      });
     }
 
     /**
@@ -35561,7 +35631,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (typeof p.ui.insightsCollapsed === 'boolean') SolsticeStore.set('ui.insights.collapsed', p.ui.insightsCollapsed);
           if (typeof p.ui.filtersCollapsed === 'boolean') SolsticeStore.set('ui.filters.collapsed', p.ui.filtersCollapsed);
         }
-      } catch(e){ console.warn('[Views.apply]', e); return false; }
+      } catch(e){ SolsticeLog.warn('[Views.apply]', e); return false; }
       if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
         SolsticeAudit.record({ action: 'view_apply', target: v.name, details: { id } });
       }
@@ -35672,40 +35742,126 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       } catch(_){ return null; }
     }
 
-    /** Restaura silenciosamente no boot se houver auto-save fresco
-        E o canvas estiver vazio (sem sobrescrever trabalho ativo). */
+    /**
+     * Auditoria 2026.3 (BR-A5 / ADR-187): em vez de restaurar silenciosamente,
+     * mostra banner não-modal no topo do canvas com "Restaurar / Começar do zero".
+     * Sem ação em 10s = descarta (padrão = não restaura, segue welcome).
+     * Reduz surpresa quando o usuário recarrega esperando estado fresco.
+     */
     function tryRestore(){
       const snap = _read();
-      if (!snap) return false;
+      if (!snap || !snap.sections || !snap.sections.length) return false;
       const current = SolsticeStore.get('canvas.sections') || [];
-      if (current.length > 0) return false; // não sobrescreve
+      if (current.length > 0) return false; // não sobrescreve trabalho ativo
+      _showRestoreBanner(snap);
+      return true;
+    }
+
+    /** Auditoria 2026.3 (BR-A6): formata tempo decorrido em copy humana. */
+    function _humanAge(ms){
+      if (typeof SolsticeHumanize !== 'undefined' && SolsticeHumanize.timeAgo){
+        try { return SolsticeHumanize.timeAgo(ms); } catch(_){}
+      }
+      const s = Math.round(ms / 1000);
+      if (s < 60) return s + 's atrás';
+      const m = Math.round(s / 60);
+      if (m < 60) return m + ' min atrás';
+      const h = Math.round(m / 60);
+      if (h < 24) return h + 'h atrás';
+      return Math.round(h / 24) + ' dias atrás';
+    }
+
+    function _doRestore(snap){
       try {
-        if (snap.sections && snap.sections.length){
-          SolsticeStore.set('canvas.sections', snap.sections);
-          if (snap.header) SolsticeStore.set('canvas.header', snap.header);
-          if (snap.filters) SolsticeStore.set('filters', snap.filters);
-          if (snap.pageId && typeof SolsticePages !== 'undefined' && SolsticePages.switchTo){
-            try { SolsticePages.switchTo(snap.pageId); } catch(_){}
-          }
-          // Toast leve avisando o usuário
-          setTimeout(() => {
-            if (typeof SolsticeToast !== 'undefined') {
-              const minsAgo = Math.round((Date.now() - snap.ts) / 60000);
-              SolsticeToast.info('💾 Auto-save restaurado',
-                'Recuperado estado de ~' + minsAgo + ' min atrás. ' +
-                (snap.sections.length + ' componente' + (snap.sections.length > 1 ? 's' : '')));
-            }
-          }, 1500);
-          return true;
+        SolsticeStore.set('canvas.sections', snap.sections);
+        if (snap.header) SolsticeStore.set('canvas.header', snap.header);
+        if (snap.filters) SolsticeStore.set('filters', snap.filters);
+        if (snap.pageId && typeof SolsticePages !== 'undefined' && SolsticePages.switchTo){
+          try { SolsticePages.switchTo(snap.pageId); } catch(_){}
         }
-      } catch(e){ console.warn('[AutoSave.restore]', e); }
-      return false;
+        if (typeof SolsticeToast !== 'undefined'){
+          SolsticeToast.success('💾 Auto-save restaurado',
+            snap.sections.length + ' componente' + (snap.sections.length > 1 ? 's' : '') +
+            ' de ' + _humanAge(Date.now() - snap.ts));
+        }
+      } catch(e){ SolsticeLog.warn('[AutoSave.restore]', e); }
+    }
+
+    function _showRestoreBanner(snap){
+      // Espera o canvas/welcome aparecer (boot + 1ª render)
+      const tryShow = (attempts) => {
+        const canvas = document.querySelector('.solstice__canvas');
+        if (!canvas){
+          if (attempts > 0) setTimeout(() => tryShow(attempts - 1), 200);
+          return;
+        }
+        // Não duplica banner se já existe
+        if (canvas.querySelector('.solstice__autosave-banner')) return;
+        const ageLabel = _humanAge(Date.now() - snap.ts);
+        const count = snap.sections.length;
+        const banner = SolsticeUtils.el('div', {
+          class: 'solstice__autosave-banner',
+          role: 'region',
+          'aria-label': 'Auto-save disponível',
+          style:
+            'display:flex;align-items:center;justify-content:space-between;gap:12px;' +
+            'padding:10px 16px;margin:12px 16px 0 16px;' +
+            'background:color-mix(in srgb, var(--c-accent) 8%, var(--c-surface));' +
+            'border:1px solid color-mix(in srgb, var(--c-accent) 30%, var(--c-border));' +
+            'border-radius:var(--rad-md);font-size:13px;color:var(--c-text);'
+        });
+        const left = SolsticeUtils.el('div', { style:'display:flex;align-items:center;gap:10px;flex:1;min-width:0;' });
+        left.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true', style:'font-size:18px;flex-shrink:0;' }, '💾'));
+        const txt = SolsticeUtils.el('div', { style:'flex:1;min-width:0;line-height:1.4;' });
+        txt.appendChild(SolsticeUtils.el('div', { style:'font-weight:600;color:var(--c-text);' },
+          'Você tinha um trabalho em andamento'));
+        txt.appendChild(SolsticeUtils.el('div', { style:'font-size:11px;color:var(--c-text-2);' },
+          count + ' componente' + (count > 1 ? 's' : '') + ' · ' + ageLabel));
+        left.appendChild(txt);
+        banner.appendChild(left);
+        const actions = SolsticeUtils.el('div', { style:'display:flex;gap:8px;flex-shrink:0;' });
+        let timeoutId;
+        const dismiss = () => {
+          clearTimeout(timeoutId);
+          banner.remove();
+        };
+        const btnRestore = SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--primary',
+          type:'button',
+          'aria-label':'Restaurar dashboard salvo automaticamente',
+          onclick: () => { _doRestore(snap); dismiss(); }
+        }, '↶ Restaurar');
+        const btnDiscard = SolsticeUtils.el('button', {
+          class:'solstice__btn',
+          type:'button',
+          'aria-label':'Descartar auto-save e começar do zero',
+          onclick: () => {
+            try { clear(); } catch(_){}
+            dismiss();
+          }
+        }, 'Começar do zero');
+        actions.append(btnRestore, btnDiscard);
+        banner.appendChild(actions);
+        // Auto-dismiss em 12s sem ação — não restaura, mas não apaga snapshot
+        // (se o usuário recarregar, o banner volta a aparecer).
+        timeoutId = setTimeout(dismiss, 12000);
+        canvas.insertBefore(banner, canvas.firstChild);
+      };
+      // 800ms = boot + 1ª render do welcome state
+      setTimeout(() => tryShow(5), 800);
     }
 
     function init(){
       if (_timer) return;
       _timer = setInterval(_tick, INTERVAL_MS);
-      // Salva também ao sair da página (best effort)
+      // Auditoria 2026.3 (MC-06): salva também quando a aba fica oculta.
+      // visibilitychange é mais robusto que beforeunload — Chrome limita
+      // beforeunload a ~250ms; visibilitychange dispara antes de o usuário
+      // alt-tab, fechar aba, ou suspender o sistema. beforeunload mantido
+      // como fallback adicional (best effort).
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') _tick();
+      });
       window.addEventListener('beforeunload', _tick);
     }
 
@@ -36249,20 +36405,25 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       })).catch(() => null);
     }
 
+    // Auditoria 2026.3 (MC-05 / AP-04 / HV-03): antes o .catch engolia o erro
+    // e a promise resolvia com undefined — caller (ex.: SolsticeFolderAttach
+    // persistindo o handle) recebia "sucesso" aparente. Agora set/del
+    // RESOLVEM com boolean: true = persistiu, false = falhou. Quem chama
+    // pode reagir (re-tentar, avisar usuário).
     function set(key, value){
       return _tx('readwrite').then(store => new Promise((resolve, reject) => {
         const req = store.put(value, key);
-        req.onsuccess = () => resolve();
+        req.onsuccess = () => resolve(true);
         req.onerror   = () => reject(req.error);
-      })).catch(e => { console.warn('[SolsticeIDB.set]', e); });
+      })).catch(e => { SolsticeLog.warn('[SolsticeIDB.set]', e); return false; });
     }
 
     function del(key){
       return _tx('readwrite').then(store => new Promise((resolve, reject) => {
         const req = store.delete(key);
-        req.onsuccess = () => resolve();
+        req.onsuccess = () => resolve(true);
         req.onerror   = () => reject(req.error);
-      })).catch(e => { console.warn('[SolsticeIDB.del]', e); });
+      })).catch(e => { SolsticeLog.warn('[SolsticeIDB.del]', e); return false; });
     }
 
     /**

@@ -5,6 +5,47 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Auditoria 2026.3 (Sprint 7 · "Disciplina e Estado Coerente") — 2026-05-23
+
+Terceira passada do Conselho de Evolução do Solstice, focada nos módulos novos do `v6-autonomous` que a Auditoria 2026.2 não cobriu a fundo. **7 patches + 3 ADRs aplicados.**
+Detalhes em [docs/auditoria-2026-3/](docs/auditoria-2026-3/).
+
+### 🔐 Confiabilidade
+
+- **MultiTab subscribers não silenciam erros (MC-04)** — `bc.onmessage` agora loga via `SolsticeLog.warn` em vez de `catch(_){}` vazio. Antes, exceção em subscriber cross-tab era invisível.
+- **IDB resolve com boolean em falha (MC-05 / AP-04)** — `SolsticeIDB.set/del` retornam `true`/`false` em vez de engolir o erro e resolver `undefined`. `SolsticeFolderAttach` (que persiste handle) agora sabe quando a persistência falhou.
+- **AutoSave + visibilitychange (MC-06)** — antes só `beforeunload` (Chrome limita a 250ms); agora também salva quando a aba vai pra background. Captura mais cedo, mais robusto.
+- **MultiTab fecha BroadcastChannel (MC-07)** — listener `beforeunload` libera `bc.close()`. Mesmo padrão do presenter dual-window.
+
+### 💎 UX
+
+- **AutoSave restore com confirmação (BR-A5 / ADR-187)** — em vez de restaurar silenciosamente, mostra banner não-modal: "💾 Você tinha um trabalho em andamento · 1 componente · 5 min atrás · [↶ Restaurar] [Começar do zero]". Sem ação em 12s = descarta. Reduz surpresa do usuário leigo que recarrega esperando welcome.
+- **Toast com tempo humanizado (BR-A6)** — `_humanAge` formata `5 min atrás` / `2h atrás` / `3 dias atrás` em vez de `~120 min atrás`.
+
+### 🧹 Cleanliness
+
+- **4 `console.warn` residuais → `SolsticeLog`** (JM-04) — em módulos v6-autonomous (`SolsticeMultiTab`, `SolsticeAutoSave`, `SolsticeSavedViews`, `SolsticeErrors.action`) que a 2026.2 não havia migrado. Fecha o padrão sistêmico HV-03.
+
+### 🏛️ Decisões arquiteturais
+
+- **ADR-185 — Hierarquia formal de persistência** — Snapshots / SavedViews / AutoSave / Workspace / IDB documentados no topo do arquivo. Próxima feature de persistência escolhe camada existente.
+- **ADR-186 — `SolsticeLog` é o canal de fallback padrão** — invariante documentada no topo. `console.warn` direto reservado a 3 casos explícitos.
+- **ADR-187 — `AutoSave.tryRestore` exige confirmação** — banner não-modal substitui restore silencioso.
+
+### 📊 Métricas (antes / depois da Auditoria 2026.3)
+
+| Sinal | 2026.2 | 2026.3 |
+|---|---|---|
+| `document.write` | 0 | **0** ✅ |
+| `console.warn` residual em módulos v6-autonomous | 7 | **0** ✅ |
+| Catches silenciando subscribers cross-tab | 2 | **0** ✅ |
+| `SolsticeIDB.set/del` mascarando falha | 2 | **0** ✅ |
+| `AutoSave.tryRestore` sem confirmação | sim | **não** ✅ |
+| Score auditoria estimado | 83 (queda após reauditoria) | **~89** (pós-Sprint 7) |
+| Veredito | 🟢 Viável com ressalvas | **🟢 Próximo de produção** |
+
+---
+
 ## [Unreleased] — Auditoria 2026.2 — 2026-05-23
 
 Segunda passada do Product Audit Board sobre o `v6-autonomous`. **57 correções aplicadas e validadas**.
