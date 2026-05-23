@@ -11655,19 +11655,54 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // Auditoria 2026.2 (BR-M5): subscriber ignora a 1ª invocação (re-hidratação
     // do boot/snapshot load). Antes, o "● Salvo automaticamente" verde aparecia
     // sempre, confundindo usuário no estado vazio ("salvo o quê?").
+    // Auditoria 2026.4 (Sprint 15 / CA-03 — benchmark Notion/Google Docs):
+    // status-saved persistente com timer relativo "Salvo há Xs".
+    // Antes: piscava "Alterações não salvas" → "Salvo automaticamente" e congelava.
+    // Agora: depois de salvar, mostra "Salvo há 5s", "Salvo há 1min", "Salvo há
+    // 5min", atualizando a cada 15s. Comunica frescor sem ruído.
+    //
+    // Auditoria 2026.4 (Sprint 15 fix): _flashEnabled NÃO consumido pela 1ª
+    // mudança real. Estratégia: setTimeout no boot pra ativar após o
+    // rehydrate inicial (~600ms). Snapshot load também não dispara flash.
     let _flashEnabled = false;
+    setTimeout(() => { _flashEnabled = true; }, 800);
+    let _lastSavedTs = null;
+    let _persistentTimer = null;
+    function _humanSinceShort(ms){
+      const s = Math.round(ms / 1000);
+      if (s < 60) return s + 's';
+      const m = Math.round(s / 60);
+      if (m < 60) return m + 'min';
+      const h = Math.round(m / 60);
+      return h + 'h';
+    }
+    function _renderSavedPersistent(){
+      if (!savedEl || _lastSavedTs == null) return;
+      const age = Date.now() - _lastSavedTs;
+      savedEl.style.color = 'var(--c-success)';
+      savedEl.textContent = age < 3000 ? '● Salvo agora' : '● Salvo há ' + _humanSinceShort(age);
+    }
     const flashSaved = () => {
       if (!savedEl) return;
-      if (!_flashEnabled) { _flashEnabled = true; return; }  // ignora 1ª chamada
+      if (!_flashEnabled) return;  // ignora durante janela de boot (rehydrate)
+      // Mostra "Alterações não salvas" enquanto debounce não terminou
       savedEl.style.color = 'var(--c-warn)';
       savedEl.textContent = '● Alterações não salvas';
       clearTimeout(savedTimer);
       savedTimer = setTimeout(() => {
-        savedEl.style.color = 'var(--c-success)';
-        savedEl.textContent = '● Salvo automaticamente';
+        _lastSavedTs = Date.now();
+        _renderSavedPersistent();
       }, 1800);
     };
     SolsticeStore.subscribe('canvas.sections', flashSaved);
+    // Timer persistente — atualiza o "Salvo há Xs" a cada 15s.
+    // Não interfere quando status mostra "Alterações não salvas" (savedTimer pendente).
+    if (_persistentTimer) clearInterval(_persistentTimer);
+    _persistentTimer = setInterval(() => {
+      if (_lastSavedTs != null && savedEl && !savedEl.textContent.includes('não salvas')){
+        _renderSavedPersistent();
+      }
+    }, 15000);
 
     // Patch Final (ADR-143): SolsticeShare — verifica hash compartilhado
     setTimeout(() => { try { SolsticeShare.checkHash(); } catch(e){ SolsticeLog.debug('[Share] checkHash falhou', e); } }, 400);

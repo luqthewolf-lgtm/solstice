@@ -5,6 +5,27 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 15 — "Status saved persistente (CA-03)" — 2026-05-23
+
+Atende ao item CA-03 do benchmark da Auditoria 2026.3: **Notion/Google Docs mostram "Saved 2s ago" persistentemente**, Solstice antes piscava e congelava em "Salvo automaticamente".
+
+### 💎 UX — `status-saved` agora é timer relativo
+
+- Antes: `● Alterações não salvas` (1.8s) → `● Salvo automaticamente` (congela)
+- Agora: `● Alterações não salvas` (1.8s) → `● Salvo agora` (<3s) → `● Salvo há 5s` / `● Salvo há 1min` / `● Salvo há 12min` / etc. **Atualiza a cada 15s.**
+- Bug colateral corrigido: `_flashEnabled` não é mais consumido pela 1ª mudança real do canvas — agora ativa via `setTimeout(800ms)` no boot, isolado da janela de rehydrate.
+
+### Validação preview
+
+```
+estado inicial: ○ Sem alterações
+após addSection: ● Alterações não salvas (amarelo)
+após 2.2s: ● Salvo agora (verde)
+após 15s+: ● Salvo há 15s (verde, atualiza)
+```
+
+---
+
 ## [Unreleased] — Sprint 14 — "Invariantes garantidas em CI" — 2026-05-23
 
 Sprint 14 transforma 3 decisões da Auditoria 2026.3/2026.4 em **invariantes garantidas em CI**. Se alguém regredir, o pipeline falha.
