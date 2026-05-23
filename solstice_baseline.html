@@ -6626,9 +6626,14 @@
         <button class="solstice__btn" id="btn-refresh-data" title="Recarregar dados do arquivo (mantém dashboard montado)" aria-label="Recarregar dados">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;"><path fill="currentColor" d="M13.65 2.35a8 8 0 0 0-13.18 8.6l1.5-1.5a6 6 0 0 1 10.14-5.6l-2.11 2.1H15V0l-1.35 2.35zM2.35 13.65A8 8 0 0 0 15.53 5.05l-1.5 1.5a6 6 0 0 1-10.14 5.6l2.11-2.1H1V16l1.35-2.35z"/></svg>
         </button>
-        <!-- B1-02 (v6-autonomous): botão DEDICADO atrelar pasta. Substitui Shift+Click oculto. -->
-        <button class="solstice__btn" id="btn-attach-folder" title="Atrelar pasta do disco — refresh automático ao recarregar a página" aria-label="Atrelar pasta">
+        <!-- B1-02 (v6-autonomous): botão DEDICADO atrelar pasta. Substitui Shift+Click oculto.
+             Sprint 45: estrutura HTML reformulada pra suportar label inline com
+             nome da pasta + caret ▾ quando atrelada. JS preenche #attach-folder-label
+             dinamicamente, abre menu (trocar/desatrelar) em vez de attach direto. -->
+        <button class="solstice__btn" id="btn-attach-folder" title="Atrelar pasta do disco — refresh automático ao recarregar a página" aria-label="Atrelar pasta" aria-haspopup="menu">
           <span aria-hidden="true" style="font-size:14px;vertical-align:-2px;">📎</span>
+          <span id="attach-folder-label" style="display:none;font-size:11px;margin-left:4px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:-2px;"></span>
+          <span id="attach-folder-caret" aria-hidden="true" style="display:none;opacity:0.6;font-size:10px;margin-left:2px;">▾</span>
         </button>
         <button class="solstice__btn" id="btn-save-menu" title="Salvar (Snapshot · Visão · Histórico)" aria-label="Abrir menu Salvar" aria-haspopup="menu">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M2 2h11l1 1v11H2V2zm2 1v4h7V3H4zm4 1h2v2H8V4zM3 9h10v4H3V9z"/></svg>Salvar <span aria-hidden="true" style="opacity:0.6;font-size:10px;">▾</span>
@@ -11360,11 +11365,139 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
     // B1-02: botão dedicado Atrelar pasta
+    // Sprint 45 / feedback do usuário: "pasta atrelada está muito ruim".
+    // Antes: clique sempre tentava atrelar; sem UI pra desatrelar; nome só
+    // no tooltip (invisível em desktop). Agora:
+    //   - Não atrelada: clique → showDirectoryPicker (atrelar)
+    //   - Atrelada: clique → menu dropdown com [Trocar pasta · Desatrelar ·
+    //     Ver detalhes], label inline com nome + caret ▾ visíveis
     const btnAttachFolder = document.getElementById('btn-attach-folder');
     if (btnAttachFolder){
-      btnAttachFolder.addEventListener('click', async () => {
+      const labelEl = document.getElementById('attach-folder-label');
+      const caretEl = document.getElementById('attach-folder-caret');
+
+      // Sprint 45: atualiza UI inline conforme estado (atrelada ou não).
+      function _syncAttachUI(){
+        const attached = (typeof SolsticeFolderAttach !== 'undefined') && SolsticeFolderAttach.isAttached();
+        if (attached){
+          const name = SolsticeFolderAttach.getAttachedName() || 'pasta';
+          const fileName = SolsticeFolderAttach.getAttachedSourceName();
+          btnAttachFolder.classList.add('is-active');
+          if (labelEl){
+            labelEl.style.display = 'inline-block';
+            labelEl.textContent = name;
+            labelEl.title = name + (fileName ? ' · ' + fileName : '');
+          }
+          if (caretEl) caretEl.style.display = 'inline';
+          btnAttachFolder.title = '📎 Pasta atrelada: ' + name + (fileName ? ' (arquivo: ' + fileName + ')' : '') + '. Clique para gerenciar.';
+        } else {
+          btnAttachFolder.classList.remove('is-active');
+          if (labelEl){ labelEl.style.display = 'none'; labelEl.textContent = ''; }
+          if (caretEl) caretEl.style.display = 'none';
+          btnAttachFolder.title = 'Atrelar pasta do disco — refresh automático ao recarregar a página';
+        }
+      }
+
+      // Sprint 45: menu popover quando já atrelada.
+      function _openAttachMenu(anchor){
+        // Fecha qualquer menu aberto antes
+        document.querySelectorAll('.solstice__attach-menu').forEach(m => m.remove());
+        const name = SolsticeFolderAttach.getAttachedName() || 'pasta';
+        const fileName = SolsticeFolderAttach.getAttachedSourceName();
+        const menu = SolsticeUtils.el('div', {
+          class: 'solstice__attach-menu',
+          role: 'menu',
+          style: 'position:fixed;background:var(--c-surface);border:1px solid var(--c-border);' +
+                 'border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.22);' +
+                 'min-width:260px;max-width:340px;z-index:99999;padding:6px;font-size:12px;'
+        });
+        // Header (info, não clicável)
+        const header = SolsticeUtils.el('div', {
+          style: 'padding:8px 10px;border-bottom:1px solid var(--c-border);margin-bottom:4px;'
+        });
+        header.appendChild(SolsticeUtils.el('div', {
+          style: 'font-size:10px;text-transform:uppercase;letter-spacing:0.05em;opacity:0.7;margin-bottom:2px;'
+        }, '📎 Pasta atrelada'));
+        header.appendChild(SolsticeUtils.el('div', {
+          style: 'font-weight:600;color:var(--c-text);word-break:break-all;'
+        }, name));
+        if (fileName){
+          header.appendChild(SolsticeUtils.el('div', {
+            style: 'font-size:10px;opacity:0.7;margin-top:2px;font-family:var(--font-mono);'
+          }, '📄 ' + fileName));
+        }
+        menu.appendChild(header);
+
+        function _menuBtn(icon, label, sub, onclick, danger){
+          const btn = SolsticeUtils.el('button', {
+            role: 'menuitem',
+            style: 'display:flex;flex-direction:column;align-items:flex-start;' +
+                   'width:100%;padding:8px 10px;background:transparent;border:none;border-radius:4px;' +
+                   'cursor:pointer;text-align:left;color:' + (danger ? 'var(--c-error)' : 'var(--c-text)') + ';',
+            onmouseenter: (e) => e.currentTarget.style.background = 'var(--c-surface-2)',
+            onmouseleave: (e) => e.currentTarget.style.background = 'transparent',
+            onclick: async () => { menu.remove(); await onclick(); }
+          });
+          btn.appendChild(SolsticeUtils.el('div', { style: 'font-weight:600;' }, icon + ' ' + label));
+          if (sub) btn.appendChild(SolsticeUtils.el('div', { style: 'font-size:10px;opacity:0.65;margin-top:2px;' }, sub));
+          return btn;
+        }
+
+        menu.appendChild(_menuBtn('🔄', 'Recarregar arquivo agora', 'Re-importa "' + (fileName || 'arquivo') + '" da pasta',
+          async () => {
+            if (!fileName){ SolsticeToast.info('Sem arquivo memorizado', 'Importe um arquivo primeiro.'); return; }
+            const ok = await SolsticeFolderAttach.refresh();
+            if (ok) SolsticeToast.success('Recarregado', fileName);
+          }));
+        menu.appendChild(_menuBtn('📁', 'Trocar pasta…', 'Escolher outra pasta do disco',
+          async () => {
+            const ok = await SolsticeFolderAttach.attach();
+            if (ok){
+              SolsticeToast.success('Pasta trocada', SolsticeFolderAttach.getAttachedName() || 'nova pasta');
+              _syncAttachUI();
+            }
+          }));
+        menu.appendChild(_menuBtn('❌', 'Desatrelar', 'Remove o vínculo · refresh volta a pedir o arquivo',
+          async () => {
+            const confirm = await SolsticeModal.confirm({
+              title: 'Desatrelar pasta?',
+              message: 'A pasta "' + name + '" deixa de estar atrelada. O dataset atual continua carregado — só perde o atalho de refresh automático.',
+              confirmLabel: 'Desatrelar',
+              cancelLabel: 'Cancelar'
+            });
+            if (confirm){
+              SolsticeFolderAttach.detach();
+              SolsticeToast.info('📎 Desatrelada', 'Refresh volta a pedir o arquivo manualmente.');
+              _syncAttachUI();
+            }
+          }, true));
+
+        document.body.appendChild(menu);
+        // Posiciona abaixo do botão, alinhado à direita
+        const rect = anchor.getBoundingClientRect();
+        const menuW = 280;
+        menu.style.top = (rect.bottom + 6) + 'px';
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - menuW - 8, rect.right - menuW)) + 'px';
+
+        // Clique fora fecha
+        const closeOnOutside = (e) => {
+          if (!menu.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)){
+            menu.remove();
+            document.removeEventListener('click', closeOnOutside, true);
+          }
+        };
+        setTimeout(() => document.addEventListener('click', closeOnOutside, true), 0);
+      }
+
+      btnAttachFolder.addEventListener('click', async (e) => {
         if (typeof SolsticeFolderAttach === 'undefined' || !SolsticeFolderAttach.isSupported()){
           SolsticeToast.warn('Não suportado', 'Atrelar pasta requer Chrome/Edge 86+. Continue importando manualmente.');
+          return;
+        }
+        // Sprint 45: se JÁ atrelada, abre menu (trocar/desatrelar/recarregar).
+        // Se não atrelada, fluxo direto de attach.
+        if (SolsticeFolderAttach.isAttached()){
+          _openAttachMenu(btnAttachFolder);
           return;
         }
         const dsReady = SolsticeStore.get('dataset.ready');
@@ -11375,18 +11508,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const ok = await SolsticeFolderAttach.attach();
         if (ok){
           SolsticeToast.success('📎 Pasta atrelada', 'O ícone 🔄 agora recarrega automaticamente. Ao reabrir o navegador, o Solstice também atualiza.');
-          // Visual: marca o botão como "ativo"
-          btnAttachFolder.classList.add('is-active');
-          btnAttachFolder.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
+          _syncAttachUI();
         }
       });
-      // Restaura estado visual se já tem pasta atrelada (vindo do IDB no boot)
-      setTimeout(() => {
-        if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.isAttached()){
-          btnAttachFolder.classList.add('is-active');
-          btnAttachFolder.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
-        }
-      }, 600);
+      // Sync inicial + sync sempre que mudar via storage (cobre attach/detach
+      // disparados por outros caminhos — restoreFromStorage no boot, etc).
+      setTimeout(_syncAttachUI, 600);
+      SolsticeStore.subscribe('ui.folder.attachedName', _syncAttachUI);
     }
 
     // 💾 Salvar ▾
@@ -11630,18 +11758,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     // B1-04 (v6-autonomous): tenta restaurar pasta atrelada + auto-refresh
     // se permissão ainda granted. Roda async no fundo, não bloqueia boot.
+    // Sprint 45: a UI visual (botão, label, caret) é sincronizada pelo
+    // subscriber 'ui.folder.attachedName' que registramos no click handler.
+    // restoreFromStorage chama set('ui.folder.attachedName', name) — dispara.
     if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.restoreFromStorage){
       setTimeout(() => {
         SolsticeFolderAttach.restoreFromStorage().then(res => {
-          if (res.restored){
-            const btn = document.getElementById('btn-attach-folder');
-            if (btn){
-              btn.classList.add('is-active');
-              btn.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
-            }
-            if (res.autoRefreshed){
-              console.log('[Solstice] Pasta atrelada restaurada + arquivo recarregado automaticamente.');
-            }
+          if (res.restored && res.autoRefreshed){
+            console.log('[Solstice] Pasta atrelada restaurada + arquivo recarregado automaticamente.');
           }
         });
       }, 400);
