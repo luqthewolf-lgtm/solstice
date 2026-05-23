@@ -22403,6 +22403,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         yAgg: 'sum',
         y2Column: null,
         y2Agg: 'sum',
+        // Sprint 43 / feedback do usuário ("não consegue agrupamento extra"):
+        // groupBy = 3ª dimensão (categórica). Quando setada, splita as barras
+        // em séries empilhadas (groupStacked=true) ou agrupadas (false).
+        groupBy: null,
+        groupStacked: true,
+        groupTopN: 6, // limita pra não explodir séries
         bin:'month',
         showLine: true, showDistribution: true
       }),
@@ -22417,19 +22423,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, '⏳ Aguardando Chart.js…'));
           return;
         }
+        // Sprint 43: helper pra calcular o bin temporal de uma row.
+        function _binKey(d){
+          if (cfg.bin === 'month') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+          if (cfg.bin === 'week'){
+            const onejan = new Date(d.getFullYear(), 0, 1);
+            const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+            return d.getFullYear() + '-W' + String(week).padStart(2,'0');
+          }
+          return d.toISOString().slice(0,10);
+        }
         // Agrega por bin: contagem + soma + média + (opcional) y2 sum/avg
         const buckets = new Map();
+        // Sprint 43: quando groupBy setado, agregamos por bin × categoria
+        // pra produzir séries empilhadas. groupSets armazena set de categorias.
+        const groupAgg = cfg.groupBy ? new Map() : null; // bin → Map<cat, {sum,count,vals}>
+        const groupCatCounts = cfg.groupBy ? new Map() : null; // cat → totalCount (pra Top-N)
         for (const r of ctx.rows){
           const d = new Date(r[cfg.xColumn]);
           if (isNaN(d)) continue;
-          let key;
-          if (cfg.bin === 'month') key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-          else if (cfg.bin === 'week'){
-            const onejan = new Date(d.getFullYear(), 0, 1);
-            const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
-            key = d.getFullYear() + '-W' + String(week).padStart(2,'0');
-          }
-          else key = d.toISOString().slice(0,10);
+          const key = _binKey(d);
           const v = SolsticeStats.parseNum(r[cfg.yColumn]);
           const v2 = cfg.y2Column ? SolsticeStats.parseNum(r[cfg.y2Column]) : NaN;
           if (!buckets.has(key)) buckets.set(key, { count:0, sum:0, vals:[], sum2:0, vals2:[] });
@@ -22437,19 +22450,31 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           b.count++;
           if (!isNaN(v)){ b.sum += v; b.vals.push(v); }
           if (!isNaN(v2)){ b.sum2 += v2; b.vals2.push(v2); }
+          if (cfg.groupBy){
+            const cat = r[cfg.groupBy];
+            if (cat == null || cat === '') continue;
+            const catKey = String(cat);
+            if (!groupAgg.has(key)) groupAgg.set(key, new Map());
+            const gmap = groupAgg.get(key);
+            if (!gmap.has(catKey)) gmap.set(catKey, { sum:0, count:0, vals:[] });
+            const gb = gmap.get(catKey);
+            gb.count++;
+            if (!isNaN(v)){ gb.sum += v; gb.vals.push(v); }
+            groupCatCounts.set(catKey, (groupCatCounts.get(catKey) || 0) + 1);
+          }
         }
         const labels = Array.from(buckets.keys()).sort();
         const counts = labels.map(k => buckets.get(k).count);
         // Sprint 42: respeita yAgg (sum/avg/count). Default 'sum' (compatível).
         const yAgg = cfg.yAgg || 'sum';
-        const ySeries = labels.map(k => {
-          const b = buckets.get(k);
-          if (yAgg === 'avg') return b.vals.length ? b.sum / b.vals.length : 0;
-          if (yAgg === 'count') return b.count;
-          if (yAgg === 'max') return b.vals.length ? Math.max.apply(null, b.vals) : 0;
-          if (yAgg === 'min') return b.vals.length ? Math.min.apply(null, b.vals) : 0;
+        const _aggOf = (b, useAgg) => {
+          if (useAgg === 'avg') return b.vals.length ? b.sum / b.vals.length : 0;
+          if (useAgg === 'count') return b.count;
+          if (useAgg === 'max') return b.vals.length ? Math.max.apply(null, b.vals) : 0;
+          if (useAgg === 'min') return b.vals.length ? Math.min.apply(null, b.vals) : 0;
           return b.sum;
-        });
+        };
+        const ySeries = labels.map(k => _aggOf(buckets.get(k), yAgg));
         // Y2 (segunda métrica opcional) — dual-axis verdadeiro
         const y2Agg = cfg.y2Agg || 'sum';
         const y2Series = cfg.y2Column ? labels.map(k => {
@@ -22460,6 +22485,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (y2Agg === 'min') return b.vals2.length ? Math.min.apply(null, b.vals2) : 0;
           return b.sum2;
         }) : null;
+        // Sprint 43: prepara categorias do groupBy (Top-N por contagem).
+        const groupTopCats = cfg.groupBy && groupCatCounts ? (() => {
+          const sorted = Array.from(groupCatCounts.entries()).sort((a,b) => b[1]-a[1]);
+          return sorted.slice(0, cfg.groupTopN || 6).map(([cat]) => cat);
+        })() : null;
+        // Pega paleta global pra colorir as séries por categoria.
+        const gbPalette = (typeof SolsticeStyle !== 'undefined' && SolsticeStyle.paletteColors)
+          ? (SolsticeStyle.paletteColors((cfg.style && cfg.style.palette) || 'auto') ||
+             ['#4D9FFF','#4ADE80','#FBBF24','#A78BFA','#F87171','#22D3EE','#FB923C','#F472B6'])
+          : ['#4D9FFF','#4ADE80','#FBBF24','#A78BFA','#F87171','#22D3EE','#FB923C','#F472B6'];
 
         const wrap = SolsticeUtils.el('div', { class:'solstice__chart-wrap' });
         const canvas = document.createElement('canvas');
@@ -22477,14 +22512,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const _aggLabel = (a) => ({sum:'soma',avg:'média',count:'contagem',max:'máx',min:'mín'}[a] || a);
           const datasets = [];
           if (cfg.showDistribution !== false){
-            // Sprint 42: as barras passam a representar a 1ª métrica (yColumn / yAgg).
-            // Antes era "frequência (contagem)" fixo — confundia quem queria comparar
-            // metrics. yAgg='count' preserva comportamento antigo.
-            datasets.push({
-              type: 'bar', label: yName + ' (' + _aggLabel(yAgg) + ')', data: ySeries,
-              backgroundColor: accent + '40', borderColor: accent + '60', borderWidth: 1,
-              yAxisID: 'yCount', order: 2
-            });
+            // Sprint 43 / feedback do usuário ("não consegue agrupamento extra"):
+            // se groupBy setado, splita em múltiplas séries empilhadas/agrupadas.
+            // Cada categoria do groupBy vira um dataset com sua cor da paleta.
+            if (cfg.groupBy && groupTopCats && groupTopCats.length > 1){
+              const gbName = (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.groupBy] && ctx.dictionary.columns[cfg.groupBy].friendlyName) || cfg.groupBy;
+              groupTopCats.forEach((cat, ci) => {
+                const data = labels.map(k => {
+                  const gmap = groupAgg.get(k);
+                  if (!gmap || !gmap.has(cat)) return 0;
+                  return _aggOf(gmap.get(cat), yAgg);
+                });
+                const color = gbPalette[ci % gbPalette.length];
+                datasets.push({
+                  type: 'bar',
+                  label: String(cat) + ' (' + _aggLabel(yAgg) + ' ' + yName + ')',
+                  data,
+                  backgroundColor: color + 'CC',
+                  borderColor: color,
+                  borderWidth: 1,
+                  yAxisID: 'yCount',
+                  order: 2,
+                  stack: cfg.groupStacked !== false ? 'gb' : undefined
+                });
+              });
+              // Tooltip header lista o grupo total
+              host.dataset.gbHint = 'agrupado por ' + gbName + ' · top ' + groupTopCats.length;
+            } else {
+              // Sprint 42: as barras passam a representar a 1ª métrica (yColumn / yAgg).
+              // Antes era "frequência (contagem)" fixo — confundia quem queria comparar
+              // metrics. yAgg='count' preserva comportamento antigo.
+              datasets.push({
+                type: 'bar', label: yName + ' (' + _aggLabel(yAgg) + ')', data: ySeries,
+                backgroundColor: accent + '40', borderColor: accent + '60', borderWidth: 1,
+                yAxisID: 'yCount', order: 2
+              });
+            }
           }
           if (cfg.showLine !== false){
             // Se há y2Column, a linha mostra y2; senão volta pra exibir a 1ª métrica
@@ -22499,14 +22562,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
           // Auditoria 2026 (R-03 / A-401): destrói instância anterior.
           if (canvas._chart) { try { canvas._chart.destroy(); } catch(_){} canvas._chart = null; }
+          // Sprint 43: stacked X+Y quando groupBy + groupStacked
+          const isStacked = cfg.groupBy && groupTopCats && cfg.groupStacked !== false;
           canvas._chart = new Chart(canvas, {
             data: { labels, datasets },
             options: {
               responsive: true, maintainAspectRatio: false,
               plugins: { legend: { display: true, position:'bottom', labels:{ font:{size:10}, boxWidth:14, padding:8 } } },
               scales: {
-                x: { grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}},
-                yCount: { position:'left',  beginAtZero:true, grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text: yName + ' (' + _aggLabel(yAgg) + ')', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}},
+                x: {
+                  stacked: isStacked,
+                  grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' },
+                  ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}
+                },
+                yCount: {
+                  position:'left', beginAtZero:true,
+                  stacked: isStacked,
+                  grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' },
+                  ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}},
+                  title:{ display:true, text: yName + ' (' + _aggLabel(yAgg) + ')', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}
+                },
                 ySum:   { position:'right', beginAtZero:true, grid: { drawOnChartArea:false }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text: (cfg.y2Column ? y2Name + ' (' + _aggLabel(y2Agg) + ')' : 'Valor'), font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}}
               },
               // LE-04 (Sprint 3): cross-filter automático
@@ -23843,6 +23918,21 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           binDT.appendChild(o);
         });
         field('Agregação temporal', binDT);
+        // Sprint 43 / feedback do usuário ("não consegue agrupamento extra"):
+        // groupBy = 3ª dimensão. Splita barras em séries empilhadas por categoria.
+        field('Agrupar por (opcional, 3ª dimensão)', colSelect(cfg.groupBy, 'categorical', v => _updateConfig(slot.id, { groupBy: v || null })));
+        if (cfg.groupBy){
+          const tgStack = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
+          const cbStack = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { groupStacked: !!e.target.checked }) });
+          if (cfg.groupStacked !== false) cbStack.checked = true;
+          tgStack.appendChild(cbStack);
+          tgStack.appendChild(SolsticeUtils.el('span', null, ' Empilhar barras (stacked) — senão agrupadas lado-a-lado'));
+          host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, tgStack));
+          const topN = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'2', max:'12',
+            value: String(cfg.groupTopN || 6),
+            onchange: e => _updateConfig(slot.id, { groupTopN: Math.max(2, Math.min(12, parseInt(e.target.value) || 6)) }) });
+          field('Top N categorias do grupo', topN);
+        }
         const tgDist = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
         const cbDist = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { showDistribution: !!e.target.checked }) });
         if (cfg.showDistribution !== false) cbDist.checked = true;
