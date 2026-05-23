@@ -20345,7 +20345,34 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           // desenhamos o valor numérico ao lado de cada ponto via plugin
           // inline (não depende de chartjs-plugin-datalabels). Funciona
           // mesmo sem CDN extra.
+          // Sprint 42 / feedback do usuário ("rótulo de dados não editável"):
+          // agora respeita style.dataLabelFormat (integer/decimal/percent/compact)
+          // e style.dataLabelPosition (top/right/bottom). Default mantém
+          // comportamento anterior (integer, top).
           const showLabels = !!(cfg.style && cfg.style.showDataLabels);
+          const dlFormat = (cfg.style && cfg.style.dataLabelFormat) || 'integer';
+          const dlPosition = (cfg.style && cfg.style.dataLabelPosition) || 'top';
+          const dlDecimals = (cfg.style && cfg.style.dataLabelDecimals != null) ? cfg.style.dataLabelDecimals : 1;
+          function _fmtLabel(v){
+            if (v == null || isNaN(v)) return '';
+            if (dlFormat === 'decimal'){
+              return (typeof SolsticeLocale !== 'undefined' && SolsticeLocale.decimal)
+                ? SolsticeLocale.decimal(v, dlDecimals)
+                : v.toFixed(dlDecimals);
+            }
+            if (dlFormat === 'percent'){
+              return (v * 100).toFixed(dlDecimals).replace('.', ',') + '%';
+            }
+            if (dlFormat === 'compact'){
+              const abs = Math.abs(v);
+              if (abs >= 1_000_000) return (v/1_000_000).toFixed(1).replace('.',',') + 'M';
+              if (abs >= 1000)      return (v/1000).toFixed(1).replace('.',',') + 'k';
+              return String(Math.round(v));
+            }
+            // integer (default)
+            return (typeof SolsticeLocale !== 'undefined' && SolsticeLocale.integer)
+              ? SolsticeLocale.integer(Math.round(v)) : String(Math.round(v));
+          }
           const dataLabelsPlugin = showLabels ? {
             id: 'solDataLabels',
             afterDatasetsDraw(chart){
@@ -20353,17 +20380,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               cc.save();
               cc.font = '10px var(--font-mono, monospace)';
               cc.fillStyle = isDark ? '#E7E9EE' : '#13161C';
-              cc.textAlign = 'center';
-              cc.textBaseline = 'bottom';
+              if (dlPosition === 'right'){
+                cc.textAlign = 'left';
+                cc.textBaseline = 'middle';
+              } else if (dlPosition === 'bottom'){
+                cc.textAlign = 'center';
+                cc.textBaseline = 'top';
+              } else {
+                cc.textAlign = 'center';
+                cc.textBaseline = 'bottom';
+              }
               chart.data.datasets.forEach((ds, di) => {
                 const meta = chart.getDatasetMeta(di);
                 if (!meta || meta.hidden) return;
                 meta.data.forEach((pt, i) => {
                   const v = ds.data[i];
                   if (v == null || isNaN(v)) return;
-                  const s = (typeof SolsticeLocale !== 'undefined' && SolsticeLocale.integer)
-                    ? SolsticeLocale.integer(Math.round(v)) : String(Math.round(v));
-                  cc.fillText(s, pt.x, pt.y - 5);
+                  const s = _fmtLabel(v);
+                  let ox = pt.x, oy = pt.y;
+                  if (dlPosition === 'right') ox = pt.x + 6;
+                  else if (dlPosition === 'bottom') oy = pt.y + 6;
+                  else oy = pt.y - 5;
+                  cc.fillText(s, ox, oy);
                 });
               });
               cc.restore();
@@ -22357,6 +22395,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       defaultConfig: (ctx) => ({
         xColumn: _firstColOfGroup(ctx, 'temporal'),
         yColumn: _firstColOfGroup(ctx, 'numeric'),
+        // Sprint 42 / feedback do usuário ("não consegue 2 eixos"): defaults
+        // adicionados pra true dual-axis. yAgg = como agregar yColumn (sum/avg/
+        // count). y2Column = SEGUNDA medida na linha (substitui o "count" puro
+        // quando setada). Antes era hardcoded sum(yColumn) na linha + count na
+        // barra — usuário queria escolher.
+        yAgg: 'sum',
+        y2Column: null,
+        y2Agg: 'sum',
         bin:'month',
         showLine: true, showDistribution: true
       }),
@@ -22371,7 +22417,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, '⏳ Aguardando Chart.js…'));
           return;
         }
-        // Agrega por bin: contagem + soma + média
+        // Agrega por bin: contagem + soma + média + (opcional) y2 sum/avg
         const buckets = new Map();
         for (const r of ctx.rows){
           const d = new Date(r[cfg.xColumn]);
@@ -22385,14 +22431,35 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
           else key = d.toISOString().slice(0,10);
           const v = SolsticeStats.parseNum(r[cfg.yColumn]);
-          if (!buckets.has(key)) buckets.set(key, { count:0, sum:0 });
+          const v2 = cfg.y2Column ? SolsticeStats.parseNum(r[cfg.y2Column]) : NaN;
+          if (!buckets.has(key)) buckets.set(key, { count:0, sum:0, vals:[], sum2:0, vals2:[] });
           const b = buckets.get(key);
           b.count++;
-          if (!isNaN(v)) b.sum += v;
+          if (!isNaN(v)){ b.sum += v; b.vals.push(v); }
+          if (!isNaN(v2)){ b.sum2 += v2; b.vals2.push(v2); }
         }
         const labels = Array.from(buckets.keys()).sort();
         const counts = labels.map(k => buckets.get(k).count);
-        const sums   = labels.map(k => buckets.get(k).sum);
+        // Sprint 42: respeita yAgg (sum/avg/count). Default 'sum' (compatível).
+        const yAgg = cfg.yAgg || 'sum';
+        const ySeries = labels.map(k => {
+          const b = buckets.get(k);
+          if (yAgg === 'avg') return b.vals.length ? b.sum / b.vals.length : 0;
+          if (yAgg === 'count') return b.count;
+          if (yAgg === 'max') return b.vals.length ? Math.max.apply(null, b.vals) : 0;
+          if (yAgg === 'min') return b.vals.length ? Math.min.apply(null, b.vals) : 0;
+          return b.sum;
+        });
+        // Y2 (segunda métrica opcional) — dual-axis verdadeiro
+        const y2Agg = cfg.y2Agg || 'sum';
+        const y2Series = cfg.y2Column ? labels.map(k => {
+          const b = buckets.get(k);
+          if (y2Agg === 'avg') return b.vals2.length ? b.sum2 / b.vals2.length : 0;
+          if (y2Agg === 'count') return b.count;
+          if (y2Agg === 'max') return b.vals2.length ? Math.max.apply(null, b.vals2) : 0;
+          if (y2Agg === 'min') return b.vals2.length ? Math.min.apply(null, b.vals2) : 0;
+          return b.sum2;
+        }) : null;
 
         const wrap = SolsticeUtils.el('div', { class:'solstice__chart-wrap' });
         const canvas = document.createElement('canvas');
@@ -22404,17 +22471,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
           const yDict = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.yColumn];
           const yName = (yDict && yDict.friendlyName) || cfg.yColumn;
+          const y2Name = cfg.y2Column ? (
+            (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.y2Column] && ctx.dictionary.columns[cfg.y2Column].friendlyName) || cfg.y2Column
+          ) : null;
+          const _aggLabel = (a) => ({sum:'soma',avg:'média',count:'contagem',max:'máx',min:'mín'}[a] || a);
           const datasets = [];
           if (cfg.showDistribution !== false){
+            // Sprint 42: as barras passam a representar a 1ª métrica (yColumn / yAgg).
+            // Antes era "frequência (contagem)" fixo — confundia quem queria comparar
+            // metrics. yAgg='count' preserva comportamento antigo.
             datasets.push({
-              type: 'bar', label: 'Frequência (contagem)', data: counts,
+              type: 'bar', label: yName + ' (' + _aggLabel(yAgg) + ')', data: ySeries,
               backgroundColor: accent + '40', borderColor: accent + '60', borderWidth: 1,
               yAxisID: 'yCount', order: 2
             });
           }
           if (cfg.showLine !== false){
+            // Se há y2Column, a linha mostra y2; senão volta pra exibir a 1ª métrica
+            // (compatibilidade — antes era sempre sum(yColumn)).
+            const lineLabel = cfg.y2Column ? (y2Name + ' (' + _aggLabel(y2Agg) + ')') : (yName + ' (' + _aggLabel(yAgg) + ')');
+            const lineData = cfg.y2Column ? y2Series : ySeries;
             datasets.push({
-              type: 'line', label: yName + ' (soma)', data: sums,
+              type: 'line', label: lineLabel, data: lineData,
               borderColor: warn, backgroundColor: 'transparent',
               tension: 0.25, pointRadius: 3, yAxisID: 'ySum', order: 1
             });
@@ -22428,8 +22506,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               plugins: { legend: { display: true, position:'bottom', labels:{ font:{size:10}, boxWidth:14, padding:8 } } },
               scales: {
                 x: { grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}},
-                yCount: { position:'left',  beginAtZero:true, grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text:'Contagem', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}},
-                ySum:   { position:'right', beginAtZero:true, grid: { drawOnChartArea:false }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text:'Valor', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}}
+                yCount: { position:'left',  beginAtZero:true, grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text: yName + ' (' + _aggLabel(yAgg) + ')', font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}},
+                ySum:   { position:'right', beginAtZero:true, grid: { drawOnChartArea:false }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10}}, title:{ display:true, text: (cfg.y2Column ? y2Name + ' (' + _aggLabel(y2Agg) + ')' : 'Valor'), font:{size:10}, color: isDark ? '#B8C4E0' : '#334155'}}
               },
               // LE-04 (Sprint 3): cross-filter automático
               onClick: (event, elements, chart) => {
@@ -23736,8 +23814,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       else if (def.id === 'distrib-time'){
         // SOL-D4: campos X/Y + agregação + toggles. Antes só `defaultConfig`
         // populava xColumn/yColumn auto-detectados; usuário não conseguia trocar.
+        // Sprint 42 / feedback do usuário ("não consegue 2 eixos"): agora
+        // expõe yAgg + y2Column (segunda métrica na linha) + y2Agg. Permite
+        // combo real (bar=metric A, line=metric B) com dual-axis.
         field('Eixo X (temporal)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })));
-        field('Eixo Y (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })));
+        field('Eixo Y — barras (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })));
+        const yAggSel = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { yAgg: e.target.value }) });
+        [['sum','Soma'],['avg','Média'],['count','Contagem'],['max','Máximo'],['min','Mínimo']].forEach(([v,l]) => {
+          const o = SolsticeUtils.el('option', { value: v }, l);
+          if ((cfg.yAgg || 'sum') === v) o.selected = true;
+          yAggSel.appendChild(o);
+        });
+        field('Agregação da medida (barras)', yAggSel);
+        field('Eixo Y2 — linha (opcional, dual-axis)', colSelect(cfg.y2Column, 'numeric', v => _updateConfig(slot.id, { y2Column: v || null })));
+        if (cfg.y2Column){
+          const y2AggSel = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { y2Agg: e.target.value }) });
+          [['sum','Soma'],['avg','Média'],['count','Contagem'],['max','Máximo'],['min','Mínimo']].forEach(([v,l]) => {
+            const o = SolsticeUtils.el('option', { value: v }, l);
+            if ((cfg.y2Agg || 'sum') === v) o.selected = true;
+            y2AggSel.appendChild(o);
+          });
+          field('Agregação da medida (linha)', y2AggSel);
+        }
         const binDT = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { bin: e.target.value }) });
         [['day','Diário'],['week','Semanal'],['month','Mensal']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
@@ -23749,13 +23847,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const cbDist = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { showDistribution: !!e.target.checked }) });
         if (cfg.showDistribution !== false) cbDist.checked = true;
         tgDist.appendChild(cbDist);
-        tgDist.appendChild(SolsticeUtils.el('span', null, ' Mostrar barras de frequência'));
+        tgDist.appendChild(SolsticeUtils.el('span', null, ' Mostrar barras'));
         host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, tgDist));
         const tgLine = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
         const cbLine = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { showLine: !!e.target.checked }) });
         if (cfg.showLine !== false) cbLine.checked = true;
         tgLine.appendChild(cbLine);
-        tgLine.appendChild(SolsticeUtils.el('span', null, ' Mostrar linha de valor (soma)'));
+        tgLine.appendChild(SolsticeUtils.el('span', null, ' Mostrar linha (2º eixo se y2 setado)'));
         host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, tgLine));
       }
       else if (def.id === 'table'){
@@ -24403,8 +24501,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         especBody.appendChild(field('Mostrar pontos', makeToggle(style.showPoints !== false, v => _set('showPoints', v))));
         // SOL-D4 v2: rótulo de dados liga/desliga (mostrar valor em cada ponto).
         // O renderer da Série Temporal consulta style.showDataLabels.
+        // Sprint 42 / feedback do usuário ("rótulo de dados não editável"):
+        // adicionados formato (integer/decimal/percent/compact) e posição
+        // (top/right/bottom). Antes era hardcoded em integer/top.
         especBody.appendChild(field('Rótulo de dados', makeToggle(style.showDataLabels === true, v => _set('showDataLabels', v)),
           'Mostra o valor numérico em cada ponto da série.'));
+        if (style.showDataLabels === true){
+          especBody.appendChild(field('Formato do rótulo', makeSelect([
+            ['integer','Inteiro (1.234)'],
+            ['decimal','Decimal (1.234,5)'],
+            ['percent','Percentual (12,3%)'],
+            ['compact','Compacto (1,2k · 3,4M)']
+          ], style.dataLabelFormat || 'integer', v => _set('dataLabelFormat', v))));
+          if ((style.dataLabelFormat || 'integer') === 'decimal' || (style.dataLabelFormat) === 'percent'){
+            especBody.appendChild(field('Casas decimais', makeSelect([
+              ['0','0'],['1','1'],['2','2'],['3','3']
+            ], String(style.dataLabelDecimals != null ? style.dataLabelDecimals : 1),
+              v => _set('dataLabelDecimals', parseInt(v)))));
+          }
+          especBody.appendChild(field('Posição do rótulo', makeSelect([
+            ['top','Acima do ponto'],
+            ['right','À direita'],
+            ['bottom','Abaixo do ponto']
+          ], style.dataLabelPosition || 'top', v => _set('dataLabelPosition', v))));
+        }
         especBody.appendChild(field('Grid', makeToggle(style.chartGrid !== false, v => _set('chartGrid', v))));
         especBody.appendChild(field('Legenda', makeToggle(style.chartLegend !== false, v => _set('chartLegend', v))));
         especBody.appendChild(field('Animar transições', makeToggle(style.chartAnimation !== false, v => _set('chartAnimation', v))));
@@ -29932,21 +30052,103 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     async function _openLayoutPicker(secId, rowId, current){
-      const opts = SolsticeLayouts.list().map(id => ({
-        value: id,
-        label: SolsticeLayouts.get(id).name,
-        icon: SolsticeLayouts.get(id).icon,
-        desc: SolsticeLayouts.slotCount(id) + ' slot(s)',
-        synonyms: [String(SolsticeLayouts.slotCount(id)) + ' colunas', String(SolsticeLayouts.slotCount(id)) + ' col']
-      }));
-      const choice = await SolsticeModal.select({
-        title: 'Layout da linha',
-        message: 'Escolha quantos slots e como dividir o espaço horizontal. Slots extras são preservados; faltantes são preenchidos com slots vazios.',
-        options: opts,
-        defaultValue: current,
-        confirmLabel: 'Aplicar layout'
+      // Sprint 42 / feedback do usuário ("layouts chatos, muitas opções em lista"):
+      // Antes era SolsticeModal.select (lista flat de 19 layouts). Agora: modal
+      // visual com preview SVG de cada layout em grid 4×N. Click no preview
+      // = aplicar. Bem mais rápido de escolher visualmente.
+      //
+      // Cada layout vira um "card" com mini SVG mostrando como os slots se
+      // distribuem (proporcional ao widths real do layout).
+      const NS = 'http://www.w3.org/2000/svg';
+      const LAYOUT_SHAPES = {
+        '1col':         [[100]],
+        '2col-equal':   [[50, 50]],
+        '2col-2-1':     [[66.67, 33.33]],
+        '2col-1-2':     [[33.33, 66.67]],
+        '3col-equal':   [[33.33, 33.33, 33.33]],
+        '3col-1-2-1':   [[25, 50, 25]],
+        '4col-equal':   [[25, 25, 25, 25]],
+        '5col-equal':   [[20, 20, 20, 20, 20]],
+        '6col-equal':   [[16.67, 16.67, 16.67, 16.67, 16.67, 16.67]],
+        '8col-equal':   [Array(8).fill(12.5)],
+        '4col-2-1-1':   [[50, 25, 25, 0]], // 0 ignored
+        '5col-2-1-1-1': [[40, 20, 20, 20]],
+        '10col-equal':  [Array(10).fill(10)],
+        '12col-equal':  [Array(12).fill(8.33)],
+        'auto-fit':     [[20, 20, 20, 20, 20]], // approximation
+        'hero-bottom':  [[100], [50, 50]],     // 2 linhas internas
+        'sidebar-main': [[25, 75]],
+        'custom':       [[100]]
+      };
+      function _previewSVG(id){
+        const shape = LAYOUT_SHAPES[id] || [[100]];
+        const W = 100, H = shape.length === 1 ? 40 : 60;
+        const rowH = (H - (shape.length - 1) * 3) / shape.length;
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+        svg.setAttribute('width', '100%');
+        svg.style.maxHeight = '60px';
+        shape.forEach((row, ri) => {
+          let x = 0;
+          const y = ri * (rowH + 3);
+          row.forEach(w => {
+            if (w <= 0) return;
+            const realW = (w / 100) * W;
+            const r = document.createElementNS(NS, 'rect');
+            r.setAttribute('x', x.toFixed(1));
+            r.setAttribute('y', y.toFixed(1));
+            r.setAttribute('width', Math.max(2, realW - 2).toFixed(1));
+            r.setAttribute('height', rowH.toFixed(1));
+            r.setAttribute('rx', '2');
+            r.setAttribute('fill', 'var(--c-accent, #EC7000)');
+            r.style.opacity = '0.7';
+            svg.appendChild(r);
+            x += realW;
+          });
+        });
+        return svg;
+      }
+      return new Promise(resolve => {
+        SolsticeModal.show({
+          title: '📐 Layout da linha',
+          size: 'lg',
+          body: (close) => {
+            const wrap = SolsticeUtils.el('div', { style: 'display:flex;flex-direction:column;gap:12px;' });
+            wrap.appendChild(SolsticeUtils.el('div', { style: 'font-size:12px;color:var(--c-muted);' },
+              'Escolha como dividir o espaço horizontal. Slots existentes são preservados; faltantes preenchidos com vazios.'));
+            const grid = SolsticeUtils.el('div', {
+              style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:60vh;overflow-y:auto;padding:4px;'
+            });
+            SolsticeLayouts.list().forEach(id => {
+              const meta = SolsticeLayouts.get(id);
+              const isActive = id === current;
+              const card = SolsticeUtils.el('button', {
+                type: 'button',
+                style: 'display:flex;flex-direction:column;align-items:center;gap:6px;' +
+                       'padding:10px 8px;border:2px solid ' + (isActive ? 'var(--c-accent, #EC7000)' : 'var(--c-border)') + ';' +
+                       'background:' + (isActive ? 'color-mix(in srgb, var(--c-accent, #EC7000) 8%, transparent)' : 'var(--c-surface)') + ';' +
+                       'border-radius:8px;cursor:pointer;transition:all .15s;font-size:11px;color:var(--c-text);text-align:center;',
+                onmouseenter: (e) => { if (!isActive) e.currentTarget.style.borderColor = 'var(--c-accent, #EC7000)'; },
+                onmouseleave: (e) => { if (!isActive) e.currentTarget.style.borderColor = 'var(--c-border)'; },
+                onclick: () => { close('ok'); changeRowLayout(secId, rowId, id); resolve(id); }
+              });
+              const svgWrap = SolsticeUtils.el('div', { style: 'width:100%;display:flex;align-items:center;justify-content:center;min-height:60px;' });
+              svgWrap.appendChild(_previewSVG(id));
+              card.appendChild(svgWrap);
+              card.appendChild(SolsticeUtils.el('div', { style: 'font-weight:600;' }, meta.name));
+              card.appendChild(SolsticeUtils.el('div', { style: 'font-size:10px;opacity:.65;' },
+                SolsticeLayouts.slotCount(id) + ' slot(s)' + (isActive ? ' · atual' : '')));
+              grid.appendChild(card);
+            });
+            wrap.appendChild(grid);
+            return wrap;
+          },
+          defaultClose: 'cancel',
+          footer: (close) => [
+            SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => { close('cancel'); resolve(null); } }, 'Cancelar')
+          ]
+        });
       });
-      if (choice) changeRowLayout(secId, rowId, choice);
     }
 
     /**
