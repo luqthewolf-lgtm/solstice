@@ -5,6 +5,16 @@
 *.tmp
 *.bak
 *.log
+recon*.json
+recon.py
+debug_main.js
+probe.html
+
+# Diretório efêmero de saída (entregáveis finais ficam em docs/auditoria-*/)
+outputs/
+
+# Backups manuais (versionamento real está no git)
+backup/
 
 # Dependências
 node_modules/

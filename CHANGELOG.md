@@ -5,6 +5,116 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Auditoria 2026.2 — 2026-05-23
+
+Segunda passada do Product Audit Board sobre o `v6-autonomous`. **57 correções aplicadas e validadas**.
+Detalhes em [docs/auditoria-2026-2/](docs/auditoria-2026-2/).
+
+### 🔐 Confiabilidade & Segurança
+- **`document.write` eliminado** (MC-A2) — último uso do arquivo, no presenter dual-window. Substituído por DOM API + listener delegado via `data-cmd`. Recon final: 0 ocorrências.
+- **Box plot XLSX consistente** (MC-A1) — usa `SolsticeStats.quartiles` (interpolação linear, type-7, igual NumPy) em vez de `s[Math.floor(p*(n-1))]`. Mesmo dataset agora exporta Q1/Q3 idênticos ao box plot renderizado.
+
+### 🧹 Cleanliness
+- **16 `console.warn` migrados para `SolsticeLog`** (JM-A3) — fallbacks de boot esperados ficam silenciosos em produção (debug=1 mantém visibilidade); erros reais continuam em `SolsticeLog.warn`.
+- **Div fantasma `solstice-sidebar-footer-btns-removed` removida** (JM-A1).
+- **`block-status` dev compactado** (JM-M2) — 40+ linhas no DOM → 2 linhas + apontador `Solstice.Debug.bootLog()`.
+- **`app-version` inicial sem versão hardcoded** (JM-A2) — boot popula a partir de `window.Solstice.version`.
+- **Comentário "hack" em `SolsticeStore.batch` reescrito** (JM-B3) — não é hack, é forma idiomática.
+
+### 💎 UX
+- **Status bar mostra "—" em vez de "0" pré-import** (MC-A3 + BR-M5) — `rows/cols` honram `0 length → "—"`. Status "salvo automaticamente" começa neutro `○ Sem alterações`; flag `_flashEnabled` ignora 1ª invocação (boot/snapshot rehydrate).
+- **Ask Bar placeholder dinâmico** (BR-A3) — `"Importe um CSV pra começar…"` em welcome, troca para `"Pergunte sobre seus dados…"` quando há dataset. Tooltip também muda.
+- **Welcome com "Ver com dataset de exemplo" por padrão** (BR-A1) — antes era dev-only; agora controlado por `settings.hideExampleButton` (default off). Copy: `"✨ Ver com dataset de exemplo · Vendas BR sintéticas + Auto-Dashboard em 1 clique"`.
+- **ExecutiveInsights fallback amigável** (BR-A2) — quando não há business insights, mostra `"📈 Insights Executivo — nada de negócio para destacar agora. A análise técnica está em 'Insights' → aba Qualidade/base."` + link `"Ver insights completos →"` no rodapé.
+- **Ask Bar sem dataset com CTAs visíveis** (H1+BR-A1) — banner + 2 botões (✨ Ver exemplo / 📁 Importar) + 7 perguntas universais clicáveis.
+- **Catálogo de perguntas do Ask Bar expandido** (H1) — 6 categorias × ~22 itens (adiciona `💼 Negócio`: "onde está concentrado o volume", "o que mudou recentemente", "tem algo preocupante").
+- **Tooltips do `help-btn` e `btn-show-shortcuts` mais informativos** (BR-M8).
+- **`aria-live="polite"` + tooltip explicativo no `status-saved`**.
+
+### 🏗️ Arquitetura
+- **`window.Solstice._runIngestFile` exposto** (MC-M3) — `SolsticeFolderAttach.refresh` tinha fallback que sempre falhava silenciosamente; agora funciona.
+
+### 📊 Métricas (antes / depois da Auditoria 2026.2)
+
+| Sinal | Antes | Depois |
+|---|---|---|
+| `document.write` | 1 | **0** |
+| Score auditoria | 80/100 | **86/100** |
+| Veredito | 🟡 Precisa de trabalho | **🟢 Viável com ressalvas** |
+| Bloqueadores abertos | 0 | 0 |
+
+---
+
+## [Unreleased] — branch `v6-autonomous`
+
+6 blocos de melhorias autônomas (não-merged em main ainda). 27 features novas. 4 novos módulos. Documentos V2 e V3 com 18 personas adicionais + 47 achados.
+
+### 🆕 Features novas
+- **SolsticeViews** — views salvas leves (filtros + página + cross-filter), 1-click pra alternar
+- **SolsticeAutoSave** — auto-save de canvas a cada 5s + restore on boot se vazio
+- **SolsticeFolderAttach** — atrelar pasta do disco (FS Access API), auto-refresh ao reabrir
+- **SolsticeIDB** — wrapper IndexedDB pra persistência de handles
+- **SolsticeMultiTab** — sync entre abas via BroadcastChannel
+- **SolsticeExecutiveInsights** — narrativa de negócio (top 5 insights de business) com toggle
+- **SolsticeExportSVG** — export componente como SVG editável (Illustrator/Inkscape)
+- **SolsticeEmbed** — snippet iframe pra incorporar dashboard em site externo
+- **SolsticeFmt** — helper único formatBRL/Pct/Compact/Bytes/Duration
+- **SolsticeErrorBoundary** — handler global window.onerror + unhandledrejection
+- **SolsticeConfig** — constantes Object.freeze (thresholds documentados)
+- Multi-page dashboards (estilo Power BI tabs) com atalhos Ctrl+Shift+T, Ctrl+Alt+→/←, Ctrl+1..9
+- FAB Ajuda flutuante (?) com popover de atalhos
+- Botão `📎` dedicado pra atrelar pasta (sem Shift+Click)
+
+### 🎨 UX / Design
+- Título do dashboard editável no banner do Cabeçalho (não no header global)
+- Welcome adaptativo: sem dado = foco em Importar; com dado = chat + templates
+- Welcome screen rolável (fix: `flex-start` em vez de `justify-content:center`)
+- Empty states convidantes (✨ ícone + pattern diagonal)
+- Inspector dividido em 🎴 Card vs 📊 Visual (componente)
+- Insights ocultáveis (botão ✕ no header; setting `ui.insights.hidden`)
+- Filtros colapsados por padrão (espaço visual)
+- Aba Modelo: vínculos agrupados por dataset com badges 1:1 / 1:N / N:N coloridos
+- Tour interativo auto-start na 1ª visita + FAB pulse pra atrair atenção
+- Confirmação `SolsticeModal.destructive(opts)` pra ações irreversíveis
+- Erros com botão "Resolver agora" (action acionável)
+
+### ♿ Acessibilidade
+- KPI cards com `role="region"` + `aria-label` descritivo (NVDA passa)
+- Tabela preview com `<caption>`, `scope="col"`, `aria-rowcount/colcount`
+- Tokens `--c-warn-text`, `--c-success-text`, `--c-error-text`, `--c-info-text` WCAG AA em light mode
+- Botões só-com-emoji (modal-close, inserter, slides nav) ganharam `aria-label`
+- Tokens `--fs-2xs` (11px) e `--fs-3xs` (9px) documentados pra micro-text
+- Focus trap em modais já existia (validado)
+
+### ⚡ Performance
+- `SolsticeUtils.rafThrottle(fn)` — helper rAF-based pra scroll/resize
+- Streaming CSV (chunk callback) em arquivos ≥ 5MB
+- Auto-refresh do arquivo se há pasta atrelada (FileSystemDirectoryHandle persistido em IDB)
+- Filtros persistidos em localStorage por dataset
+
+### 🔐 Segurança
+- Audit completo de innerHTML — 75 ocorrências, todas seguras (escapeHtml ou template estático)
+- CI step adicional: alert se houver mais de 2 innerHTML dinâmicos sem escape próximo
+- Folder Attach: permissão validada antes de cada read (re-prompt se revogada)
+
+### 🐛 Bugs corrigidos
+- Welcome travada após import (`justify-content:center` quebrava scroll)
+- Logo header reposicionada — título do dashboard agora no Cabeçalho (banner) inline-editável
+- `geo_uf` falso positivo na qualidade (`validate` sem `.trim()`) — fix em 7 tipos
+- Qualidade respeita semântica: <25% inválidos = INFO não ERROR
+- Cross-filter wireado nos Chart.js (onClick filtra outros componentes)
+
+### 🧪 Testes
+- `tests/config.test.mjs` — imutabilidade + faixas razoáveis (~25 asserções)
+- `tests/utils-light.test.mjs` — debounce, throttle, rafThrottle (~10 asserções)
+- Cobertura: ~25% → ~30%
+
+### 📚 Documentação
+- `docs/INVESTIGACAO_V2.md` — 8 personas adicionais (Twitter/Figma/Linear/Notion/Stripe/Airbnb/Vercel/PowerBI) cruzando críticas
+- `docs/INVESTIGACAO_V3.md` — 10 personas novas + 47 achados (NVDA, perf hardware antigo, i18n, etc.)
+
+---
+
 ## [5.6.0-patched] — 2026-05-22
 
 Ciclo de auditoria + cleanliness + code review + design system. 3 commits estruturais sobre a `main`.
