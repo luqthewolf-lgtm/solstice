@@ -6691,9 +6691,11 @@
            recebe role="tablist". WCAG 2.1.1. Handler keyboard adicionado
            no SolsticeSidebarTabs.init. -->
       <div role="tablist" aria-label="Abas do workspace">
-      <!-- v4 (Auditoria 2026.4): reorganização das abas por prioridade de uso real.
-           Ordem atual: Dados → Modelo (bases + relações) → Componentes → Snapshots → Dicionários.
-           Templates saiu da sidebar — foi para o topo (canvas toolbar) com 2 sub-abas. -->
+      <!-- v5 (Sprint 28): tab Templates ressuscitada como sidebar tab — user
+           reportou que querer "trocar de template a qualquer momento" sem
+           precisar abrir picker via toolbar. Tab Templates antes da Componentes
+           porque template é decisão de alto nível (vai mostrar comparação?
+           distribuição?) antes de cherry-pick de componente individual. -->
       <div class="solstice__sidebar-tab is-active" id="tab-dados" role="tab" tabindex="0" aria-selected="true">
         <span class="solstice__sidebar-tab-icon">📊</span>
         <span>Dados</span>
@@ -6703,6 +6705,11 @@
         <span class="solstice__sidebar-tab-icon">🗂️</span>
         <span>Modelo</span>
         <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-modelo"></span>
+      </div>
+      <div class="solstice__sidebar-tab" id="tab-templates" role="tab" tabindex="-1" aria-selected="false">
+        <span class="solstice__sidebar-tab-icon">🗂️</span>
+        <span>Templates</span>
+        <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-templates"></span>
       </div>
       <div class="solstice__sidebar-tab" id="tab-componentes" role="tab" tabindex="-1" aria-selected="false">
         <span class="solstice__sidebar-tab-icon">🧩</span>
@@ -6740,6 +6747,12 @@
         <div id="measures-panel" class="solstice__measures-panel solstice__hidden" style="margin-top: var(--sp-4);"></div>
         <div class="solstice__editor" id="editor-panel" style="margin-top: var(--sp-4);"></div>
       </div>
+
+      <!-- Sprint 28: painel de Templates (categorizado por TIPO de análise:
+           comparação · distribuição · evolução · composição · visão geral).
+           Renderizado por SolsticeTemplates.renderSidebarPanel — clique em
+           template abre Wizard, não aplica direto. -->
+      <div id="templates-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
 
       <!-- Bloco 5 / B7-r2: painel de componentes (catálogo accordion + lista) -->
       <div id="components-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
@@ -11688,6 +11701,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (k === 'd'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('dados'); }
         else if (k === 'c'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('componentes'); }
         else if (k === 's'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('snapshots'); }
+        // Sprint 28: atalho 'g t' (g + t) → aba Templates
+        else if (k === 't'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('templates'); }
+        else if (k === 'm'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('modelo'); }
         else if (k === 'i'){ e.preventDefault(); SolsticeStore.set('ui.insights.collapsed', false); SolsticeCanvas.render(); const el = document.querySelector('.solstice__insights'); if (el) el.scrollIntoView({behavior:'smooth'}); }
       }
     });
@@ -26130,11 +26146,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function activate(which){
       active = which;
       SolsticeStore.set('ui.activeTab', which);
-      // v4 (Auditoria 2026.4): nova ordem das abas — Dados, Modelo, Componentes,
-      // Snapshots, Dicionários. Templates saiu da sidebar (foi pro topo no canvas toolbar).
+      // v5 (Sprint 28): tab Templates ressuscitada. Templates passa a ser uma
+      // entrada de primeira classe no workspace — não escondida no canvas toolbar.
       const tabs = {
         dados:        document.getElementById('tab-dados'),
         modelo:       document.getElementById('tab-modelo'),
+        templates:    document.getElementById('tab-templates'),
         componentes:  document.getElementById('tab-componentes'),
         snapshots:    document.getElementById('tab-snapshots'),
         dicionarios:  document.getElementById('tab-dicionarios')
@@ -26150,6 +26167,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const panels = {
         dados:       document.getElementById('data-panel'),
         modelo:      document.getElementById('modelo-panel'),
+        templates:   document.getElementById('templates-panel'),
         componentes: document.getElementById('components-panel'),
         snapshots:   document.getElementById('snapshots-panel'),
         dicionarios: document.getElementById('dicionarios-panel')
@@ -26158,6 +26176,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const renderers = {
         dados:       _renderDataPanel,
         modelo:      _renderModeloPanel,
+        templates:   _renderTemplatesPanel,
         componentes: _renderComponentsPanel,
         snapshots:   _renderSnapsPanel,
         dicionarios: _renderDictsPanel
@@ -26168,6 +26187,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         p.classList.remove('solstice__hidden');
         try { r(); } catch(e){ SolsticeLog.warn('[SidebarTabs] render', which, e); }
       }
+    }
+
+    /**
+     * Sprint 28 — renderer do painel Templates na sidebar.
+     * Lista os templates AGNÓSTICOS organizados por tipo de análise
+     * (comparação, distribuição, evolução temporal, composição, visão geral).
+     * Cada item é clicável → abre Template Wizard (não aplica direto).
+     */
+    function _renderTemplatesPanel(){
+      const host = document.getElementById('templates-panel');
+      if (!host) return;
+      if (typeof SolsticeTemplates === 'undefined' || typeof SolsticeTemplates.renderSidebarPanel !== 'function'){
+        host.innerHTML = '<div style="padding:12px;color:var(--c-muted);font-size:12px;">Templates indisponíveis.</div>';
+        return;
+      }
+      SolsticeTemplates.renderSidebarPanel(host);
     }
 
     /**
@@ -28726,10 +28761,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // ENXUGAR3 v4 (Auditoria 2026.4): tag "Agnóstico/Banco PJ" removida do card
       // (era ruído visual). Description já comunica o conteúdo. Domínio
       // continua sendo usado pra agrupar (Sugeridos vs Gerais) mas não polui o card.
+      // Sprint 28: clicar no card de template do empty-state abre o Wizard
+      // (não aplica direto). Usuário pode confirmar/trocar colunas antes.
       const card = SolsticeUtils.el('button', {
         class:'solstice__empty-template-card',
         title: (t.description || '') + (t.domain ? ' · ' + (t.domainLabel || t.domain) : ''),
-        onclick: () => SolsticeTemplates.apply(t.id)
+        onclick: () => {
+          if (SolsticeTemplates.openWizard) SolsticeTemplates.openWizard(t.id);
+          else SolsticeTemplates.apply(t.id);
+        }
       });
       const titleEl = SolsticeUtils.el('div', { class:'solstice__empty-template-title' });
       titleEl.appendChild(SolsticeUtils.el('span', { class:'solstice__empty-template-icon', 'aria-hidden':'true' }, t.icon || '🧩'));
@@ -29509,62 +29549,72 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function _sec(title, ...rows){ return { title, rows }; }
 
     // === 6 AGNÓSTICOS — sempre disponíveis ===
+    // Sprint 28: AGNOSTIC enriquecidos com 'kind' (tipo de análise pro Wizard
+     // agrupar) e 'slotSpec' (tipo de componente pra cada slot). slotSpec[i]
+     // corresponde ao i-ésimo slot na ordem em que aparecem nos rows. Quando
+     // null, mantém empty pro user escolher manualmente.
     const AGNOSTIC = [
       {
         id:'kpi-trend', icon:'📊',
         name:'KPIs + Tendência',
         description:'4 indicadores chave em linha + gráfico de série temporal embaixo.',
-        domain: null,
+        domain: null, kind: 'visao-geral',
         build: () => [_sec('Visão geral',
           _row('4col-equal'),
           _row('1col')
-        )]
+        )],
+        slotSpec: ['kpi','kpi','kpi','kpi','time-series']
       },
       {
         id:'categories', icon:'📊',
         name:'Comparação de Categorias',
         description:'Barra horizontal ranqueando categorias + tabela com detalhes.',
-        domain: null,
+        domain: null, kind: 'comparacao',
         build: () => [_sec('Comparação',
           _row('2col-2-1')
-        )]
+        )],
+        slotSpec: ['distribution','table']
       },
       {
         id:'composition', icon:'🍰',
         name:'Composição',
         description:'Gráfico donut mostrando partes do todo + tabela detalhada.',
-        domain: null,
+        domain: null, kind: 'composicao',
         build: () => [_sec('Composição',
           _row('2col-1-2')
-        )]
+        )],
+        slotSpec: ['distribution','table']
       },
       {
         id:'distribution', icon:'📉',
         name:'Análise de Distribuição',
         description:'Histograma + box plot + estatísticas descritivas lado a lado.',
-        domain: null,
+        domain: null, kind: 'distribuicao',
         build: () => [_sec('Distribuição',
           _row('3col-equal')
-        )]
+        )],
+        slotSpec: ['distribution','distribution','kpi']
       },
       {
         id:'executive', icon:'👔',
         name:'Visão Executiva',
         description:'4 KPIs + narrativa automática contextual. Pronto para apresentação.',
-        domain: null,
+        domain: null, kind: 'visao-geral',
         build: () => [_sec('Resumo executivo',
           _row('4col-equal'),
           _row('1col')
-        )]
+        )],
+        slotSpec: ['kpi','kpi','kpi','kpi','narrative-auto']
       },
       {
         id:'table-only', icon:'📋',
         name:'Tabela com Filtros',
         description:'Apenas tabela rica com filtros, sort e paginação. Mínimo viável.',
-        domain: null,
+        domain: null, kind: 'tabela',
         build: () => [_sec('Dados',
           _row('1col')
-        )]
+        )],
+        slotSpec: ['table']
       },
       // Polish v8a-fix3 (Auditoria 2026.4): +3 templates pra fechar grid 3x3 — antes 6 templates deixavam grid quebrado, agora 9 (3×3 perfeito).
       // mais template para completar 9 e nao ficar com espaco sobrando").
@@ -29572,21 +29622,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         id:'correlation', icon:'🔍',
         name:'Correlação & Outliers',
         description:'Scatter com regressão linear + boxplot lado a lado. Identifique padrões e anomalias.',
-        domain: null,
+        domain: null, kind: 'correlacao',
         build: () => [_sec('Análise bivariada',
           _row('2col-equal'),  // scatter + boxplot
           _row('1col')          // tabela com casos extremos
-        )]
+        )],
+        slotSpec: ['scatter','distribution','table']
       },
       {
         id:'time-evolution', icon:'📈',
         name:'Evolução Temporal',
         description:'Time-series + heatmap calendário + tendência sazonal. Visão completa de séries temporais.',
-        domain: null,
+        domain: null, kind: 'evolucao',
         build: () => [_sec('Linha do tempo',
           _row('1col'),        // time-series principal
           _row('2col-equal')   // heatmap-cal + KPI tendência
-        )]
+        )],
+        slotSpec: ['time-series','heatmap-cal','kpi']
       },
       {
         id:'dense-kpis', icon:'⚡',
@@ -29909,7 +29961,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                 style:'display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-surface);cursor:pointer;text-align:left;transition:all 120ms;min-height:56px;font-family:inherit;color:var(--c-text);',
                 onmouseenter: e => { e.currentTarget.style.borderColor = 'var(--c-accent)'; e.currentTarget.style.background = 'var(--c-surface-2)'; },
                 onmouseleave: e => { e.currentTarget.style.borderColor = 'var(--c-border)'; e.currentTarget.style.background = 'var(--c-surface)'; },
-                onclick: () => { if (closeFn) closeFn(); resolve(t.id); apply(t.id); }
+                // Sprint 28: openPicker agora encaminha pro Wizard em vez de
+                // apply direto — assim qualquer caminho (toolbar, command-
+                // palette, welcome) passa pela revisão de colunas.
+                onclick: () => { if (closeFn) closeFn(); resolve(t.id); openWizard(t.id); }
               });
               card.appendChild(SolsticeUtils.el('span', { style:'font-size:20px;flex-shrink:0;' }, t.icon || '🧩'));
               const txt = SolsticeUtils.el('div', { style:'flex:1;min-width:0;' });
@@ -29947,7 +30002,296 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    return { list, getAll, apply, openPicker, AGNOSTIC, DOMAIN };
+    /* ============================================================
+       Sprint 28 — TEMPLATE WIZARD
+       --------------------------------------------------------------
+       User pediu: ao clicar num template, NÃO aplicar direto. Abrir
+       wizard que mostra cada componente do template, qual coluna a
+       IA sugeriu, e permitir trocar manualmente antes de aplicar.
+       Tipos de componente vêm de t.slotSpec; colunas auto via
+       defaultConfig de cada componente.
+       ============================================================ */
+    const KIND_META = {
+      'visao-geral':  { icon: '🧰', label: 'Visão geral' },
+      'comparacao':   { icon: '📊', label: 'Comparação' },
+      'distribuicao': { icon: '📉', label: 'Distribuição' },
+      'evolucao':     { icon: '📈', label: 'Evolução temporal' },
+      'composicao':   { icon: '🍰', label: 'Composição' },
+      'correlacao':   { icon: '🔍', label: 'Correlação' },
+      'tabela':       { icon: '📋', label: 'Tabela' }
+    };
+
+    /** Sprint 28 — flatten dos slots do template (com slotSpec aplicado). */
+    function _materializeSlots(t){
+      if (!t || !t.build) return [];
+      const sections = t.build();
+      const slots = [];
+      const spec = Array.isArray(t.slotSpec) ? t.slotSpec : [];
+      let i = 0;
+      sections.forEach((sec, secIdx) => {
+        (sec.rows || []).forEach((row, rowIdx) => {
+          (row.slots || []).forEach((slot, slotIdx) => {
+            const type = spec[i] || slot.type || 'empty';
+            slots.push({
+              _path: { secIdx, rowIdx, slotIdx },
+              type,
+              hint: null,
+              config: {}
+            });
+            i++;
+          });
+        });
+      });
+      return { sections, slots };
+    }
+
+    /** Sprint 28 — pega defaultConfig do componente como sugestão pro Wizard. */
+    function _suggestForSlot(slotType){
+      if (!slotType || slotType === 'empty') return null;
+      try {
+        if (typeof SolsticeComponents === 'undefined' || !SolsticeComponents.get) return null;
+        const def = SolsticeComponents.get(slotType);
+        if (!def || !def.defaultConfig) return null;
+        const fullCtx = typeof SolsticeComponents.ctx === 'function'
+          ? SolsticeComponents.ctx(null) : null;
+        if (!fullCtx) return null;
+        const cfg = def.defaultConfig(fullCtx) || {};
+        return cfg;
+      } catch(_){ return null; }
+    }
+
+    /**
+     * Sprint 28 — Wizard: pra cada slot do template, mostra dropdowns das
+     * colunas relevantes pré-preenchidas com a sugestão automática. User
+     * pode trocar qualquer uma antes de aplicar.
+     */
+    function openWizard(id){
+      const t = getAll().find(x => x.id === id);
+      if (!t){ SolsticeToast.warn('Template não encontrado', id); return; }
+      const ingest = SolsticeStore.get('ingest');
+      if (!ingest || !ingest.columns || !ingest.columns.length){
+        SolsticeToast.warn('Sem dataset', 'Importe um CSV antes de aplicar um template.');
+        return;
+      }
+      const allCols = ingest.columns;
+      const types = ingest.types || {};
+      const { sections, slots } = _materializeSlots(t);
+
+      // Pra cada slot, computa defaults via defaultConfig
+      slots.forEach(s => { s.config = _suggestForSlot(s.type) || {}; });
+
+      // Render
+      const wrap = SolsticeUtils.el('div', { style:'min-width:560px;max-width:760px;' });
+      // Cabeçalho com descrição + categoria
+      const kind = t.kind || (t.domain ? 'dominio' : 'visao-geral');
+      const km = KIND_META[kind] || { icon: t.icon || '🧩', label: 'Template' };
+      const head = SolsticeUtils.el('div', {
+        style: 'display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--c-surface-2);border-radius:6px;margin-bottom:14px;'
+      });
+      head.appendChild(SolsticeUtils.el('span', { style:'font-size:24px;' }, t.icon || km.icon));
+      const headTxt = SolsticeUtils.el('div', { style:'flex:1;' });
+      headTxt.appendChild(SolsticeUtils.el('div', { style:'font-size:14px;font-weight:600;' }, t.name));
+      if (t.description){
+        headTxt.appendChild(SolsticeUtils.el('div', { style:'font-size:11px;color:var(--c-muted);line-height:1.45;margin-top:2px;' }, t.description));
+      }
+      headTxt.appendChild(SolsticeUtils.el('div', {
+        style: 'display:inline-block;margin-top:6px;padding:2px 8px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;font-size:10px;color:var(--c-muted);'
+      }, km.icon + ' ' + km.label));
+      head.appendChild(headTxt);
+      wrap.appendChild(head);
+
+      wrap.appendChild(SolsticeUtils.el('div', {
+        style: 'font-size:12px;color:var(--c-text-2);margin-bottom:10px;line-height:1.5;'
+      },
+        'Confirme as colunas que cada componente vai usar. ',
+        SolsticeUtils.el('strong', null, 'A IA já sugeriu uma'),
+        ' baseada nos seus dados — troque se quiser.'
+      ));
+
+      // Lista de slots
+      const list = SolsticeUtils.el('div', { style:'display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow-y:auto;padding:2px;' });
+      slots.forEach((s, idx) => {
+        const def = (typeof SolsticeComponents !== 'undefined' && SolsticeComponents.get) ? SolsticeComponents.get(s.type) : null;
+        const row = SolsticeUtils.el('div', {
+          style: 'display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-surface);'
+        });
+        // Icone do componente
+        row.appendChild(SolsticeUtils.el('span', { style:'font-size:20px;flex-shrink:0;' }, (def && def.icon) || '📦'));
+        // Bloco do meio: nome + dropdown
+        const mid = SolsticeUtils.el('div', { style:'flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;' });
+        mid.appendChild(SolsticeUtils.el('div', { style:'font-size:12px;font-weight:600;' }, (def && def.name) || s.type));
+
+        // Pra cada chave de coluna no config, mostrar dropdown
+        const COL_KEYS = ['column','xColumn','yColumn','dateColumn','valueColumn','sourceColumn','targetColumn','groupColumn','sizeColumn'];
+        const usedKeys = COL_KEYS.filter(k => s.config[k] !== undefined);
+        if (!usedKeys.length){
+          // Componente sem coluna (ex: markdown) — não há nada pra escolher
+          mid.appendChild(SolsticeUtils.el('div', { style:'font-size:11px;color:var(--c-muted);' },
+            'Componente não usa coluna — usa todas / texto livre'));
+        } else {
+          usedKeys.forEach(key => {
+            const fieldRow = SolsticeUtils.el('div', { style:'display:flex;align-items:center;gap:8px;font-size:11px;' });
+            const labelTxt = key === 'xColumn' ? 'Eixo X'
+                          : key === 'yColumn' ? 'Eixo Y'
+                          : key === 'dateColumn' ? 'Data'
+                          : key === 'valueColumn' ? 'Valor'
+                          : key === 'sourceColumn' ? 'Origem'
+                          : key === 'targetColumn' ? 'Destino'
+                          : key === 'groupColumn' ? 'Agrupar por'
+                          : key === 'sizeColumn' ? 'Tamanho (bubble)'
+                          : 'Coluna';
+            fieldRow.appendChild(SolsticeUtils.el('span', { style:'color:var(--c-muted);min-width:80px;' }, labelTxt + ':'));
+            const select = SolsticeUtils.el('select', {
+              style:'flex:1;padding:4px 8px;background:var(--c-surface-2);border:1px solid var(--c-border);color:var(--c-text);font-size:11px;border-radius:4px;',
+              onchange: (e) => { s.config[key] = e.target.value || null; }
+            });
+            // Opção vazia
+            const optNone = SolsticeUtils.el('option', { value:'' }, '— sem coluna —');
+            select.appendChild(optNone);
+            // Lista colunas, marcando tipo
+            allCols.forEach(c => {
+              const t = (types[c] && types[c].type) || '?';
+              const icon = (typeof SolsticeTypes !== 'undefined' && SolsticeTypes.icon) ? (SolsticeTypes.icon(t) || '·') : '·';
+              const opt = SolsticeUtils.el('option', { value: c }, icon + ' ' + c);
+              if (c === s.config[key]) opt.setAttribute('selected', 'selected');
+              select.appendChild(opt);
+            });
+            // Garante que o defaultConfig fica como valor inicial
+            if (s.config[key]) select.value = s.config[key];
+            // Indicador "auto"
+            const autoTag = SolsticeUtils.el('span', {
+              style: 'font-size:9px;padding:1px 5px;background:color-mix(in srgb,var(--c-accent) 20%, transparent);color:var(--c-accent);border-radius:6px;font-weight:600;text-transform:uppercase;'
+            }, 'auto');
+            fieldRow.appendChild(select);
+            fieldRow.appendChild(autoTag);
+            mid.appendChild(fieldRow);
+          });
+        }
+        row.appendChild(mid);
+        list.appendChild(row);
+      });
+      wrap.appendChild(list);
+
+      SolsticeModal.show({
+        title: '🪄 Configurar template — ' + t.name,
+        size: 'lg',
+        body: wrap,
+        footer: (close) => [
+          SolsticeUtils.el('button', {
+            class: 'solstice__btn solstice__btn--ghost',
+            onclick: () => close(null)
+          }, 'Cancelar'),
+          SolsticeUtils.el('button', {
+            class: 'solstice__btn solstice__btn--primary',
+            onclick: () => {
+              // Aplica os tipos + configs escolhidas nos sections
+              slots.forEach(s => {
+                const { secIdx, rowIdx, slotIdx } = s._path;
+                const sec = sections[secIdx];
+                if (!sec) return;
+                const row = sec.rows[rowIdx];
+                if (!row) return;
+                const sl = row.slots[slotIdx];
+                if (!sl) return;
+                sl.type = s.type;
+                sl.config = Object.assign({}, sl.config || {}, s.config || {});
+              });
+              SolsticeCanvas.applyTemplate(sections);
+              try {
+                SolsticeAudit.record({
+                  action: 'apply_template_wizard', target: id,
+                  details: { name: t.name, customSlots: slots.length }
+                });
+              } catch(_){}
+              SolsticeToast.success('Template aplicado', t.name + ' · ' + slots.length + ' componente(s)');
+              close(null);
+            }
+          }, '✓ Aplicar template')
+        ]
+      });
+    }
+
+    /**
+     * Sprint 28 — renderiza o painel Templates na sidebar.
+     * Agrupa por KIND (categoria de análise), cards compactos com clique
+     * → openWizard. Quando não há dataset, mostra estado vazio com CTA.
+     */
+    function renderSidebarPanel(host){
+      if (!host) return;
+      host.innerHTML = '';
+      const ingest = SolsticeStore.get('ingest');
+      const hasDataset = !!(ingest && ingest.columns && ingest.columns.length);
+
+      // Header do painel
+      const head = SolsticeUtils.el('div', {
+        style: 'display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px;'
+      });
+      head.appendChild(SolsticeUtils.el('span', { style:'font-size:13px;font-weight:600;color:var(--c-text);' },
+        '🗂️ Templates de dashboard'));
+      host.appendChild(head);
+
+      host.appendChild(SolsticeUtils.el('div', {
+        style: 'font-size:11px;color:var(--c-muted);line-height:1.5;margin-bottom:12px;padding:8px 10px;background:var(--c-surface-2);border-left:2px solid var(--c-accent);border-radius:4px;'
+      },
+        'Clique num template pra ',
+        SolsticeUtils.el('strong', null, 'configurar as colunas'),
+        ' antes de aplicar — você revisa cada componente.'));
+
+      if (!hasDataset){
+        host.appendChild(SolsticeUtils.el('div', {
+          style: 'padding:14px;text-align:center;color:var(--c-muted);font-size:12px;line-height:1.5;background:var(--c-surface-2);border-radius:6px;border:1px dashed var(--c-border);'
+        },
+          SolsticeUtils.el('div', { style:'font-size:28px;margin-bottom:8px;opacity:0.5;' }, '📭'),
+          'Carregue um CSV pelo header pra ver e aplicar templates.'));
+        return;
+      }
+
+      // Agrupa por kind
+      const byKind = {};
+      const orderedKinds = ['visao-geral','comparacao','distribuicao','evolucao','composicao','correlacao','tabela'];
+      AGNOSTIC.forEach(t => {
+        const k = t.kind || 'outros';
+        (byKind[k] = byKind[k] || []).push(t);
+      });
+
+      orderedKinds.forEach(k => {
+        const items = byKind[k];
+        if (!items || !items.length) return;
+        const meta = KIND_META[k] || { icon: '🧩', label: k };
+        // Mini-cabeçalho
+        host.appendChild(SolsticeUtils.el('div', {
+          style: 'font-size:10px;font-weight:700;color:var(--c-muted);letter-spacing:0.06em;text-transform:uppercase;margin:14px 2px 6px;display:flex;align-items:center;gap:6px;'
+        },
+          SolsticeUtils.el('span', null, meta.icon),
+          SolsticeUtils.el('span', null, meta.label),
+          SolsticeUtils.el('span', { style:'opacity:0.6;' }, '· ' + items.length)));
+        // Cards
+        items.forEach(t => {
+          const card = SolsticeUtils.el('button', {
+            type: 'button',
+            class: 'solstice__template-sidebar-card',
+            title: t.description || t.name,
+            style: 'display:flex;align-items:center;gap:8px;padding:8px 10px;width:100%;border:1px solid var(--c-border);border-radius:6px;background:var(--c-surface);cursor:pointer;text-align:left;transition:all 120ms;color:var(--c-text);font-family:inherit;margin-bottom:6px;',
+            onmouseenter: e => { e.currentTarget.style.borderColor = 'var(--c-accent)'; e.currentTarget.style.background = 'var(--c-surface-2)'; },
+            onmouseleave: e => { e.currentTarget.style.borderColor = 'var(--c-border)'; e.currentTarget.style.background = 'var(--c-surface)'; },
+            onclick: () => openWizard(t.id)
+          });
+          card.appendChild(SolsticeUtils.el('span', { style:'font-size:18px;flex-shrink:0;' }, t.icon || '🧩'));
+          const txt = SolsticeUtils.el('div', { style:'flex:1;min-width:0;' });
+          txt.appendChild(SolsticeUtils.el('div', { style:'font-size:12px;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' }, t.name));
+          if (t.description){
+            txt.appendChild(SolsticeUtils.el('div', {
+              style: 'font-size:10px;color:var(--c-muted);line-height:1.3;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'
+            }, t.description));
+          }
+          card.appendChild(txt);
+          card.appendChild(SolsticeUtils.el('span', { style:'color:var(--c-muted);font-size:14px;flex-shrink:0;' }, '→'));
+          host.appendChild(card);
+        });
+      });
+    }
+
+    return { list, getAll, apply, openPicker, openWizard, renderSidebarPanel, AGNOSTIC, DOMAIN };
   })();
 
   /* ============================================================
