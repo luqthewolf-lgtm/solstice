@@ -490,6 +490,25 @@
   .solstice__brand-name { color: var(--c-text); }
   .solstice__brand-sub  { color: var(--c-muted); font-size: var(--fs-xs); font-weight: var(--fw-regular); }
 
+  /* S4-02 (Sprint 4): título do dashboard ao lado da brand */
+  .solstice__brand-divider {
+    color: var(--c-muted); font-size: var(--fs-xl); margin: 0 var(--sp-1);
+    user-select: none; opacity: 0.5;
+  }
+  .solstice__brand-doctitle {
+    background: transparent; border: 1px solid transparent;
+    color: var(--c-text); font-size: var(--fs-base); font-weight: var(--fw-medium);
+    padding: 4px 10px; border-radius: var(--rad-sm); cursor: text;
+    font-family: inherit; max-width: 280px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .solstice__brand-doctitle:hover { background: var(--c-surface-2); border-color: var(--c-border); }
+  .solstice__brand-doctitle:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+  .solstice__brand-doctitle[contenteditable="true"] {
+    background: var(--c-surface); border-color: var(--c-accent); cursor: text;
+  }
+
   /* Sprint 1 (RC-01): Badge "100% local" no header — sinal de privacidade */
   .solstice__privacy-badge {
     display: inline-flex; align-items: center; gap: 6px;
@@ -700,12 +719,15 @@
   }
   /* B8-r1: empty state ocupa o RESTANTE do canvas (flex:1) e centraliza conteúdo.
      Antes usava height:100% que ignorava toolbar/Insights acima, fazendo o conteúdo
-     "afundar" abaixo da viewport conforme irmãos cresciam. */
+     "afundar" abaixo da viewport conforme irmãos cresciam.
+     S4-01 (Sprint 4): justify-content:center quebrava scroll quando welcome+templates
+     excediam viewport. Fix: usa flex-start; padding-top maior pra centro óptico em
+     telas grandes; canvas pai já faz overflow-y:auto. */
   .solstice__canvas-empty {
-    flex: 1;
+    flex: 1 0 auto;            /* não encolhe abaixo do conteúdo */
     min-height: 320px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: var(--sp-8);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    text-align: center; padding: clamp(24px, 4vh, 72px) var(--sp-8) var(--sp-8);
     color: var(--c-muted);
   }
   .solstice__canvas-empty h1 {
@@ -6261,6 +6283,14 @@
         <div class="solstice__brand-name" id="brand-name">Solstice</div>
         <div class="solstice__brand-sub" id="brand-sub">Dashboard Studio</div>
       </div>
+      <!-- S4-02 (Sprint 4 / CR-01): título do dashboard editável ao lado da brand.
+           Clicável pra renomear. Esconde-se quando não há dataset (welcome ainda). -->
+      <div class="solstice__brand-divider" aria-hidden="true">·</div>
+      <button class="solstice__brand-doctitle" id="brand-doctitle" type="button"
+              title="Clique pra renomear o dashboard"
+              aria-label="Renomear dashboard">
+        Dashboard sem título
+      </button>
     </div>
 
     <!-- Sprint 1 (RC-01): Badge "100% local" — sinaliza ao usuário que dados
@@ -10507,6 +10537,52 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // 5. Help button (reabre onboarding)
     document.getElementById('help-btn').addEventListener('click', () => SolsticeOnboarding.show());
 
+    // S4-02 (Sprint 4): título do dashboard editável no header
+    (function _initDocTitle(){
+      const btn = document.getElementById('brand-doctitle');
+      if (!btn) return;
+      const STORAGE_KEY = 'solstice.dashboard.title';
+      // Sincroniza: carrega do SolsticeDashHeader (se presente) ou localStorage
+      function _load(){
+        try {
+          const fromHeader = (typeof SolsticeDashHeader !== 'undefined') ? (SolsticeDashHeader.get() || {}).title : null;
+          if (fromHeader && fromHeader !== 'Dashboard sem título') return fromHeader;
+        } catch(_){}
+        try { return (typeof SolsticeStorage !== 'undefined' ? SolsticeStorage.safeGet(STORAGE_KEY) : localStorage.getItem(STORAGE_KEY)) || 'Dashboard sem título'; }
+        catch(_){ return 'Dashboard sem título'; }
+      }
+      function _save(v){
+        try {
+          if (typeof SolsticeStorage !== 'undefined') SolsticeStorage.safeSet(STORAGE_KEY, v);
+          else localStorage.setItem(STORAGE_KEY, v);
+        } catch(_){}
+        try {
+          if (typeof SolsticeDashHeader !== 'undefined' && SolsticeDashHeader.set){
+            SolsticeDashHeader.set({ title: v });
+          }
+        } catch(_){}
+        try { document.title = (v && v !== 'Dashboard sem título' ? v + ' — Solstice' : 'Solstice'); } catch(_){}
+      }
+      btn.textContent = _load();
+      btn.addEventListener('click', () => {
+        btn.contentEditable = 'true';
+        btn.focus();
+        // Seleciona tudo
+        const r = document.createRange(); r.selectNodeContents(btn);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      });
+      btn.addEventListener('blur', () => {
+        btn.contentEditable = 'false';
+        const v = (btn.textContent || '').trim() || 'Dashboard sem título';
+        btn.textContent = v;
+        _save(v);
+      });
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter'){ e.preventDefault(); btn.blur(); }
+        if (e.key === 'Escape'){ e.preventDefault(); btn.textContent = _load(); btn.blur(); }
+      });
+    })();
+
     // SOL-B1 + SOL-A1: instala Modelo de Dados (relacionamentos) em idle, depois
     // do primeiro paint do welcome — não bloqueia main thread no boot.
     const _installRels = () => { try { SolsticeRelationships.install(); } catch(e){ console.warn('[SolsticeRelationships] install falhou', e); } };
@@ -11025,13 +11101,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'hash':       { group:'id', detect: v => RX.HEX_HASH.test(String(v).trim()) || RX.UUID.test(String(v).trim()), validate: v => true, aggs: ['count','uniqueCount'], format: v => String(v).slice(0,8)+'…', viz: ['table'] },
 
       // === CONTATO ===
-      'email':      { group:'contact', detect: v => RX.EMAIL.test(String(v).trim()), validate: v => RX.EMAIL.test(String(v)), aggs: ['count','uniqueCount'], format: v => v, viz: ['table'] },
-      'phone_br':   { group:'contact', detect: v => RX.PHONE_BR.test(String(v).trim()), validate: v => RX.PHONE_BR.test(String(v)), aggs: ['count'], format: v => v, viz: ['table'] },
-      'phone_intl': { group:'contact', detect: v => RX.PHONE_INTL.test(String(v).trim()), validate: v => RX.PHONE_INTL.test(String(v)), aggs: ['count'], format: v => v, viz: ['table'] },
-      'url':        { group:'contact', detect: v => RX.URL.test(String(v).trim()), validate: v => RX.URL.test(String(v)), aggs: ['count','uniqueCount'], format: v => v, viz: ['table'] },
+      // S4-03 (Sprint 4): bug crítico — validate sem .trim() chamava emails
+      // com espaços/quebras de "inválido" mesmo passando em detect. Falso positivo
+      // queimava confiança do usuário. Sincronizado com detect (ambos .trim()).
+      'email':      { group:'contact', detect: v => RX.EMAIL.test(String(v).trim()), validate: v => RX.EMAIL.test(String(v).trim()), aggs: ['count','uniqueCount'], format: v => v, viz: ['table'] },
+      'phone_br':   { group:'contact', detect: v => RX.PHONE_BR.test(String(v).trim()), validate: v => RX.PHONE_BR.test(String(v).trim()), aggs: ['count'], format: v => v, viz: ['table'] },
+      'phone_intl': { group:'contact', detect: v => RX.PHONE_INTL.test(String(v).trim()), validate: v => RX.PHONE_INTL.test(String(v).trim()), aggs: ['count'], format: v => v, viz: ['table'] },
+      'url':        { group:'contact', detect: v => RX.URL.test(String(v).trim()), validate: v => RX.URL.test(String(v).trim()), aggs: ['count','uniqueCount'], format: v => v, viz: ['table'] },
 
       // === GEOGRÁFICOS ===
-      'geo_uf':      { group:'geo', detect: v => RX.UF_BR.test(String(v).trim()), validate: v => RX.UF_BR.test(String(v)), aggs: ['count','uniqueCount'], format: v => String(v).toUpperCase(), viz: ['map','bar'] },
+      // S4-03: o bug reportado pelo usuário ("regiao: 200 inválidos (tipo geo_uf)" — falso!) era exatamente aqui.
+      'geo_uf':      { group:'geo', detect: v => RX.UF_BR.test(String(v).trim()), validate: v => RX.UF_BR.test(String(v).trim()), aggs: ['count','uniqueCount'], format: v => String(v).toUpperCase(), viz: ['map','bar'] },
       'geo_country': { group:'geo', detect: v => /^[A-Z]{2,3}$/.test(String(v).trim()) || /^(brasil|brazil|argentina|chile|mexico|estados unidos|usa|portugal)$/i.test(String(v).trim()), validate: v => true, aggs: ['count','uniqueCount'], format: v => v, viz: ['map','bar'] },
       'geo_lat':     { group:'geo', detect: v => _isLat(v) && /\./.test(String(v)), validate: v => _isLat(v), aggs: ['min','max'], format: (v,L) => L.decimal(parseFloat(v),5), viz: ['map','scatter'] },
       'geo_lng':     { group:'geo', detect: v => _isLng(v) && /\./.test(String(v)), validate: v => _isLng(v), aggs: ['min','max'], format: (v,L) => L.decimal(parseFloat(v),5), viz: ['map','scatter'] },
@@ -11043,7 +11123,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'xml_encoded':   { group:'struct', detect: v => /^\s*<\?xml|^\s*<[a-zA-Z]/.test(String(v)) && /<\/[a-zA-Z]+>/.test(String(v)), validate: v => true, aggs: ['count'], format: v => String(v).slice(0,40)+'…', viz: ['table'] },
 
       // === CATEGÓRICOS ===
-      'flag':      { group:'cat', detect: v => RX.BOOL.test(String(v).trim()), validate: v => RX.BOOL.test(String(v)), aggs: ['count','uniqueCount'], format: v => /^(true|sim|yes|1|t|y)$/i.test(String(v)) ? '✓' : '✗', viz: ['kpi','bar','donut'] },
+      // S4-03: sincronia detect/validate
+      'flag':      { group:'cat', detect: v => RX.BOOL.test(String(v).trim()), validate: v => RX.BOOL.test(String(v).trim()), aggs: ['count','uniqueCount'], format: v => /^(true|sim|yes|1|t|y)$/i.test(String(v)) ? '✓' : '✗', viz: ['kpi','bar','donut'] },
       'dimension': { group:'cat', detect: v => typeof v === 'string' && v.length > 0 && v.length < 100, validate: v => true, aggs: ['count','uniqueCount','mode'], format: v => v, viz: ['bar','donut','treemap','table'] },
       'ordinal':   { group:'cat', detect: v => /^(baixo|m[eé]dio|alto|cr[ií]tico|p[eé]ssimo|ruim|bom|[oó]timo|excelente|low|med(ium)?|high|critical|small|large|xs|s|m|l|xl|xxl)$/i.test(String(v).trim()), validate: v => true, aggs: ['count','uniqueCount','mode','median'], format: v => v, viz: ['bar','heatmap'] },
 
@@ -11942,6 +12023,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       );
 
       // Flags acionáveis
+      // S4-04 (Sprint 4 / Otto/Vercel · OF-02): macro > micro. Se uma coluna
+      // é semanticamente uma dimensão (variabilidade alta, baixo % de nulos),
+      // não chamar de "inválido" só porque o tipo inferido foi específico demais.
+      // Threshold: só flaga como ERROR se invalid > 25% (antes era qualquer >0).
+      // Abaixo disso, é INFO (suave) com sugestão de reclassificar.
       const flags = [];
       for (const c of columns){
         const colIssue = issues.byColumn[c];
@@ -11949,7 +12035,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (nullRatio > 0.5) flags.push({ col: c, level: 'warn', msg: `${Math.round(nullRatio*100)}% nulos` });
         else if (nullRatio > 0.2) flags.push({ col: c, level: 'info', msg: `${Math.round(nullRatio*100)}% nulos` });
         if (colIssue.invalid > 0){
-          flags.push({ col: c, level: 'error', msg: `${colIssue.invalid} inválidos (tipo ${types[c].type})` });
+          const invalidRatio = colIssue.invalid / rows.length;
+          const typeName = (types[c] && types[c].type) || 'desconhecido';
+          // Heurística macro: se >75% dos valores são válidos pra esse tipo
+          // (e o tipo é específico tipo geo_uf/email/cpf), é "tipo OK mas
+          // alguns outliers" — não erro de qualidade, é INFO com sugestão
+          if (invalidRatio < 0.25){
+            flags.push({
+              col: c, level: 'info',
+              msg: `${colIssue.invalid} valores fora do padrão (${typeName}) — pode ser dimensão livre`,
+              actionable: { reclassifyTo: 'dimension' }
+            });
+          } else {
+            flags.push({ col: c, level: 'error', msg: `${colIssue.invalid} inválidos (tipo ${typeName})` });
+          }
         }
       }
 
@@ -26697,22 +26796,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const showExample = document.documentElement.getAttribute('data-debug') === 'true' ||
                           SolsticeStore.get('settings.showExampleButton') === true;
       if (!ds){
-        // HOTFIX v5.5 (Lucas): welcome ÚNICO e enxuto. Remove "em PT" (site é
-        // todo pt-BR). Import principal pergunta antes (não força Express).
-        // "Exemplo" só visível em data-debug ou setting. Chat e import na MESMA
-        // tela — Lucas: "ele pede pra perguntar e depois manda pra importar".
+        // S4-05 (Sprint 4 / Lucas + Vanessa/Airbnb · VC-01): welcome sem dataset
+        // tem AGORA UMA hierarquia clara: 1 CTA gigante "Importar". Chat de perguntas
+        // foi removido daqui — sem dado, "perguntar" não faz sentido (resposta seria
+        // sempre "importe primeiro"). Chat volta quando dataset.ready vira true.
         wrap.appendChild(SolsticeUtils.el('div', { style:'font-size:42px;line-height:1;margin-bottom:var(--sp-2);' }, '🌗'));
         wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-brand' }, 'Solstice'));
         wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-sub' },
-          'Importe seu CSV ou pergunte em linguagem natural.'));
-
-        // ===== Chat NO TOPO (não esconde por causa de cards acima) =====
-        const chatWrap = SolsticeUtils.el('div', { class:'solstice__welcome-chat' });
-        chatWrap.appendChild(_renderQueryChat());
-        wrap.appendChild(chatWrap);
-
-        wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-divider' },
-          SolsticeUtils.el('span', null, 'ou importe um arquivo')));
+          'Importe seu CSV pra começar. Tudo roda local no seu navegador.'));
 
         // ===== Cards de import (2 padrão · 3 com exemplo se showExample) =====
         const paths = SolsticeUtils.el('div', { class:'solstice__welcome-paths' });
@@ -32369,7 +32460,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const allAvail = _allFilterable();
       if (!allAvail.length) return; // sem colunas filtráveis no dataset
 
-      const isCollapsed = !!SolsticeStore.get('ui.filters.collapsed');
+      // S4-06 (Sprint 4 / Yuki Notion · YT-01): filtros começam COLAPSADOS por padrão
+      // se nunca configurado. Antes ocupavam barra inteira ao boot, criando ruído visual.
+      // Usuário expande quando precisa; estado persiste em ui.filters.collapsed.
+      const storedCollapsed = SolsticeStore.get('ui.filters.collapsed');
+      const isCollapsed = storedCollapsed === undefined || storedCollapsed === null
+        ? true // default: colapsado
+        : !!storedCollapsed;
       const wrap = SolsticeUtils.el('div', {
         class: 'solstice__filterbar' + (isCollapsed ? ' is-collapsed' : '')
       });
