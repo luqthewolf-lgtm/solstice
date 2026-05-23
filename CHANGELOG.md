@@ -5,6 +5,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 16 — "aria-label em buttons só com ícone" — 2026-05-23
+
+### ♿ A11y polish (Sprint 16 — A11y-03)
+
+Buttons só com ícone (`✕`, `⎘`, `📂`, `🗑️`, `⬇️`, `✏️`, `✓`) tinham `title` mas faltava `aria-label`. Leitor de tela anunciava só o ícone unicode ("U+1F5D1") em vez do papel do botão.
+
+Patches em 8 buttons:
+- Linha de tabela (Modal de Snapshots): `Carregar snapshot X`, `Renomear snapshot X`, `Remover snapshot X`, `Exportar snapshot corrompido como JSON`, `Remover entrada de snapshot corrompida`
+- Linhas de seção do canvas: `Duplicar linha`, `Remover linha`
+- Painel de dicionários (sidebar): `Aplicar dicionário X`
+- Painel de snapshots (sidebar): `Carregar snapshot X`, `Remover snapshot X`
+
+aria-label inclui contexto dinâmico (nome do snapshot/dicionário) — leitor anuncia "Remover snapshot 'Vendas Q1'" em vez de "Remover".
+
+### Validação preview
+
+App boota sem erros (console limpo). Buttons inalterados visualmente.
+
+---
+
 ## [Unreleased] — Sprint 15 — "Status saved persistente (CA-03)" — 2026-05-23
 
 Atende ao item CA-03 do benchmark da Auditoria 2026.3: **Notion/Google Docs mostram "Saved 2s ago" persistentemente**, Solstice antes piscava e congelava em "Salvo automaticamente".

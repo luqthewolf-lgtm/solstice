@@ -26325,7 +26325,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' }, 'localStorage'));
           item.appendChild(body);
           const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
-          acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar', onclick: () => {
+          acts.appendChild(SolsticeUtils.el('button', { title:'Aplicar', 'aria-label':'Aplicar dicionário ' + name, onclick: () => {
             const d = SolsticeDictionary.load(name);
             // Prompt 1 LGPD: preserva _presetKey se já estiver salvo (dict salvo de banco_pj)
             if (d){ SolsticeStore.set('dictionary', d); SolsticeToast.success('Dicionário aplicado', name); _renderDictsPanel(); }
@@ -26458,8 +26458,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           new Date(snap.savedAt).toLocaleDateString('pt-BR') + ' · ' + Math.round(snap.size/1024) + ' KB'));
         item.appendChild(body);
         const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
-        acts.appendChild(SolsticeUtils.el('button', { title:'Carregar', onclick: () => SolsticeSnapshots.load(snap.id) }, '📂'));
-        acts.appendChild(SolsticeUtils.el('button', { title:'Remover', onclick: async () => {
+        acts.appendChild(SolsticeUtils.el('button', { title:'Carregar', 'aria-label':'Carregar snapshot ' + snap.name, onclick: () => SolsticeSnapshots.load(snap.id) }, '📂'));
+        acts.appendChild(SolsticeUtils.el('button', { title:'Remover', 'aria-label':'Remover snapshot ' + snap.name, onclick: async () => {
           const ok = await SolsticeModal.confirm({ title:'Remover snapshot?', danger:true, message:snap.name, confirmLabel:'Remover' });
           if (ok){ SolsticeSnapshots.remove(snap.id); _renderSnapsPanel(); }
         }}, '🗑️'));
@@ -28704,9 +28704,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         alignBtn,
         moveUpBtn,
         moveDownBtn,
-        SolsticeUtils.el('button', { class:'solstice__row-btn', title:'Duplicar linha', onclick: () => duplicateRow(secId, row.id) }, '⎘'),
+        SolsticeUtils.el('button', { class:'solstice__row-btn', title:'Duplicar linha', 'aria-label':'Duplicar linha', onclick: () => duplicateRow(secId, row.id) }, '⎘'),
         addRightBtn,
-        SolsticeUtils.el('button', { class:'solstice__row-btn', title:'Remover linha', onclick: () => _confirmRemoveRow(secId, row) }, '✕')
+        SolsticeUtils.el('button', { class:'solstice__row-btn', title:'Remover linha', 'aria-label':'Remover linha', onclick: () => _confirmRemoveRow(secId, row) }, '✕')
       );
       el.appendChild(tb);
 
@@ -36306,7 +36306,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           // Auditoria 2026 (B-05 / A-1003): entradas corrompidas mostram só
           // ações de recuperação manual; não permitem load() direto.
           if (snap.corrupted){
-            acts.appendChild(SolsticeUtils.el('button', { title:'Exportar bruto (JSON)',
+            acts.appendChild(SolsticeUtils.el('button', { title:'Exportar bruto (JSON)', 'aria-label':'Exportar snapshot corrompido como JSON',
               onclick: () => {
                 const blob = new Blob([snap.rawSample || ''], { type:'application/json' });
                 const a = document.createElement('a');
@@ -36315,7 +36315,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
                 a.click();
                 URL.revokeObjectURL(a.href);
               }}, '⬇️'));
-            acts.appendChild(SolsticeUtils.el('button', { title:'Remover entrada corrompida',
+            acts.appendChild(SolsticeUtils.el('button', { title:'Remover entrada corrompida', 'aria-label':'Remover entrada de snapshot corrompida',
               onclick: () => {
                 // Limpa toda a chave (a entrada corrompida é a chave inteira do perfil).
                 try { localStorage.removeItem(_storageKey()); } catch(e){}
@@ -36326,13 +36326,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             listEl.appendChild(item);
             return;  // pula o resto (Carregar/Renomear) para esta entrada
           }
-          acts.appendChild(SolsticeUtils.el('button', { title:'Carregar',
+          acts.appendChild(SolsticeUtils.el('button', { title:'Carregar', 'aria-label':'Carregar snapshot ' + snap.name,
             onclick: () => load(snap.id) }, '📂'));
-          acts.appendChild(SolsticeUtils.el('button', { title:'Renomear', onclick: async () => {
+          acts.appendChild(SolsticeUtils.el('button', { title:'Renomear', 'aria-label':'Renomear snapshot ' + snap.name, onclick: async () => {
             const nv = await SolsticeModal.prompt({ title:'Renomear snapshot', defaultValue: snap.name });
             if (nv){ rename(snap.id, nv); snaps = list(); refresh(listEl); }
           }}, '✏️'));
-          acts.appendChild(SolsticeUtils.el('button', { class:'is-danger', title:'Remover',
+          acts.appendChild(SolsticeUtils.el('button', { class:'is-danger', title:'Remover', 'aria-label':'Remover snapshot ' + snap.name,
             onclick: async () => {
               const ok = await SolsticeModal.confirm({ title:'Remover snapshot?', message:'Esta ação não pode ser desfeita.', danger: true, confirmLabel:'Remover' });
               if (ok){ remove(snap.id); snaps = list(); refresh(listEl); }
