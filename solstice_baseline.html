@@ -15741,10 +15741,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       entry.ts = entry.ts || new Date().toISOString();
       log.push(entry);
       if (log.length > MAX) log.shift();
-      subs.forEach(cb => { try { cb(entry); } catch(e){} });
+      // Auditoria 2026.4 (MC-09 / HV-03): erros em subscribers de Audit logam
+      // via SolsticeLog em vez de silenciar. Mesmo padrão MC-04 do MultiTab —
+      // catch vazio em loop de callbacks invisibilizava bugs reais.
+      subs.forEach(cb => {
+        try { cb(entry); }
+        catch(e){ SolsticeLog.warn('[SolsticeAudit] subscriber error · action=' + (entry && entry.action), e); }
+      });
     }
 
-    function clear(){ log.length = 0; subs.forEach(cb => { try { cb(null); } catch(e){} }); }
+    function clear(){
+      log.length = 0;
+      subs.forEach(cb => {
+        try { cb(null); }
+        catch(e){ SolsticeLog.warn('[SolsticeAudit] subscriber error · clear', e); }
+      });
+    }
     function list(filter){
       if (!filter) return log.slice();
       return log.filter(e => {
@@ -18626,7 +18638,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const isReplace = !!registry[def.id];
       registry[def.id] = def;
       // Notifica listeners (catálogo de componentes, command palette, etc.)
-      _registerListeners.forEach(cb => { try { cb(def, isReplace); } catch(_){} });
+      // Auditoria 2026.4 (MC-09 ext): erro em subscriber loga via SolsticeLog.
+      _registerListeners.forEach(cb => {
+        try { cb(def, isReplace); }
+        catch(e){ SolsticeLog.warn('[SolsticeComponents.register] subscriber error · def.id=' + def.id, e); }
+      });
       return true;
     }
     /** RT-05: hook pra terceiros saberem quando novos componentes são registrados. */
@@ -42466,18 +42482,35 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         }
 
         // Estrutura DOM
-        const wrap = _el('div', { class: 'v56-vtable', tabindex: '0' });
+        // Auditoria 2026.4 (Sprint 12 / A11y-01): Vtable ganha semântica de grid
+        // para leitores de tela. role=grid + aria-rowcount/colcount + role=row/
+        // columnheader/gridcell. NVDA/JAWS/VoiceOver agora anunciam linha N de M.
+        const wrap = _el('div', {
+          class: 'v56-vtable',
+          tabindex: '0',
+          role: 'grid',
+          'aria-rowcount': String((rows && rows.length) || 0),
+          'aria-colcount': String(cols.length),
+          'aria-label': 'Tabela com ' + ((rows && rows.length) || 0) + ' linhas e ' + cols.length + ' colunas, virtualizada'
+        });
 
         // Largura de coluna: 1fr para todas, com mínimo 80px
         const gridCols = cols.map(() => 'minmax(80px,1fr)').join(' ');
 
         // === Header ===
-        const head = _el('div', { class: 'v56-vtable__head' });
+        const head = _el('div', { class: 'v56-vtable__head', role: 'row' });
         head.style.gridTemplateColumns = gridCols;
-        cols.forEach(c => {
+        cols.forEach((c, idx) => {
           const friendly = (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[c] && ctx.dictionary.columns[c].friendlyName) || c;
-          const th = _el('div', { title: 'Clique para ordenar por ' + friendly },
-            friendly);
+          // Auditoria 2026.4 (A11y-01): columnheader + aria-sort + aria-colindex.
+          // Estado de ordenação anunciado pelo leitor de tela.
+          const th = _el('div', {
+            title: 'Clique para ordenar por ' + friendly,
+            role: 'columnheader',
+            'aria-colindex': String(idx + 1),
+            'aria-sort': 'none',
+            tabindex: '-1'
+          }, friendly);
           th.addEventListener('click', () => {
             if (state.sortCol === c){
               state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
@@ -42490,17 +42523,24 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
               slot.config.sortCol = state.sortCol;
               slot.config.sortDir = state.sortDir;
             }
-            // Indica visualmente
-            head.querySelectorAll('div').forEach(d => d.textContent = d.textContent.replace(/ [▲▼]$/, ''));
+            // Auditoria 2026.4 (A11y-01): atualiza aria-sort + reseta indicadores
+            head.querySelectorAll('[role="columnheader"]').forEach(d => {
+              d.setAttribute('aria-sort', 'none');
+              d.textContent = d.textContent.replace(/ [▲▼]$/, '');
+            });
+            th.setAttribute('aria-sort', state.sortDir === 'asc' ? 'ascending' : 'descending');
             th.textContent = (friendly) + (state.sortDir === 'asc' ? ' ▲' : ' ▼');
           });
-          if (state.sortCol === c) th.textContent = friendly + (state.sortDir === 'asc' ? ' ▲' : ' ▼');
+          if (state.sortCol === c){
+            th.textContent = friendly + (state.sortDir === 'asc' ? ' ▲' : ' ▼');
+            th.setAttribute('aria-sort', state.sortDir === 'asc' ? 'ascending' : 'descending');
+          }
           head.appendChild(th);
         });
         wrap.appendChild(head);
 
         // === Viewport ===
-        const viewport = _el('div', { class: 'v56-vtable__viewport' });
+        const viewport = _el('div', { class: 'v56-vtable__viewport', role: 'rowgroup' });
         const spacer = _el('div', { class: 'v56-vtable__spacer' });
         const rowsHost = _el('div', { class: 'v56-vtable__rows' });
         spacer.appendChild(rowsHost);
@@ -42509,10 +42549,14 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
         // === Footer ===
         const footer = _el('div', { class: 'v56-vtable__footer' });
-        const statsEl = _el('span', null, '');
+        // Auditoria 2026.4 (A11y-01): live region pra anunciar mudanças de
+        // contagem de linhas quando o filtro muda (NVDA/JAWS leem o número novo).
+        const statsEl = _el('span', { 'aria-live': 'polite', 'aria-atomic': 'true' }, '');
         const searchInput = _el('input', {
           type: 'text', class: 'v56-vtable__search',
-          placeholder: '🔎 Filtrar…'
+          placeholder: '🔎 Filtrar…',
+          'aria-label': 'Filtrar linhas da tabela',
+          'aria-controls': 'v56-vtable-rows-' + Math.random().toString(36).slice(2, 8)
         });
         searchInput.addEventListener('input', () => {
           state.filter = searchInput.value.toLowerCase();
@@ -42558,6 +42602,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           }
           spacer.style.height = (filteredRows.length * Vtable.ROW_HEIGHT) + 'px';
           statsEl.textContent = filteredRows.length.toLocaleString('pt-BR') + ' linha(s) · ' + cols.length + ' col · virtualizado';
+          // Auditoria 2026.4 (A11y-01): aria-rowcount reflete linhas filtradas
+          // pra leitor de tela anunciar contagem real após filtragem/sort.
+          wrap.setAttribute('aria-rowcount', String(filteredRows.length));
         }
 
         // === Render da janela visível ===
@@ -42584,11 +42631,19 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         }
 
         function _makeRowNode(){
-          const node = _el('div', { class: 'v56-vtable__row', tabindex: '-1' });
+          // Auditoria 2026.4 (A11y-01): role=row + role=gridcell + aria-colindex
+          const node = _el('div', {
+            class: 'v56-vtable__row',
+            tabindex: '-1',
+            role: 'row'
+          });
           node.style.gridTemplateColumns = gridCols;
           node.style.height = Vtable.ROW_HEIGHT + 'px';
           for (let i = 0; i < cols.length; i++){
-            node.appendChild(_el('div'));
+            node.appendChild(_el('div', {
+              role: 'gridcell',
+              'aria-colindex': String(i + 1)
+            }));
           }
           // Cross-filter: clique numa célula ativa filtro por (coluna, valor)
           node.addEventListener('click', (e) => {
@@ -42609,6 +42664,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
         function _paintRow(node, row, absIdx){
           node.__row = row;
+          // Auditoria 2026.4 (A11y-01): aria-rowindex no escopo de toda a tabela
+          // (não só janela visível). +2 pois aria-rowindex é 1-based e header = 1.
+          node.setAttribute('aria-rowindex', String(absIdx + 2));
           for (let i = 0; i < cols.length; i++){
             const c = cols[i];
             const v = row[c];

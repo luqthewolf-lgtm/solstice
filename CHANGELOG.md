@@ -5,6 +5,45 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 10+11+12 — "A11y de tabela + fallbacks silenciosos" — 2026-05-23
+
+Três sprints curtas consolidadas. **Sprint 11 explicitamente movida para roadmap** (refactor estrutural de deepClone exige sprint dedicado com testes de regressão por componente).
+
+### 🛡️ Confiabilidade (Sprint 10 — MC-09)
+
+- **`SolsticeAudit.record` / `.clear`** — subscribers em loop agora logam erros via `SolsticeLog.warn` em vez de catch vazio. Mesmo padrão do MC-04 (MultiTab). Antes: exceção em subscriber de audit era invisível, escondendo bugs em integrações de logging custom.
+- **`SolsticeComponents.register`** — `_registerListeners.forEach` com catch vazio migrou pra `SolsticeLog.warn`. Quando custom catálogo de componentes lança, agora aparece.
+
+### ♿ Acessibilidade (Sprint 12 — A11y-01)
+
+Vtable (tabela virtualizada do v5.6 patch bundle, ~3.800 linhas pra 500k linhas no DOM) ganhou semântica completa de grid pra leitores de tela:
+
+- `wrap` ganha `role="grid"` + `aria-rowcount` + `aria-colcount` + `aria-label`
+- `head` ganha `role="row"` com filhos `role="columnheader"` + `aria-colindex` + `aria-sort` (atualizado dinamicamente: `none` / `ascending` / `descending`)
+- `viewport` ganha `role="rowgroup"`
+- Cada row renderizada ganha `role="row"` + `aria-rowindex` (1-based, considerando o header)
+- Cada célula ganha `role="gridcell"` + `aria-colindex`
+- `statsEl` (footer) tem `aria-live="polite"` + `aria-atomic` — anuncia mudança de contagem após filtro
+- `searchInput` tem `aria-label="Filtrar linhas da tabela"` + `aria-controls`
+- `aria-rowcount` atualiza em tempo real conforme filtro reduz/aumenta linhas
+
+Impacto: NVDA/JAWS/VoiceOver agora anunciam **"Tabela com N linhas e M colunas, virtualizada"**, **"Linha X de N"**, e **"Coluna ordem crescente"** corretamente.
+
+### 🏛️ Sprint 11 movida pra roadmap
+
+- **35 sites de `deepClone(SolsticeStore.get('canvas.sections'))`** — migração pra `SolsticeCanvas.withSlot/editSections` exige sprint dedicado com testes de regressão por componente (cada slot type tem semântica de mutação levemente diferente). Não é ganho marginal, é refactor estrutural. Marcado como [Roadmap v5.7](#roadmap).
+
+### 📊 Métricas
+
+| Sinal | 2026.4 (Sprint 9) | 2026.4 (Sprint 10+12) |
+|---|---|---|
+| Catch vazios em subscriber loops | 3 | **0** (MC-04 + MC-09 + MC-09 ext) |
+| Vtable `role="grid"` + ARIA semântico | ❌ | ✅ |
+| Vtable `aria-sort` em columnheaders | ❌ | ✅ |
+| Vtable `aria-rowcount` dinâmico após filtro | ❌ | ✅ |
+
+---
+
 ## [Unreleased] — Sprint 9 (Auditoria 2026.4 · continuação) — "Voz interna zerada" — 2026-05-23
 
 Continuação do Sprint 8 — Sprint 8 fez sample de 5 comentários, Sprint 9 zerou os 93 remanescentes.
