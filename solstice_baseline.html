@@ -6916,6 +6916,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function getLog(){ return _log.slice(); }
     function clear(){ _log.length = 0; try { SolsticeStore.set('errors.log', []); } catch(_){} }
 
+    /**
+     * SolsticeErrorBoundary API pública.
+     * @typedef {Object} ErrorEntry
+     * @property {number} ts       timestamp ms
+     * @property {string} type     'error' | 'unhandled-rejection'
+     * @property {string} message  texto do erro
+     * @property {string} [stack]  stack trace (se disponível)
+     * @property {string} [source] arquivo onde ocorreu
+     * @property {number} [line]
+     * @property {number} [col]
+     *
+     * @returns {{
+     *   init(): void,                  // anexa listeners globais (idempotente)
+     *   getLog(): ErrorEntry[],        // últimos 50 erros (cópia)
+     *   clear(): void                  // limpa log
+     * }}
+     */
     return { init, getLog, clear };
   })();
   // Inicializa IMEDIATAMENTE (antes de outros módulos) pra capturar erros do próprio boot
@@ -7818,6 +7835,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return h + ' h' + (mm ? ' ' + mm + ' min' : '');
     }
 
+    /**
+     * SolsticeFmt — formatação locale-aware via Intl.
+     * Wrappers idiomáticos + helpers extras (compact, bytes, duration).
+     * @returns {{
+     *   formatBRL(n:number): string,                        // "R$ 1.250"
+     *   formatPct(n:number, digits?:number): string,        // "12,5%" (n = fração 0..1)
+     *   formatInteger(n:number): string,                    // "1.234"
+     *   formatDecimal(n:number, digits?:number): string,
+     *   formatDate(d:Date|string, format?:string): string,  // format: 'short'|'long'|'full'|'time'|'datetime'
+     *   formatCompact(n:number): string,                    // "1,2 mi" / "8,5 mil"
+     *   formatBytes(bytes:number): string,                  // "5,2 MB"
+     *   formatDuration(ms:number): string                   // "2 h 15 min"
+     * }}
+     */
     return { formatBRL, formatPct, formatInteger, formatDecimal, formatDate, formatCompact, formatBytes, formatDuration };
   })();
 
@@ -11037,7 +11068,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           { icon:'📚', label:'Comando · todos atalhos',   kbd:'Ctrl+K',
             fn: () => { try { SolsticeCommandPalette.open(); } catch(_){} } },
           { icon:'🐛', label:'Reportar bug · GitHub',     kbd:'',
-            fn: () => { window.open('https://github.com/lucas/solstice/issues/new?template=bug.md', '_blank'); } }
+            fn: () => { window.open('https://github.com/lucas/solstice/issues/new?template=bug.md', '_blank'); } },
+          // B7-04 (v6-autonomous / RES-05): telemetria local opt-in.
+          // Sem servidor — usuário baixa JSON dos erros e cola no issue.
+          { icon:'📥', label:'Exportar log de erros',      kbd:'',
+            fn: () => {
+              try {
+                const log = (typeof SolsticeErrorBoundary !== 'undefined')
+                  ? SolsticeErrorBoundary.getLog()
+                  : [];
+                const audit = (typeof SolsticeAudit !== 'undefined')
+                  ? SolsticeAudit.list().slice(-50) // últimas 50 ações
+                  : [];
+                const payload = {
+                  exportedAt: new Date().toISOString(),
+                  version: window.Solstice && window.Solstice.version,
+                  userAgent: navigator.userAgent,
+                  url: location.href,
+                  errors: log,
+                  recentActions: audit,
+                  storeKeys: (typeof SolsticeStore !== 'undefined')
+                    ? Object.keys(SolsticeStore.get('') || {})
+                    : []
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'solstice-log-' + Date.now() + '.json';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 500);
+                if (typeof SolsticeToast !== 'undefined'){
+                  SolsticeToast.success('Log exportado', log.length + ' erro(s) + ' + audit.length + ' ação(ões) recentes');
+                }
+              } catch(e){
+                if (typeof SolsticeToast !== 'undefined') SolsticeToast.warn('Falha ao exportar', e.message);
+              }
+            } }
         ];
         items.forEach(it => {
           const btn = SolsticeUtils.el('button', {
@@ -27510,6 +27576,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-sub' },
           'Importe seu CSV pra começar. Tudo roda local no seu navegador.'));
 
+        // B7-03 (v6-autonomous / OB-04 — Cláudia/Stone): link discreto pra tutorial.
+        // Sem video embeddado (CSP bloqueia iframes externos por design) — link
+        // pro YouTube + alternativa "Tour interativo" pra usuário que prefere
+        // aprender clicando.
+        const tutorialRow = SolsticeUtils.el('div', {
+          style:'display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-2);font-size:var(--fs-xs);color:var(--c-muted);justify-content:center;flex-wrap:wrap;'
+        });
+        tutorialRow.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true' }, '🎬'));
+        tutorialRow.appendChild(SolsticeUtils.el('span', null, 'Nunca usou? '));
+        const tourLink = SolsticeUtils.el('button', {
+          type:'button',
+          style:'background:transparent;border:none;color:var(--c-accent);cursor:pointer;text-decoration:underline;font-size:inherit;padding:0;',
+          onclick: () => { try { SolsticeTour.start(); } catch(_){} }
+        }, 'tour interativo (1 min)');
+        tutorialRow.appendChild(tourLink);
+        tutorialRow.appendChild(SolsticeUtils.el('span', null, '·'));
+        const helpLink = SolsticeUtils.el('button', {
+          type:'button',
+          style:'background:transparent;border:none;color:var(--c-accent);cursor:pointer;text-decoration:underline;font-size:inherit;padding:0;',
+          onclick: () => { try { SolsticeOnboarding.show(); } catch(_){} }
+        }, 'ver onboarding');
+        tutorialRow.appendChild(helpLink);
+        wrap.appendChild(tutorialRow);
+
         // ===== Cards de import (2 padrão · 3 com exemplo se showExample) =====
         const paths = SolsticeUtils.el('div', { class:'solstice__welcome-paths' });
 
@@ -34931,6 +35021,15 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       } catch(_){}
     }
 
+    /**
+     * SolsticeMultiTab — sync entre múltiplas abas via BroadcastChannel.
+     * @returns {{
+     *   isSupported(): boolean,                                   // BroadcastChannel disponível
+     *   notify(type:string, payload?:any): boolean,               // envia pra outras abas
+     *   subscribe(type:string, cb:(payload:any)=>void): ()=>void, // escuta msgs daquele tipo; '*' = todas
+     *   init(): void                                              // anexa auto-emit pra theme changes
+     * }}
+     */
     return { isSupported, notify, subscribe, init };
   })();
 
@@ -35064,6 +35163,22 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       return true;
     }
 
+    /**
+     * SolsticeSavedViews — views salvas em localStorage (max 20).
+     * @typedef {Object} View
+     * @property {string} id          'view_<base36>'
+     * @property {string} name
+     * @property {string} savedAt     ISO date
+     * @property {Object} payload     { filters, crossfilter, pageId, ui }
+     *
+     * @returns {{
+     *   list(): View[],
+     *   save(name:string): View|null,
+     *   apply(id:string): boolean,
+     *   remove(id:string): void,
+     *   rename(id:string, newName:string): boolean
+     * }}
+     */
     return { list, save, apply, remove, rename };
   })();
 
@@ -35187,6 +35302,15 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       } catch(_){}
     }
 
+    /**
+     * SolsticeAutoSave — snapshot leve a cada 5s (safety net).
+     * @returns {{
+     *   init(): void,             // ativa timer + onbeforeunload
+     *   stop(): void,              // desliga timer
+     *   clear(): void,             // limpa snapshot persistido
+     *   tryRestore(): boolean      // restaura se canvas vazio + snapshot fresco (<24h)
+     * }}
+     */
     return { init, stop, clear, tryRestore };
   })();
 
@@ -35722,6 +35846,15 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       })).catch(e => { console.warn('[SolsticeIDB.del]', e); });
     }
 
+    /**
+     * SolsticeIDB — wrapper minimalista do IndexedDB.
+     * @returns {{
+     *   isSupported(): boolean,
+     *   get(key:string): Promise<any|null>,
+     *   set(key:string, value:any): Promise<void>,
+     *   del(key:string): Promise<void>
+     * }}
+     */
     return { isSupported, get, set, del };
   })();
 
@@ -35900,6 +36033,20 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       }
     }
 
+    /**
+     * SolsticeFolderAttach — File System Access API (Chrome/Edge 86+).
+     * Atrela 1 pasta do disco e refresh automático ao reabrir o navegador.
+     * @returns {{
+     *   isSupported(): boolean,                              // showDirectoryPicker disponível
+     *   isAttached(): boolean,                               // há handle em memória
+     *   getAttachedName(): string|null,                      // nome da pasta atrelada
+     *   getAttachedSourceName(): string|null,                // nome do arquivo memorizado
+     *   attach(): Promise<boolean>,                          // showDirectoryPicker + persiste em IDB
+     *   detach(): void,                                      // limpa handle + IDB
+     *   refresh(opts?: {silent?:boolean}): Promise<boolean>, // re-lê arquivo da pasta
+     *   restoreFromStorage(): Promise<{restored:boolean, autoRefreshed:boolean}>
+     * }}
+     */
     return { isSupported, isAttached, getAttachedName, getAttachedSourceName, attach, detach, refresh, restoreFromStorage };
   })();
 

@@ -87,6 +87,54 @@ jobs:
           fi
           echo "✓ AP-01 ainda fechado"
 
+      - name: Setup Node for parse-check
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: B7-01 — Parse-check anti SyntaxError silencioso (v6-autonomous)
+        # Lição do hotfix: SolsticeViews duplicado quebrou IIFE inteira sem
+        # nenhum erro visível em grep. Solução: rodar `new Function(script)`
+        # contra cada <script> inline pra detectar SyntaxError no parse.
+        run: |
+          node -e "
+            const fs = require('fs');
+            const html = fs.readFileSync('solstice_baseline.html', 'utf-8');
+            const re = /<script(?:\s[^>]*(?<!src=\"[^\"]*\"))?\s*>([\s\S]*?)<\/script>/g;
+            let m, n = 0, failed = 0;
+            while ((m = re.exec(html)) !== null){
+              n++;
+              const src = m[1];
+              if (src.length < 50) continue;
+              try {
+                new Function(src);
+              } catch(e){
+                failed++;
+                console.error('::error::Script #' + n + ' (' + src.length + ' chars) NÃO parseia: ' + e.message);
+              }
+            }
+            console.log('Scripts inline encontrados: ' + n + ', com erro de parse: ' + failed);
+            if (failed > 0) process.exit(1);
+          "
+
+      - name: B7-02 — Anti-duplicação de IIFE Solstice*
+        run: |
+          node -e "
+            const fs = require('fs');
+            const html = fs.readFileSync('solstice_baseline.html', 'utf-8');
+            // Remove comentários /* ... */ antes do match
+            const stripped = html.replace(/\/\*[\s\S]*?\*\//g, '');
+            const matches = [...stripped.matchAll(/const\s+(Solstice[A-Za-z0-9]+)\s*=\s*\(function/g)];
+            const counts = {};
+            matches.forEach(m => { counts[m[1]] = (counts[m[1]] || 0) + 1; });
+            const dups = Object.entries(counts).filter(([_, n]) => n > 1);
+            if (dups.length){
+              dups.forEach(([name, n]) => console.error('::error::Solstice IIFE duplicada: ' + name + ' (' + n + 'x)'));
+              process.exit(1);
+            }
+            console.log('✓ Todos os ' + matches.length + ' Solstice* IIFE são únicos');
+          "
+
       - name: Audit innerHTML usage (B5-01 / v6-autonomous)
         run: |
           # Conta innerHTML totais e garante que todos os "dinâmicos" passam por escapeHtml.
