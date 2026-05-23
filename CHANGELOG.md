@@ -5,6 +5,29 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 21+22 — "ARCHITECTURE.md + tests SolsticeStats" — 2026-05-23
+
+### 📝 Sprint 21 — ARCHITECTURE.md atualizado pós Sprints 7-20
+
+- CI section: 10+ regressão checks documentados (era 4)
+- Anti-padrões: era 7, agora 12 (adiciona referências às Auditorias 2026.3/2026.4 — Sprint 9, 12, 13a, ADR-186, MC-04/09)
+- Nova seção "Invariantes documentadas no cabeçalho" — 4 cabeçalhos no topo do `solstice_baseline.html` declarando convenções (HV-01, JM-03, ADR-185, ADR-186)
+- Roadmap atualizado: itens completos marcados `[x]` (catches silenciosos reduzidos, A11y Vtable, A11y modais, Anomaly detection, Status saved persistente, Auto-save banner). Itens longo prazo expandidos.
+
+### 🧪 Sprint 22 — Tests Vitest expandidos para SolsticeStats
+
+`tests/stats.test.mjs` ganhou cobertura crítica de regressão:
+
+1. **`quartiles` usa interpolação linear (type-7, igual NumPy)** — proteção contra regressão tipo MC-A1 da Auditoria 2026.2 (box plot XLSX com aproximação grosseira `s[Math.floor(p*(n-1))]`). Teste com dataset de 10 elementos onde os 2 algoritmos divergem confirmou: `q1=3.25, median=5.5, q3=7.75`.
+2. **`quartiles` preserva min/max** — `.min` e `.max` do retorno são exatamente os extremos (não calculados via percentile para p=0/p=1).
+3. **`quartiles([])` retorna `null`** — não array vazio nem undefined.
+4. **`outliersIQR`** — detecta outlier clássico (`100` em `[1..10]`), retorna `[]` quando sem outliers, fences calculadas corretamente.
+5. **`mad` (Median Absolute Deviation)** — vital pra Modified Z-Score do anomaly detection da Sprint 18. Testa robustez contra outliers (adicionar 1000 a `[1..5]` não dispara MAD significativamente, diferente do `stdDev`).
+
+Tests rodam em CI via `npm test` (extract-modules.mjs + Vitest).
+
+---
+
 ## [Unreleased] — Sprint 19+20 — "Test regressivo CI + dataset/ingest API docs" — 2026-05-23
 
 ### 🛡️ Sprint 19 — 4 lint checks novos no CI

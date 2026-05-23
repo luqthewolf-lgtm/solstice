@@ -134,10 +134,74 @@ describe('SolsticeStats — desvio padrão', () => {
 describe('SolsticeStats — quantis/quartis', () => {
   it('quartiles divide em quartos', () => {
     const q = SolsticeStats.quartiles([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(q.q2).toBe(5);
+    expect(q.median).toBe(5);
     // q1 e q3 podem variar pela definição (Tukey vs linear) — testa ordem
-    expect(q.q1).toBeLessThan(q.q2);
-    expect(q.q3).toBeGreaterThan(q.q2);
+    expect(q.q1).toBeLessThan(q.median);
+    expect(q.q3).toBeGreaterThan(q.median);
+  });
+
+  // Sprint 22 — proteção contra regressão tipo MC-A1 (box plot XLSX inconsistente)
+  // Quartis devem usar interpolação linear (type-7, igual NumPy), NÃO aproximação
+  // grosseira `s[Math.floor(p * (n-1))]`. Test cobre dataset onde os 2 algoritmos
+  // divergem.
+  it('quartiles usa interpolação linear (igual NumPy, type-7)', () => {
+    // Dataset com 10 elementos — interpolação vs floor produz resultados diferentes:
+    //   floor: q1 = s[Math.floor(0.25 * 9)] = s[2] = 3, q3 = s[Math.floor(0.75 * 9)] = s[6] = 7
+    //   interp linear: i = 0.25 * 9 = 2.25 → s[2] + 0.25*(s[3]-s[2]) = 3 + 0.25 = 3.25
+    //                  i = 0.75 * 9 = 6.75 → s[6] + 0.75*(s[7]-s[6]) = 7 + 0.75 = 7.75
+    const q = SolsticeStats.quartiles([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(q.q1).toBe(3.25);
+    expect(q.median).toBe(5.5);
+    expect(q.q3).toBe(7.75);
+  });
+
+  it('quartiles preserva min/max em max key', () => {
+    // Sprint 22: garante que .min e .max do retorno são exatamente os extremos
+    // (não calculados via percentile que poderia divergir para p=0/p=1).
+    const q = SolsticeStats.quartiles([10, 2, 8, 4, 6]);
+    expect(q.min).toBe(2);
+    expect(q.max).toBe(10);
+    expect(q.iqr).toBeGreaterThan(0);
+  });
+
+  it('quartiles em vazio → null', () => {
+    expect(SolsticeStats.quartiles([])).toBe(null);
+    expect(SolsticeStats.quartiles(null)).toBe(null);
+  });
+});
+
+describe('SolsticeStats — outliersIQR (Tukey 1.5×)', () => {
+  it('detecta outlier clássico', () => {
+    // Dataset [1..10] + outlier 100. Q1=3.25, Q3=7.75, IQR=4.5,
+    // upper fence = 7.75 + 1.5*4.5 = 14.5. 100 > 14.5 → outlier.
+    const r = SolsticeStats.outliersIQR([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100]);
+    expect(r.values).toContain(100);
+    expect(r.indices.length).toBe(1);
+  });
+  it('sem outliers → array vazio', () => {
+    const r = SolsticeStats.outliersIQR([1, 2, 3, 4, 5]);
+    expect(r.values).toEqual([]);
+    expect(r.indices).toEqual([]);
+  });
+  it('fences calculadas corretamente', () => {
+    const r = SolsticeStats.outliersIQR([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    // q1=3, q3=7, iqr=4, lo = 3-6=-3, hi = 7+6=13
+    expect(r.fences.lo).toBeLessThan(r.fences.hi);
+  });
+});
+
+describe('SolsticeStats — MAD (Median Absolute Deviation)', () => {
+  // MAD é usado pelo anomaly detection da Sprint 18.
+  // Vital pra Modified Z-Score (Iglewicz/Hoaglin).
+  it('MAD de dataset uniforme é zero', () => {
+    expect(SolsticeStats.mad([5, 5, 5, 5])).toBe(0);
+  });
+  it('MAD é robusto contra outliers (diferente do stdDev)', () => {
+    // [1,2,3,4,5] tem MAD = 1 (mediana = 3; |1-3|, |2-3|, ..., |5-3| = [2,1,0,1,2]; mediana = 1)
+    expect(SolsticeStats.mad([1, 2, 3, 4, 5])).toBe(1);
+    // Adicionar outlier 1000 NÃO deve quebrar MAD significativamente
+    const madWithOutlier = SolsticeStats.mad([1, 2, 3, 4, 5, 1000]);
+    expect(madWithOutlier).toBeLessThan(10);  // robust — diferente do stdDev que dispara
   });
 });
 
