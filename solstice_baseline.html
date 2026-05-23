@@ -12996,8 +12996,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const totalNulls = Object.values(issues.byColumn).reduce((s,i) => s + i.nulls, 0);
       return totalCells > 0 ? 1 - (totalNulls / totalCells) : 0;
     }
-    function _validity(issues, totalCells){
-      return totalCells > 0 ? 1 - (issues.total / totalCells) : 1;
+    function _validity(issues, totalCells, rows){
+      // Sprint 26 / F-08: antes contava TODOS os invalid como problema de
+      // qualidade — mas se >95% dos valores de uma coluna são "inválidos"
+      // pra o tipo inferido, é o TIPO que está errado (ex: "regiao" inferida
+      // como geo_uf, mas valores são "Sudeste/Sul/etc" — dimensão livre).
+      // Nessa situação não penalizamos validity, só sinalizamos via flag.
+      if (totalCells === 0) return 1;
+      const rowCount = (rows && rows.length) || 1;
+      let realInvalid = 0;
+      for (const c of Object.keys(issues.byColumn || {})){
+        const colIssue = issues.byColumn[c];
+        const invalidRatio = colIssue.invalid / rowCount;
+        // Ignora quando >95% inválidos — tipo errado, não dados ruins
+        if (invalidRatio < 0.95) realInvalid += colIssue.invalid;
+      }
+      return 1 - (realInvalid / totalCells);
     }
     function _uniqueness(rows, columns, types){
       // Apenas identificadores devem ser únicos
@@ -13046,7 +13060,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       const metrics = {
         completeness: _completeness(issues, totalCells),
-        validity:     _validity(issues, totalCells),
+        validity:     _validity(issues, totalCells, rows),
         uniqueness:   _uniqueness(rows, columns, types),
         consistency:  _consistency(rows, columns, types),
         distribution: _distribution(rows, columns, types)
@@ -13077,11 +13091,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const typeName = (types[c] && types[c].type) || 'desconhecido';
           // Heurística macro: se >75% dos valores são válidos pra esse tipo
           // (e o tipo é específico tipo geo_uf/email/cpf), é "tipo OK mas
-          // alguns outliers" — não erro de qualidade, é INFO com sugestão
+          // alguns outliers" — não erro de qualidade, é INFO com sugestão.
+          // Sprint 26 / F-08: 3 níveis agora — pequeno desvio (info), tipo
+          // possivelmente errado (warn), ou problema real (error).
           if (invalidRatio < 0.25){
             flags.push({
               col: c, level: 'info',
               msg: `${colIssue.invalid} valores fora do padrão (${typeName}) — pode ser dimensão livre`,
+              actionable: { reclassifyTo: 'dimension' }
+            });
+          } else if (invalidRatio >= 0.95){
+            // Tipo provavelmente errado — não é defeito de dados.
+            flags.push({
+              col: c, level: 'warn',
+              msg: `Tipo "${typeName}" provavelmente errado — valores não casam. Reclassifique pra dimensão.`,
               actionable: { reclassifyTo: 'dimension' }
             });
           } else {
@@ -14328,14 +14351,18 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function _buildPreviewElement(ingest){
       const { rows, columns, types, sourceName } = ingest;
       const dict = SolsticeStore.get('dictionary');
-      // Camada 1 polish v5: mostra mais linhas (200) — modal full tem espaço
+      // Camada 1 polish v5: mostra mais linhas (200) — modal full tem espaço.
+      // Sprint 26 / F-09: título e legenda mais claros pra usuário entender
+      // que é preview (não full), e o quanto está sendo mostrado.
       const MAX = 200;
       const showRows = rows.slice(0, MAX);
+      const isTruncated = rows.length > MAX;
       const wrap = SolsticeUtils.el('div', { class:'solstice__data-preview' });
+      const titleText = '📋 ' + (isTruncated ? 'Preview (' + MAX + ' de ' + SolsticeLocale.integer(rows.length) + ')' : 'Tabela completa') + (sourceName ? ' — ' + sourceName : '');
       const head = SolsticeUtils.el('div', { class:'solstice__data-preview-head' },
-        SolsticeUtils.el('div', { class:'solstice__data-preview-title' }, '📋 ' + (sourceName || 'Tabela do dataset')),
+        SolsticeUtils.el('div', { class:'solstice__data-preview-title' }, titleText),
         SolsticeUtils.el('div', { style:'color:var(--c-muted);font-size:var(--fs-sm);font-family:var(--font-mono);' },
-          SolsticeLocale.integer(rows.length) + ' linhas · ' + columns.length + ' colunas · mostrando ' + showRows.length)
+          SolsticeLocale.integer(rows.length) + ' linhas total · ' + columns.length + ' colunas · mostrando ' + showRows.length)
       );
       wrap.appendChild(head);
 
@@ -28126,6 +28153,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // S6-01 (Sprint 6): Insights Executivo renderiza ACIMA dos insights regulares
         if (typeof SolsticeExecutiveInsights !== 'undefined') SolsticeExecutiveInsights.renderInto(canvas);
         if (typeof SolsticeInsights !== 'undefined') SolsticeInsights.renderInto(canvas);
+        // Sprint 26 / F-23: Resumo executivo agora aparece INLINE no canvas
+        // (não só em modal). User reportou que ficava escondido em modal —
+        // queria ver direto. Painel colapsável.
+        if (typeof SolsticeNarrative !== 'undefined' && SolsticeNarrative.renderSummaryInto){
+          SolsticeNarrative.renderSummaryInto(canvas);
+        }
       }
 
       if (isEmpty){
@@ -32659,7 +32692,60 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       });
     }
 
-    return { build, openModal, setTone, setDepth, getTone, getDepth, buildDashboardSummary, openDashboardSummary, _T: T };
+    /**
+     * Sprint 26 / F-23: painel inline persistente do Resumo Executivo.
+     * Renderiza um accordion no topo do canvas (acima das seções) com o texto
+     * do buildDashboardSummary. Estado aberto/fechado persiste em
+     * Store.ui.execSummary.collapsed (default = aberto na 1ª vez).
+     */
+    function renderSummaryInto(canvasEl){
+      if (!canvasEl) return;
+      // Só renderiza se há sections + dataset
+      const sections = SolsticeStore.get('canvas.sections') || [];
+      const dsReady = SolsticeStore.get('dataset.ready');
+      if (!sections.length || !dsReady) return;
+      const text = (function(){
+        try { return buildDashboardSummary(); } catch(_){ return ''; }
+      })();
+      if (!text || text.length < 30) return; // não renderiza se vazio/curto
+
+      const isCollapsed = SolsticeStore.get('ui.execSummary.collapsed') === true;
+      const wrap = SolsticeUtils.el('div', {
+        class: 'solstice__exec-summary' + (isCollapsed ? ' is-collapsed' : ''),
+        style: 'background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:var(--rad-md);margin:var(--sp-3) var(--sp-4) var(--sp-3);overflow:hidden;'
+      });
+      const head = SolsticeUtils.el('div', {
+        style: 'display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:12px;font-weight:600;color:var(--c-text);user-select:none;background:var(--c-surface-3);',
+        onclick: () => {
+          const next = !wrap.classList.contains('is-collapsed');
+          wrap.classList.toggle('is-collapsed', next);
+          SolsticeStore.set('ui.execSummary.collapsed', next);
+          body.style.display = next ? 'none' : '';
+        }
+      });
+      head.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true' }, '📖'));
+      head.appendChild(SolsticeUtils.el('span', { style:'flex:1;' }, 'Resumo executivo'));
+      head.appendChild(SolsticeUtils.el('button', {
+        class:'solstice__btn solstice__btn--ghost',
+        style:'font-size:11px;padding:2px 8px;',
+        title:'Copiar texto pra área de transferência',
+        onclick: (e) => {
+          e.stopPropagation();
+          try { navigator.clipboard.writeText(text); SolsticeToast.success('Copiado'); }
+          catch(_){ SolsticeToast.error('Falha ao copiar'); }
+        }
+      }, '📋 Copiar'));
+      head.appendChild(SolsticeUtils.el('span', { style:'color:var(--c-muted);font-size:10px;' }, isCollapsed ? '▶' : '▼'));
+      wrap.appendChild(head);
+      const body = SolsticeUtils.el('pre', {
+        style: 'white-space:pre-wrap;font-family:var(--font-mono);font-size:11.5px;line-height:1.55;padding:14px 18px;color:var(--c-text);max-height:300px;overflow:auto;margin:0;' +
+               (isCollapsed ? 'display:none;' : '')
+      }, text);
+      wrap.appendChild(body);
+      canvasEl.appendChild(wrap);
+    }
+
+    return { build, openModal, setTone, setDepth, getTone, getDepth, buildDashboardSummary, openDashboardSummary, renderSummaryInto, _T: T };
   })();
 
   /* ============================================================
