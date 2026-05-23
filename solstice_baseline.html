@@ -10447,23 +10447,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    // LE-06 (Sprint 2): Refresh "manual mas reativo" — re-importa arquivo
-    // pelo file picker (browser security não deixa guardar File entre sessões)
-    // mas preserva todos os componentes do canvas (mesma estrutura de colunas
-    // → mesma config funciona). Útil pra "fonte de dados atualizou, recarregar".
+    // LE-06 (Sprint 2) + S6-02 (Sprint 6): Refresh "manual mas reativo".
+    //
+    // S6-02 (Sprint 6): se o usuário ATRELOU uma pasta com showDirectoryPicker
+    // (Chrome 86+), o refresh re-lê o arquivo do nome SourceName direto da pasta.
+    // Caso contrário: cai no fluxo LE-06 (re-pickeia pelo file picker).
+    //
+    // Atrelar pasta: Shift+Click no botão refresh OU comando "Atrelar pasta"
+    // no Ctrl+K. Handle persiste na sessão atual (IndexedDB futuramente).
     const btnRefreshData = document.getElementById('btn-refresh-data');
     if (btnRefreshData){
-      btnRefreshData.addEventListener('click', () => {
+      // Shift+click → ATRELAR pasta (showDirectoryPicker)
+      btnRefreshData.addEventListener('click', async (e) => {
         const dsReady = SolsticeStore.get('dataset.ready');
         if (!dsReady){
           SolsticeToast.info('Sem dados pra recarregar', 'Importe um arquivo primeiro.');
           return;
         }
-        // Mostra hint sobre o que vai acontecer
+        if (e.shiftKey && typeof SolsticeFolderAttach !== 'undefined'){
+          // Atrelar nova pasta
+          const ok = await SolsticeFolderAttach.attach();
+          if (ok) SolsticeToast.success('Pasta atrelada', 'Refresh (clique simples) agora re-lê o arquivo automaticamente.');
+          return;
+        }
+        // Modo automático se há pasta atrelada
+        if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.isAttached()){
+          const refreshed = await SolsticeFolderAttach.refresh();
+          if (refreshed) return; // sucesso — file reimportado
+          // Se falhou, cai no fluxo manual abaixo
+        }
+        // Modo manual (sem pasta atrelada ou falha): file picker
         const ingest = SolsticeStore.get('ingest') || {};
         const lastName = ingest.sourceName || 'arquivo';
-        SolsticeToast.info('Re-selecione o arquivo', 'Por segurança o navegador não guarda "' + lastName + '". Escolha o arquivo atualizado.');
-        // Mantém canvas/componentes — só substitui o dataset
+        const tip = (typeof window.showDirectoryPicker === 'function')
+          ? '💡 Shift+Click neste botão pra ATRELAR a pasta — refresh automático futuro.'
+          : '';
+        SolsticeToast.info('Re-selecione o arquivo', 'Por segurança o navegador não guarda "' + lastName + '". ' + tip);
         fileInput.accept = '.csv,.tsv,.txt,.json';
         fileInput.click();
       });
@@ -10647,6 +10666,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     // B8: inicializa Insights/Narrative/Agent/Inconsistencies/Ask
     SolsticeInsights.init();
+    if (typeof SolsticeExecutiveInsights !== 'undefined') SolsticeExecutiveInsights.init();  // S6-01
     SolsticeAgent.init();
     SolsticeAsk.init();
     // B9: inicializa Filters/CrossFilter/Params
@@ -26793,6 +26813,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (!isEmpty && dsReady){
         if (typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.renderInto(canvas);
         if (typeof SolsticeFilters !== 'undefined') SolsticeFilters.renderInto(canvas);
+        // S6-01 (Sprint 6): Insights Executivo renderiza ACIMA dos insights regulares
+        if (typeof SolsticeExecutiveInsights !== 'undefined') SolsticeExecutiveInsights.renderInto(canvas);
         if (typeof SolsticeInsights !== 'undefined') SolsticeInsights.renderInto(canvas);
       }
 
@@ -29312,6 +29334,126 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     return { compute, renderInto, list, init };
+  })();
+
+  /* ============================================================
+     S6-01 (Sprint 6) — SolsticeExecutiveInsights
+     Seção colapsável de "Insights Executivo" — narrativa de negócio.
+     Diferente do SolsticeInsights (lista de cards):
+       - Foca em 3-5 bullets de DECISÃO (não diagnóstico)
+       - Linguagem business: "Sul cresceu 23% em receita" não
+         "trend.r2=0.74"
+       - Renderiza ACIMA do painel Insights regular
+       - Hideable via ui.executive.hidden
+       - Pode ser fechada SEM esconder permanentemente (toggle inline)
+     ============================================================ */
+  const SolsticeExecutiveInsights = (function(){
+
+    /** Sintetiza top N insights de negócio em frases executivas. */
+    function compute(){
+      if (typeof SolsticeInsights === 'undefined') return [];
+      const all = SolsticeInsights.compute();
+      // Filtra só insights de NEGÓCIO (não técnicos) ordenados por score
+      const business = all
+        .filter(i => {
+          // Heurística: kind business OU score >= 40
+          const kind = i.kind || '';
+          const tech = ['outliers','correlation','completeness','cardinality','distribution','monotonic','duplicates','missing'];
+          return tech.indexOf(kind) < 0;
+        })
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .slice(0, 5);
+      // Converte cada insight em uma frase executiva
+      return business.map(i => {
+        const txt = String(i.text || '').replace(/^[💡🔥📈📉⚠️🎯⭐✨]+\s*/, '');
+        return {
+          id: i.id,
+          icon: i.icon || '•',
+          title: i.title,
+          summary: txt,
+          severity: i.severity || 'info'
+        };
+      });
+    }
+
+    function renderInto(parentEl){
+      if (!parentEl) return;
+      if (SolsticeStore.get('ui.executive.hidden') === true) return;
+      const items = compute();
+      if (!items.length) return;
+
+      const isCollapsed = !!SolsticeStore.get('ui.executive.collapsed');
+      const wrap = SolsticeUtils.el('div', {
+        class: 'solstice__executive' + (isCollapsed ? ' is-collapsed' : ''),
+        style: 'background: color-mix(in srgb, var(--c-accent) 6%, var(--c-surface));' +
+               'border: 1px solid color-mix(in srgb, var(--c-accent) 25%, var(--c-border));' +
+               'border-radius: var(--rad-md); margin-bottom: var(--sp-3);' +
+               'overflow: hidden;'
+      });
+
+      const head = SolsticeUtils.el('div', {
+        style: 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;border-bottom: 1px solid color-mix(in srgb, var(--c-accent) 15%, transparent);user-select:none;',
+        onclick: () => {
+          const collapsed = wrap.classList.toggle('is-collapsed');
+          SolsticeStore.set('ui.executive.collapsed', collapsed);
+          body.style.display = collapsed ? 'none' : 'block';
+          toggle.textContent = collapsed ? '▶' : '▼';
+        }
+      });
+      const titleWrap = SolsticeUtils.el('div', { style:'display:flex;align-items:center;gap:8px;' });
+      titleWrap.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true', style:'font-size:16px;' }, '📈'));
+      titleWrap.appendChild(SolsticeUtils.el('span', { style:'font-weight:600;font-size:13px;color:var(--c-text);' }, 'Insights Executivo'));
+      titleWrap.appendChild(SolsticeUtils.el('span', { style:'font-size:11px;color:var(--c-muted);font-weight:normal;' },
+        items.length + ' destaque' + (items.length > 1 ? 's' : '')));
+      head.appendChild(titleWrap);
+
+      const actions = SolsticeUtils.el('div', { style:'display:flex;align-items:center;gap:4px;' });
+      const hideBtn = SolsticeUtils.el('button', {
+        type:'button',
+        title: 'Esconder permanentemente (reabilita em Configurações)',
+        'aria-label':'Esconder Insights Executivo',
+        style:'background:transparent;border:none;color:var(--c-muted);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:3px;',
+        onclick: (e) => {
+          e.stopPropagation();
+          SolsticeStore.set('ui.executive.hidden', true);
+          if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render();
+          SolsticeToast.info('Insights Executivo ocultos', 'Reabilite em Configurações.');
+        }
+      }, '✕');
+      const toggle = SolsticeUtils.el('span', { style:'color:var(--c-muted);font-size:10px;' }, isCollapsed ? '▶' : '▼');
+      actions.appendChild(hideBtn);
+      actions.appendChild(toggle);
+      head.appendChild(actions);
+      wrap.appendChild(head);
+
+      const body = SolsticeUtils.el('div', { style: 'padding: 10px 14px;' + (isCollapsed ? 'display:none;' : '') });
+      items.forEach(item => {
+        const sevColor = item.severity === 'error' ? 'var(--c-error)'
+                       : item.severity === 'warn' ? 'var(--c-warn)'
+                       : item.severity === 'success' ? 'var(--c-success)'
+                       : 'var(--c-accent)';
+        const row = SolsticeUtils.el('div', {
+          style: 'display:flex;gap:10px;padding:6px 0;align-items:flex-start;'
+        });
+        row.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true', style:'font-size:14px;flex-shrink:0;width:20px;text-align:center;color:' + sevColor + ';' }, item.icon));
+        const txt = SolsticeUtils.el('div', { style:'flex:1;font-size:12px;line-height:1.5;color:var(--c-text);' });
+        if (item.title) txt.appendChild(SolsticeUtils.el('span', { style:'font-weight:600;' }, item.title + (item.summary ? ' — ' : '')));
+        if (item.summary) txt.appendChild(SolsticeUtils.el('span', { style:'color:var(--c-text-2);' }, item.summary));
+        row.appendChild(txt);
+        body.appendChild(row);
+      });
+      wrap.appendChild(body);
+      parentEl.appendChild(wrap);
+    }
+
+    function init(){
+      // Re-render quando dataset muda
+      SolsticeStore.subscribe('ingest', () => {
+        if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render();
+      });
+    }
+
+    return { compute, renderInto, init };
   })();
 
   /* ============================================================
@@ -34534,6 +34676,108 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     }
 
     return { list, restore, openModal, init, _capture };
+  })();
+
+  /* ============================================================
+     S6-02 (Sprint 6) — SolsticeFolderAttach
+     Atrelamento de pasta via File System Access API (Chrome 86+).
+     Permite "refresh automático" — re-lê o arquivo do nome SourceName
+     diretamente da pasta atrelada, sem file picker.
+
+     Limitação: handle não persiste entre sessões (FS API ainda exige
+     re-attach a cada page load). Para persistência futura, IndexedDB
+     com handle (suporte limitado por browser).
+
+     Uso:
+       SolsticeFolderAttach.attach()   // showDirectoryPicker
+       SolsticeFolderAttach.refresh()  // re-lê arquivo do source name
+       SolsticeFolderAttach.detach()   // limpa handle
+     ============================================================ */
+  const SolsticeFolderAttach = (function(){
+    const supported = typeof window.showDirectoryPicker === 'function';
+    let dirHandle = null;
+    let attachedSourceName = null;
+
+    function isSupported(){ return supported; }
+    function isAttached(){ return !!dirHandle; }
+    function getAttachedName(){ return dirHandle ? (dirHandle.name || 'pasta') : null; }
+
+    async function attach(){
+      if (!supported){
+        SolsticeToast.warn('Não suportado', 'Seu navegador não suporta atrelar pasta. Use Chrome/Edge 86+.');
+        return false;
+      }
+      try {
+        const handle = await window.showDirectoryPicker({ mode: 'read' });
+        if (!handle) return false;
+        dirHandle = handle;
+        // Memoriza o nome do arquivo atual pra refresh saber qual recarregar
+        const ingest = SolsticeStore.get('ingest') || {};
+        attachedSourceName = ingest.sourceName || null;
+        SolsticeStore.set('ui.folder.attachedName', handle.name);
+        if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+          SolsticeAudit.record({ action:'folder_attach', target: handle.name });
+        }
+        return true;
+      } catch(e){
+        if (e && e.name === 'AbortError') return false;
+        console.warn('[FolderAttach]', e);
+        SolsticeToast.warn('Falha ao atrelar', e.message || 'Erro desconhecido');
+        return false;
+      }
+    }
+
+    function detach(){
+      dirHandle = null;
+      attachedSourceName = null;
+      SolsticeStore.set('ui.folder.attachedName', null);
+    }
+
+    /** refresh() — tenta re-ler o arquivo do nome SourceName da pasta atrelada.
+        Retorna true se conseguiu reimportar, false se precisar fallback manual. */
+    async function refresh(){
+      if (!dirHandle) return false;
+      const ingest = SolsticeStore.get('ingest') || {};
+      const fileName = attachedSourceName || ingest.sourceName;
+      if (!fileName){
+        SolsticeToast.warn('Sem arquivo de origem', 'Importe um arquivo primeiro.');
+        return false;
+      }
+      try {
+        // Verifica permissão (pode pedir re-grant)
+        const perm = await dirHandle.queryPermission({ mode:'read' });
+        if (perm !== 'granted'){
+          const req = await dirHandle.requestPermission({ mode:'read' });
+          if (req !== 'granted'){
+            SolsticeToast.warn('Permissão negada', 'Re-atrelar pasta pra continuar.');
+            return false;
+          }
+        }
+        const fileHandle = await dirHandle.getFileHandle(fileName);
+        const file = await fileHandle.getFile();
+        SolsticeToast.info('Recarregando…', fileName + ' (' + Math.round(file.size/1024) + ' KB)');
+        // Chama o pipeline de ingest com o File obtido (mesma rota do file picker)
+        if (typeof _runIngestFile === 'function'){
+          await _runIngestFile(file, {});
+        } else if (window.Solstice && window.Solstice._runIngestFile){
+          await window.Solstice._runIngestFile(file, {});
+        }
+        if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+          SolsticeAudit.record({ action:'folder_refresh', target: fileName });
+        }
+        return true;
+      } catch(e){
+        console.warn('[FolderAttach.refresh]', e);
+        if (e && e.name === 'NotFoundError'){
+          SolsticeToast.warn('Arquivo não encontrado', '"' + fileName + '" não está na pasta atrelada. Re-atrelar ou re-importar manualmente.');
+        } else {
+          SolsticeToast.warn('Falha no refresh', e.message || 'Erro desconhecido');
+        }
+        return false;
+      }
+    }
+
+    return { isSupported, isAttached, getAttachedName, attach, detach, refresh };
   })();
 
   /* ============================================================
