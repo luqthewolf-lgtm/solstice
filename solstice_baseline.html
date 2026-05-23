@@ -13368,7 +13368,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const _group = SolsticeTypes.group(t.type);
       let _rightSummary = null;
       if (_group === 'numeric'){
-        const _vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const _vals = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (_vals.length){
           const _avg = _vals.reduce((a,b) => a+b, 0) / _vals.length;
           const _fmt = (n) => Math.abs(n) >= 1000 ? SolsticeLocale.integer(Math.round(n)) : SolsticeLocale.decimal(n, 2);
@@ -16188,7 +16188,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const friendlyName = (dict && dict.columns && dict.columns[colCfg] && dict.columns[colCfg].friendlyName) || colCfg || '—';
       const rows = ingest ? ingest.rows : [];
       const filteredRows = rows.length;
-      const values = colCfg ? rows.map(r => parseFloat(r[colCfg])).filter(v => !isNaN(v)) : [];
+      const values = colCfg ? rows.map(r => SolsticeStats.parseNum(r[colCfg])).filter(v => !isNaN(v)) : [];
 
       let result = '—';
       if (colCfg && aggCfg && values.length){
@@ -16297,7 +16297,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      * Sprint 34 / J-1 (Júlia/QA): wrapper unificado pra parsear célula de CSV
      * com awareness de formato pt-BR vs US.
      *
-     * Antes: 80+ chamadas `parseFloat(r[col])` espalhadas pelos componentes.
+     * Antes: 80+ chamadas `SolsticeStats.parseNum(r[col])` espalhadas pelos componentes.
      * Problema: parseFloat("1.234,56") = 1.234 (trunca após o ponto).
      * Solução: detecção automática via SolsticeBR.toNumber se disponível;
      * fallback pra parseFloat se SolsticeBR não estiver carregado ainda
@@ -16707,7 +16707,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const a = columns[i], b = columns[j];
           const xs = [], ys = [];
           for (const r of rows){
-            const x = parseFloat(r[a]), y = parseFloat(r[b]);
+            const x = SolsticeStats.parseNum(r[a]), y = SolsticeStats.parseNum(r[b]);
             if (!isNaN(x) && !isNaN(y)){ xs.push(x); ys.push(y); }
           }
           const r = fn(xs, ys);
@@ -16989,7 +16989,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         for (let j = i+1; j < candidates.length; j++){
           const xs = [], ys = [];
           for (const r of (ctx.rows || [])){
-            const x = parseFloat(r[candidates[i]]), y = parseFloat(r[candidates[j]]);
+            const x = SolsticeStats.parseNum(r[candidates[i]]), y = SolsticeStats.parseNum(r[candidates[j]]);
             if (!isNaN(x) && !isNaN(y)){ xs.push(x); ys.push(y); }
           }
           if (xs.length < 5) continue;
@@ -17020,7 +17020,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
       const col = pctCol || numerics[0] || null;
       if (!col) return { column: null, agg: 'avg', min: 0, max: 100, target: null };
-      const vals = (ctx.rows || []).map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      const vals = (ctx.rows || []).map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
       if (!vals.length) return { column: col, agg: 'avg', min: 0, max: 100, target: null };
       if (pctCol){
         return { column: col, agg: 'avg', min: 0, max: 100, target: 80 };
@@ -17929,7 +17929,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       correlation, correlationSpearman, correlationMatrix,
       // BR-aware (Sprint 34 / J-1): wrapper unificado pra parsear célula de CSV.
       // Detecta automaticamente formato pt-BR ("1.234,56") vs US ("1,234.56").
-      // SUBSTITUI `parseFloat(r[col])` direto em todos os componentes.
+      // SUBSTITUI `SolsticeStats.parseNum(r[col])` direto em todos os componentes.
       parseNum,
       // séries
       movingAverage, exponentialSmoothing, linearForecast, holtWinters, diff, autocorrelation,
@@ -18191,7 +18191,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           'Configure ao menos uma coluna numérica em ⚙️ Propriedades para ver a análise.'));
         return;
       }
-      const allValues = (ctx.rows || []).map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      const allValues = (ctx.rows || []).map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
       if (!allValues.length){
         b.appendChild(SolsticeUtils.el('div', { class:'solstice__analysis-explain' },
           'Sem valores numéricos válidos em "' + SolsticeHumanize.column(col, ctx.dictionary) + '".'));
@@ -18384,8 +18384,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (def.id === 'scatter'){
         const cfg = slot.config || {};
         if (cfg.xColumn && cfg.yColumn){
-          const xs = ctx.rows.map(r => parseFloat(r[cfg.xColumn]));
-          const ys = ctx.rows.map(r => parseFloat(r[cfg.yColumn]));
+          const xs = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.xColumn]));
+          const ys = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.yColumn]));
           const r = SolsticeStats.correlation(xs, ys);
           const rho = SolsticeStats.correlationSpearman(xs, ys);
           const cR = card('🔗 Correlação');
@@ -18417,7 +18417,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (def.id === 'boxplot' && slot.config && slot.config.groupColumn){
         const groups = new Map();
         for (const r of ctx.rows){
-          const v = parseFloat(r[col]); if (isNaN(v)) continue;
+          const v = SolsticeStats.parseNum(r[col]); if (isNaN(v)) continue;
           const g = String(r[slot.config.groupColumn]);
           if (!groups.has(g)) groups.set(g, []);
           groups.get(g).push(v);
@@ -18432,7 +18432,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       // Footer com snippet
       if (f){
-        f.textContent = '🔬 Solstice.Stats.describe(Solstice.Store.get(\'ingest\').rows.map(r => parseFloat(r[\'' + col + '\']))) — reproduz no console.';
+        f.textContent = '🔬 Solstice.Stats.describe(Solstice.Store.get(\'ingest\').rows.map(r => SolsticeStats.parseNum(r[\'' + col + '\']))) — reproduz no console.';
       }
     }
 
@@ -19809,7 +19809,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         let autoTarget = null;
         if (col){
           try {
-            const values = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+            const values = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
             if (values.length >= 10){
               const dictCol = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[col];
               const higherIsBetter = !dictCol || dictCol.higherIsBetter !== false;
@@ -20083,7 +20083,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             for (const r of ctx.rows){
               const d = new Date(r[cfg.xColumn]);
               if (isNaN(d)) continue;
-              const v = parseFloat(r[cfg.yColumn]);
+              const v = SolsticeStats.parseNum(r[cfg.yColumn]);
               if (isNaN(v)) continue;
               const key = _binKey(d);
               const sub = String(r[compoundCol] != null ? r[compoundCol] : '—');
@@ -20098,7 +20098,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             for (const r of ctx.rows){
               const d = new Date(r[cfg.xColumn]);
               if (isNaN(d)) continue;
-              const v = parseFloat(r[cfg.yColumn]);
+              const v = SolsticeStats.parseNum(r[cfg.yColumn]);
               if (isNaN(v)) continue;
               b.set(_binKey(d), (b.get(_binKey(d)) || 0) + v);
             }
@@ -20606,7 +20606,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           // === MODO HISTOGRAMA (numérica) ===
           const nBins = cfg.bins || 20;
           const binned = SolsticeCompCache.get(slot.id, cfg, ctx.rows, () => {
-            const vs = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+            const vs = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
             if (!vs.length) return null;
             const [mn, mx] = SolsticeStats.minMax(vs); /* code review 2026: minMax safe */
             const st = (mx - mn) / nBins || 1;
@@ -20830,7 +20830,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const heats = {};
         for (const c of ctx.columns){
           if (SolsticeTypes.group(ctx.types[c] && ctx.types[c].type) === 'numeric'){
-            const vs = ctx.rows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+            const vs = ctx.rows.map(r => SolsticeStats.parseNum(r[c])).filter(v => !isNaN(v));
             if (vs.length) heats[c] = { min: SolsticeStats.min(vs), max: SolsticeStats.max(vs) };
           }
         }
@@ -21496,7 +21496,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const d = new Date(r[cfg.dateColumn]);
           if (isNaN(d)) continue;
           const key = d.toISOString().slice(0,10);
-          let v = cfg.agg === 'count' || !cfg.valueColumn ? 1 : parseFloat(r[cfg.valueColumn]);
+          let v = cfg.agg === 'count' || !cfg.valueColumn ? 1 : SolsticeStats.parseNum(r[cfg.valueColumn]);
           if (isNaN(v)) v = 0;
           byDay.set(key, (byDay.get(key) || 0) + v);
           if (!dMin || d < dMin) dMin = d;
@@ -21591,7 +21591,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, msg));
           return;
         }
-        const values = ctx.rows.map(r => parseFloat(r[cfg.column])).filter(v => !isNaN(v));
+        const values = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.column])).filter(v => !isNaN(v));
         if (!values.length){
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' },
             'Sem valores numéricos válidos em "' + SolsticeHumanize.column(cfg.column, ctx.dictionary) + '".'));
@@ -21876,7 +21876,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // Agrupa por groupColumn (ou um único grupo)
         const groups = new Map();
         for (const r of ctx.rows){
-          const v = parseFloat(r[valCol]);
+          const v = SolsticeStats.parseNum(r[valCol]);
           if (isNaN(v)) continue;
           const g = cfg.groupColumn ? String(r[cfg.groupColumn]) : '—';
           if (!groups.has(g)) groups.set(g, []);
@@ -22027,7 +22027,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const s = String(r[cfg.sourceColumn] || '');
           const t = String(r[cfg.targetColumn] || '');
           if (!s || !t) continue;
-          let v = cfg.valueColumn ? parseFloat(r[cfg.valueColumn]) : 1;
+          let v = cfg.valueColumn ? SolsticeStats.parseNum(r[cfg.valueColumn]) : 1;
           if (isNaN(v)) v = 0;
           const k = s + '|' + t;
           flows.set(k, (flows.get(k) || 0) + v);
@@ -22313,7 +22313,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             key = d.getFullYear() + '-W' + String(week).padStart(2,'0');
           }
           else key = d.toISOString().slice(0,10);
-          const v = parseFloat(r[cfg.yColumn]);
+          const v = SolsticeStats.parseNum(r[cfg.yColumn]);
           if (!buckets.has(key)) buckets.set(key, { count:0, sum:0 });
           const b = buckets.get(key);
           b.count++;
@@ -22418,7 +22418,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         for (const sec of sections) for (const r of sec.rows) for (const sl of r.slots){
           if (sl.type === 'kpi' && sl.config && sl.config.column){
             const col = sl.config.column;
-            const vals = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+            const vals = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
             const outs = SolsticeStats.outliersIQR(vals) || [];
             if (outs.length && outs.length / vals.length > 0.05){
               items.push({
@@ -22616,7 +22616,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           colVals.forEach(cv => {
             const vs = ctx.rows
               .filter(r => String(r[cfg.rowDimension]) === rv && String(r[cfg.colDimension]) === cv)
-              .map(r => parseFloat(r[cfg.valueColumn]))
+              .map(r => SolsticeStats.parseNum(r[cfg.valueColumn]))
               .filter(v => !isNaN(v));
             const fn = SolsticeStats[agg] || SolsticeStats.sum;
             cells[rv][cv] = vs.length ? fn(vs) : 0;
@@ -22699,7 +22699,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Selecione uma coluna numérica em ⚙️.'));
           return;
         }
-        const vals = ctx.rows.map(r => parseFloat(r[cfg.column])).filter(v => !isNaN(v));
+        const vals = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.column])).filter(v => !isNaN(v));
         if (!vals.length){
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Sem valores numéricos.'));
           return;
@@ -22765,7 +22765,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Selecione coluna numérica.'));
           return;
         }
-        const vs = ctx.rows.map(r => parseFloat(r[cfg.column])).filter(v => !isNaN(v));
+        const vs = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.column])).filter(v => !isNaN(v));
         if (!vs.length){
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Sem valores válidos.'));
           return;
@@ -22836,7 +22836,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const totals = new Map();
         for (const r of ctx.rows){
           const stage = String(r[cfg.stageColumn]);
-          const v = parseFloat(r[cfg.valueColumn]);
+          const v = SolsticeStats.parseNum(r[cfg.valueColumn]);
           if (isNaN(v)) continue;
           if (!totals.has(stage)){ totals.set(stage, 0); stageOrder.push(stage); }
           totals.set(stage, totals.get(stage) + v);
@@ -22918,7 +22918,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         for (const r of ctx.rows){
           const d = new Date(r[cfg.dateColumn]);
           if (isNaN(d)) continue;
-          events.push({ date: d, label: String(r[cfg.labelColumn]), value: cfg.valueColumn ? parseFloat(r[cfg.valueColumn]) : null });
+          events.push({ date: d, label: String(r[cfg.labelColumn]), value: cfg.valueColumn ? SolsticeStats.parseNum(r[cfg.valueColumn]) : null });
         }
         if (!events.length){
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Sem eventos válidos.'));
@@ -24634,7 +24634,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         return;
       }
 
-      const values = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      const values = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
       if (!values.length){
         host.appendChild(SolsticeUtils.el('div', { class:'solstice__stats-empty' },
           'Sem valores numéricos válidos em "' + SolsticeHumanize.column(col, ctx.dictionary) + '".'));
@@ -24713,8 +24713,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
 
       if (def.id === 'scatter' && cfg.xColumn && cfg.yColumn){
-        const xs = ctx.rows.map(r => parseFloat(r[cfg.xColumn]));
-        const ys = ctx.rows.map(r => parseFloat(r[cfg.yColumn]));
+        const xs = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.xColumn]));
+        const ys = ctx.rows.map(r => SolsticeStats.parseNum(r[cfg.yColumn]));
         const r = SolsticeStats.correlation(xs, ys);
         const rho = SolsticeStats.correlationSpearman(xs, ys);
         host.appendChild(section('🔗 Correlação'));
@@ -24745,7 +24745,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // Estatísticas por grupo
         const groups = new Map();
         for (const r of ctx.rows){
-          const v = parseFloat(r[col]);
+          const v = SolsticeStats.parseNum(r[col]);
           if (isNaN(v)) continue;
           const g = String(r[cfg.groupColumn]);
           if (!groups.has(g)) groups.set(g, []);
@@ -24760,7 +24760,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       // --- Footer com link ao console ---
       host.appendChild(SolsticeUtils.el('div', { class:'solstice__stats-footer' },
-        '🔬 Console: Solstice.Stats.describe(Solstice.Store.get(\'ingest\').rows.map(r => parseFloat(r[\'' + col + '\']))) — reproduz estas métricas.'));
+        '🔬 Console: Solstice.Stats.describe(Solstice.Store.get(\'ingest\').rows.map(r => SolsticeStats.parseNum(r[\'' + col + '\']))) — reproduz estas métricas.'));
     }
 
     /**
@@ -24789,7 +24789,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         return;
       }
 
-      const values = (ctx.rows || []).map(r => parseFloat(r[colName])).filter(v => !isNaN(v));
+      const values = (ctx.rows || []).map(r => SolsticeStats.parseNum(r[colName])).filter(v => !isNaN(v));
       if (values.length < 2){
         host.appendChild(SolsticeUtils.el('div', { style:'color:var(--c-muted);font-size:var(--fs-xs);line-height:1.5;margin-bottom:var(--sp-2);' },
           'Não há valores suficientes para análise (mínimo 2).'));
@@ -30871,7 +30871,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Threshold reduzido de 10%→5% magnitude e R²=0.30→0.20.
       // Também passou de slice(0,6) → slice(0,10) (mais colunas analisadas).
       numericCols.slice(0, 10).forEach(col => {
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (values.length < 10) return;
         const t = SolsticeStats.trend(values);
         if (!t || t.direction === 'flat') return;
@@ -30898,7 +30898,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // === INSIGHT 2: OUTLIERS significativos ===
       // HOTFIX #113: threshold reduzido de 2%→1% pra mostrar mais
       numericCols.slice(0, 10).forEach(col => {
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (values.length < 10) return;
         const ou = SolsticeStats.outliersIQR(values, 1.5);
         const pct = ou.values.length / values.length;
@@ -30932,7 +30932,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const agg = new Map();
           for (const r of rows){
             const k = String(r[catCol] || '—');
-            const v = parseFloat(r[numCol]); if (isNaN(v)) continue;
+            const v = SolsticeStats.parseNum(r[numCol]); if (isNaN(v)) continue;
             agg.set(k, (agg.get(k) || 0) + v);
           }
           const sorted = Array.from(agg.entries()).sort((a, b) => b[1] - a[1]);
@@ -30970,7 +30970,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         for (const r of rows){
           const d = new Date(r[tempCol]); if (isNaN(d)) continue;
           const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-          const v = parseFloat(r[numCol]); if (isNaN(v)) continue;
+          const v = SolsticeStats.parseNum(r[numCol]); if (isNaN(v)) continue;
           byMonth.set(k, (byMonth.get(k) || 0) + v);
         }
         const monthly = Array.from(byMonth.entries()).sort().map(([, v]) => v);
@@ -30994,7 +30994,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // === INSIGHT 5: MUDANÇA RECENTE — primeira metade vs segunda ===
       // HOTFIX #113: threshold de 20%→10%, slice 3→6
       numericCols.slice(0, 6).forEach(col => {
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (values.length < 20) return;
         const half = Math.floor(values.length / 2);
         const m1 = SolsticeStats.mean(values.slice(0, half));
@@ -31055,7 +31055,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             // Pares de (xa, yb) sem NaN
             const xs = [], ys = [];
             for (const r of rows){
-              const x = parseFloat(r[a]); const y = parseFloat(r[b]);
+              const x = SolsticeStats.parseNum(r[a]); const y = SolsticeStats.parseNum(r[b]);
               if (isNaN(x) || isNaN(y)) continue;
               xs.push(x); ys.push(y);
             }
@@ -31157,7 +31157,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // === INSIGHT 11 (NOVO #113): RANGE EXTREMO (numéricas com range >> avg) ===
       // Identifica colunas com escala muito ampla — sugere agrupamento ou normalização.
       numericCols.slice(0, 8).forEach(col => {
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (values.length < 20) return;
         const [mn, mx] = SolsticeStats.minMax(values); /* code review 2026: minMax safe */
         const avg = SolsticeStats.mean(values);
@@ -31221,7 +31221,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const numCol = numericCols[0];
         // Ordena rows por data e pega a série
         const series = rows
-          .map(r => ({ d: new Date(r[tempCol]), v: parseFloat(r[numCol]) }))
+          .map(r => ({ d: new Date(r[tempCol]), v: SolsticeStats.parseNum(r[numCol]) }))
           .filter(p => !isNaN(p.d.getTime()) && !isNaN(p.v))
           .sort((a, b) => a.d - b.d);
         if (series.length >= 14){
@@ -32094,7 +32094,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     function _numericValues(col, rows){
-      return rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      return rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
     }
 
     function _byGroup(col, dim, rows, agg){
@@ -32102,7 +32102,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const aggFn = agg || 'sum';
       for (const r of rows){
         const k = r[dim];
-        const v = parseFloat(r[col]);
+        const v = SolsticeStats.parseNum(r[col]);
         if (isNaN(v)) continue;
         if (!groups.has(k)) groups.set(k, []);
         groups.get(k).push(v);
@@ -32334,9 +32334,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // Monta pontos (1D ou 2D conforme há m2).
         const pts = [];
         for (const r of ctx.rows){
-          const x = parseFloat(r[m1]); if (isNaN(x)) continue;
+          const x = SolsticeStats.parseNum(r[m1]); if (isNaN(x)) continue;
           if (m2){
-            const y = parseFloat(r[m2]); if (isNaN(y)) continue;
+            const y = SolsticeStats.parseNum(r[m2]); if (isNaN(y)) continue;
             pts.push([x, y]);
           } else {
             pts.push([x]);
@@ -32477,7 +32477,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // Filtra linhas
         const rows = ctx.rows || [];
         const matched = rows.filter(r => {
-          const v = parseFloat(r[col]); if (isNaN(v)) return false;
+          const v = SolsticeStats.parseNum(r[col]); if (isNaN(v)) return false;
           if (op === '>')  return v >  val;
           if (op === '<')  return v <  val;
           if (op === '>=') return v >= val;
@@ -32794,7 +32794,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // HC-02: estatística leve por coluna (RAG context)
         try {
           if (group === 'numeric' && typeof SolsticeStats !== 'undefined'){
-            const vals = rows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+            const vals = rows.map(r => SolsticeStats.parseNum(r[c])).filter(v => !isNaN(v));
             if (vals.length){
               colInfo.stats = {
                 count: vals.length,
@@ -33165,7 +33165,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       else if (def.id === 'heatmap-cal') { col = cfg.valueColumn || null; agg = cfg.agg || 'sum'; }
       else if (def.id === 'sankey') { col = cfg.valueColumn; agg = 'sum'; }
       if (!col){ return 'Configure ao menos uma coluna numérica para gerar narrativa.'; }
-      const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
       if (!values.length) return 'Sem valores válidos para gerar narrativa.';
 
       const dictCol = dict && dict.columns && dict.columns[col];
@@ -33403,7 +33403,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // === Coleta KPIs com analytics ===
       // Sprint 36 / EV-COMP-12: bug crítico — Narrativa Automática mostrava
       // placeholder "Adicione KPIs..." mesmo com 4 KPIs aplicados. Causa:
-      // `parseFloat(r[col])` falha em colunas BR ("R$ 1.234,56"), values=[],
+      // `SolsticeStats.parseNum(r[col])` falha em colunas BR ("R$ 1.234,56"), values=[],
       // kpiAnalytics=[], cai no fallback. Migrado pra SolsticeStats.parseNum
       // (J-1, Sprint 33). Também coleta 'bignum' (que conta como KPI).
       const kpis = _collect('kpi').concat(_collect('bignum'));
@@ -33467,7 +33467,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       });
       // Outliers como recomendação acionável
       kpiAnalytics.forEach(k => {
-        const values = rows.map(r => parseFloat(r[k.col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[k.col])).filter(v => !isNaN(v));
         const outs = (SolsticeStats.outliersIQR(values) || []).length;
         if (outs > values.length * 0.05){
           recs.push('Revisar registros anormais em **' + k.friendly + '** — ' + outs + ' outliers (' + (outs/values.length*100).toFixed(0) + '%)');
@@ -33482,7 +33482,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // === 🔍 ANOMALIAS detectadas ===
       const anomalies = [];
       kpiAnalytics.forEach(k => {
-        const values = rows.map(r => parseFloat(r[k.col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[k.col])).filter(v => !isNaN(v));
         const outs = SolsticeStats.outliersIQR(values) || [];
         if (outs.length > values.length * 0.03){
           const pct = (outs.length/values.length*100).toFixed(0);
@@ -33520,7 +33520,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             const a = measurableCols[i], b = measurableCols[j];
             const xs = [], ys = [];
             for (const r of rows){
-              const x = parseFloat(r[a]); const y = parseFloat(r[b]);
+              const x = SolsticeStats.parseNum(r[a]); const y = SolsticeStats.parseNum(r[b]);
               if (!isNaN(x) && !isNaN(y)){ xs.push(x); ys.push(y); }
             }
             if (xs.length < 20) continue;
@@ -33867,7 +33867,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (!cfg.xColumn || !cfg.yColumn) return false;
           let n = 0;
           for (const r of ctx.rows){
-            const x = parseFloat(r[cfg.xColumn]), y = parseFloat(r[cfg.yColumn]);
+            const x = SolsticeStats.parseNum(r[cfg.xColumn]), y = SolsticeStats.parseNum(r[cfg.yColumn]);
             if (!isNaN(x) && !isNaN(y)) n++;
           }
           return n < 10;
@@ -34230,7 +34230,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const op = opMap[m[1]];
         const col = _resolveColumn(m[2]);
         if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[2] + '".' };
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (!values.length) return { ok: false, error: 'Coluna "' + col + '" não tem valores numéricos válidos.' };
         const v = SolsticeStats[op](values);
         const typeDef = SolsticeTypes.getType((ingest.types || {})[col] && ingest.types[col].type);
@@ -34251,7 +34251,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       if (m){
         const col = _resolveColumn(m[1]);
         if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (!values.length) return { ok: false, error: 'Coluna sem valores numéricos.' };
         const ou = SolsticeStats.outliersIQR(values, 1.5);
         const pct = (ou.values.length / values.length * 100).toFixed(1);
@@ -34271,8 +34271,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const colB = _resolveColumn(m[2]);
         if (!colA) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
         if (!colB) return { ok: false, error: 'Não encontrei a coluna "' + m[2] + '".' };
-        const xs = rows.map(r => parseFloat(r[colA]));
-        const ys = rows.map(r => parseFloat(r[colB]));
+        const xs = rows.map(r => SolsticeStats.parseNum(r[colA]));
+        const ys = rows.map(r => SolsticeStats.parseNum(r[colB]));
         const r = SolsticeStats.correlation(xs, ys);
         if (r == null) return { ok: false, error: 'Não foi possível calcular (poucos pares válidos).' };
         const strength = Math.abs(r) >= 0.7 ? 'forte' : Math.abs(r) >= 0.4 ? 'moderada' : 'fraca';
@@ -34296,7 +34296,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         for (const r of rows){
           const k = String(r[catCol] || '—');
           if (numCol){
-            const v = parseFloat(r[numCol]); if (isNaN(v)) continue;
+            const v = SolsticeStats.parseNum(r[numCol]); if (isNaN(v)) continue;
             agg.set(k, (agg.get(k) || 0) + v);
           } else {
             agg.set(k, (agg.get(k) || 0) + 1);
@@ -34322,7 +34322,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       if (m){
         const col = _resolveColumn(m[1]);
         if (!col) return { ok: false, error: 'Não encontrei a coluna "' + m[1] + '".' };
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (values.length < 3) return { ok: false, error: 'Pouco dado para tendência (mínimo 3 valores).' };
         const t = SolsticeStats.trend(values);
         if (!t) return { ok: false, error: 'Não foi possível calcular tendência.' };
@@ -34765,7 +34765,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           out = out.filter(r => String(r[col]) === fv);
         } else if (group === 'numeric' && fv && (fv.min != null || fv.max != null)){
           out = out.filter(r => {
-            const v = parseFloat(r[col]); if (isNaN(v)) return false;
+            const v = SolsticeStats.parseNum(r[col]); if (isNaN(v)) return false;
             if (fv.min != null && v < fv.min) return false;
             if (fv.max != null && v > fv.max) return false;
             return true;
@@ -34810,7 +34810,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           out = out.filter(r => String(r[f.column]) !== String(vals[0]));
         } else if (op === 'between' && vals.length >= 2){
           const lo = parseFloat(vals[0]); const hi = parseFloat(vals[1]);
-          out = out.filter(r => { const v = parseFloat(r[f.column]); return !isNaN(v) && v >= lo && v <= hi; });
+          out = out.filter(r => { const v = SolsticeStats.parseNum(r[f.column]); return !isNaN(v) && v >= lo && v <= hi; });
         }
       }
       return out;
@@ -34912,7 +34912,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           const valid = rows.filter(r => !isNaN(new Date(r[c]))).length;
           if (valid >= 30) out.push({ column: c, kind: 'temporal', valid });
         } else if (g === 'numeric'){
-          const vals = rows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+          const vals = rows.map(r => SolsticeStats.parseNum(r[c])).filter(v => !isNaN(v));
           if (vals.length > 5){
             const iqr = SolsticeStats.iqr(vals);
             if (iqr != null && iqr > 0) out.push({ column: c, kind: 'numeric', n: vals.length });
@@ -35052,7 +35052,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const ing = _ingest();
       const dict = SolsticeStore.get('dictionary');
       const rows = ing.rows || [];
-      const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+      const vals = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
       if (!vals.length) return null;
       const [min, max] = SolsticeStats.minMax(vals); /* code review 2026: minMax safe */
       const f = _filters()[col] || { min, max };
@@ -35631,7 +35631,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
       // 2. Variação
       if (group === 'numeric'){
-        const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const vals = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         const iqr = vals.length > 1 ? SolsticeStats.iqr(vals) : 0;
         s += WEIGHTS.variation * (iqr > 0 ? 1 : 0);
       } else if (group === 'categorical'){
@@ -35979,7 +35979,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (!numCols.length) return null;
           let bestCol = null, bestPct = 0;
           for (const c of numCols.slice(0, 6)){
-            const vals = (ctx.rows || ctx.rowsAll || []).map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+            const vals = (ctx.rows || ctx.rowsAll || []).map(r => SolsticeStats.parseNum(r[c])).filter(v => !isNaN(v));
             if (vals.length < 20) continue;
             const ou = SolsticeStats.outliersIQR(vals, 1.5);
             const pct = ou.values.length / vals.length;
@@ -38513,7 +38513,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         summaryRows.push(['Linhas filtradas', activeRows.length, '', opts.applyFilters ? 'após filtros globais' : 'sem filtro']);
         // Stats por coluna numerica
         for (const c of numericCols.slice(0, 20)){
-          const vals = activeRows.map(r => parseFloat(r[c])).filter(v => !isNaN(v));
+          const vals = activeRows.map(r => SolsticeStats.parseNum(r[c])).filter(v => !isNaN(v));
           if (!vals.length) continue;
           const sum = vals.reduce((a,b)=>a+b,0);
           const mean = sum / vals.length;
@@ -38626,7 +38626,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         if (type === 'kpi' || type === 'bignum' || type === 'gauge'){
           const col = cfg.column;
           if (!col) return null;
-          const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+          const vals = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
           const agg = cfg.agg || 'sum';
           const aoa = [['Métrica', 'Valor']];
           if (agg === 'sum') aoa.push(['Soma', vals.reduce((a,b)=>a+b,0)]);
@@ -38666,7 +38666,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (!xCol || !yCol) return null;
           const aoa = [[friendly(xCol), friendly(yCol)]];
           for (const r of rows){
-            const y = parseFloat(r[yCol]);
+            const y = SolsticeStats.parseNum(r[yCol]);
             if (isNaN(y)) continue;
             aoa.push([r[xCol], y]);
           }
@@ -38677,7 +38677,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           if (!xCol || !yCol) return null;
           const aoa = [[friendly(xCol), friendly(yCol)]];
           for (const r of rows){
-            const x = parseFloat(r[xCol]), y = parseFloat(r[yCol]);
+            const x = SolsticeStats.parseNum(r[xCol]), y = SolsticeStats.parseNum(r[yCol]);
             if (isNaN(x) || isNaN(y)) continue;
             aoa.push([x, y]);
           }
@@ -38686,7 +38686,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         if (type === 'boxplot'){
           const col = cfg.valueColumn;
           if (!col) return null;
-          const vals = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+          const vals = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
           if (!vals.length) return null;
           // Auditoria 2026.2 (MC-A1): usa SolsticeStats.quartiles (interpolação
           // linear, type-7 igual NumPy) em vez da aproximação grosseira
@@ -41969,7 +41969,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             // SIMPLIFICAÇÃO: SUM/AVG/etc só aceitam {col} direto — RPN guarda referência diferente.
             const lastTok = _lastColTokenInRPN(rpn, t);
             if (!lastTok){ st.push(0); continue; }
-            const vals = (allRows || []).map(r => parseFloat(r[lastTok.value])).filter(v => !isNaN(v));
+            const vals = (allRows || []).map(r => SolsticeStats.parseNum(r[lastTok.value])).filter(v => !isNaN(v));
             st.pop(); // remove o valor escalar do row que foi pushed
             st.push(def.apply(vals));
           } else {
@@ -42100,7 +42100,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const subset = filterRows(allRows, filterObj);
       let sum = 0;
       for (const r of subset){
-        const v = parseFloat(r[targetCol]);
+        const v = SolsticeStats.parseNum(r[targetCol]);
         if (!isNaN(v)) sum += v;
       }
       return sum;
@@ -42109,7 +42109,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const subset = filterRows(allRows, filterObj);
       let sum = 0, n = 0;
       for (const r of subset){
-        const v = parseFloat(r[targetCol]);
+        const v = SolsticeStats.parseNum(r[targetCol]);
         if (!isNaN(v)){ sum += v; n++; }
       }
       return n ? sum / n : null;
@@ -45429,7 +45429,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
               const groups = new Map();
               for (const r of (ctx.rows || [])){
                 const k = String(r[catCol] == null ? '—' : r[catCol]);
-                const v = parseFloat(r[valCol]);
+                const v = SolsticeStats.parseNum(r[valCol]);
                 if (isNaN(v)) continue;
                 if (cfg.agg === 'count') groups.set(k, (groups.get(k) || 0) + 1);
                 else groups.set(k, (groups.get(k) || 0) + v); // sum default
@@ -45629,7 +45629,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
                 if (!m.has(ck)) m.set(ck, { sum: 0, count: 0 });
                 const cell = m.get(ck);
                 if (valCol){
-                  const v = parseFloat(r[valCol]);
+                  const v = SolsticeStats.parseNum(r[valCol]);
                   if (!isNaN(v)){ cell.sum += v; cell.count++; }
                 } else {
                   cell.count++;
@@ -45801,7 +45801,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
                 const k = r[gCol] == null ? '—' : String(r[gCol]);
                 let v = 1;
                 if (vCol){
-                  const p = parseFloat(r[vCol]);
+                  const p = SolsticeStats.parseNum(r[vCol]);
                   if (!isNaN(p)) v = p; else continue;
                 }
                 groups.set(k, (groups.get(k) || 0) + v);
@@ -45933,7 +45933,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
                 if (!groupAgg.has(k)) groupAgg.set(k, {});
                 const a = groupAgg.get(k);
                 metrics.forEach(m => {
-                  const v = parseFloat(r[m]);
+                  const v = SolsticeStats.parseNum(r[m]);
                   if (isNaN(v)) return;
                   if (!a[m]) a[m] = { sum: 0, count: 0 };
                   a[m].sum += v; a[m].count++;
@@ -46105,7 +46105,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
                 if (!uf) continue;
                 if (!agg[uf]) agg[uf] = { sum: 0, count: 0 };
                 if (vCol){
-                  const v = parseFloat(r[vCol]);
+                  const v = SolsticeStats.parseNum(r[vCol]);
                   if (!isNaN(v)){ agg[uf].sum += v; agg[uf].count++; }
                 } else {
                   agg[uf].count++;

@@ -212,6 +212,19 @@ jobs:
           fi
           echo "✓ Sprint 13a OK — $DIALOGS role=dialog presentes"
 
+      - name: BR-aware parseFloat (Sprint 38 / Júlia J-1)
+        run: |
+          # Garante que parseFloat(r[col]) não regride: usar SolsticeStats.parseNum
+          # que é BR-aware ("1.234,56" → 1234.56) em vez de parseFloat direto
+          # (que trunca em "1.234"). Whitelist: zero parseFloat(r[ no source.
+          COUNT=$(grep -c 'parseFloat(r\[' solstice_baseline.html || true)
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::Sprint 38 violado — parseFloat(r[col]) regrediu ($COUNT ocorrências). Use SolsticeStats.parseNum(r[col]) — entende vírgula decimal pt-BR."
+            grep -n 'parseFloat(r\[' solstice_baseline.html | head -10
+            exit 1
+          fi
+          echo "✓ Sprint 38 OK — 0 parseFloat(r[col]) (BR-aware enforced)"
+
       - name: A11y — role=grid na Vtable (Sprint 12)
         run: |
           # Garante que Vtable virtualizada mantém role=grid + aria-rowcount
