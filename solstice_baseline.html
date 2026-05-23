@@ -8117,12 +8117,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     function _openModal({ code, def, message, suggestion, extra }){
-      const overlay = SolsticeUtils.el('div', { class: 'solstice__modal-overlay', onclick: e => { if (e.target===overlay) close(); } });
+      // Auditoria 2026.4 (Sprint 13a / A11y-02): role=dialog + aria-modal + aria-labelledby
+      const titleId = 'solstice-err-title-' + Math.random().toString(36).slice(2, 8);
+      const overlay = SolsticeUtils.el('div', {
+        class: 'solstice__modal-overlay',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': titleId,
+        onclick: e => { if (e.target===overlay) close(); }
+      });
       const modal = SolsticeUtils.el('div', { class: 'solstice__modal' });
 
       const closeBtn = SolsticeUtils.el('button', { class: 'solstice__modal-close', 'aria-label': SolsticeLocale.t('err.close'), onclick: close }, '✕');
       modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__modal-header' },
-        SolsticeUtils.el('div', { class: 'solstice__modal-title' }, def.icon + ' ' + message.split('.')[0]),
+        SolsticeUtils.el('div', { class: 'solstice__modal-title', id: titleId }, def.icon + ' ' + message.split('.')[0]),
         closeBtn
       ));
 
@@ -8792,15 +8800,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function openConfigModal(detection, columns, onApply){
       // Patch B6-r1: backdrop não fecha (modal tem botão ✕ e inputs editáveis com seleção de texto)
       let _dragStartedInside = false;
+      // Auditoria 2026.4 (Sprint 13a / A11y-02): role=dialog + aria-modal + aria-labelledby
+      const titleId = 'solstice-dict-title-' + Math.random().toString(36).slice(2, 8);
       const overlay = SolsticeUtils.el('div', {
         class: 'solstice__modal-overlay',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': titleId,
         onmousedown: e => { _dragStartedInside = !!(e.target.closest && e.target.closest('.solstice__modal')); },
         onclick: e => { if (e.target !== overlay) return; if (_dragStartedInside){ _dragStartedInside = false; return; } /* não fecha por backdrop neste modal */ }
       });
       const modal   = SolsticeUtils.el('div', { class: 'solstice__modal solstice__modal--lg' });
 
       modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__modal-header' },
-        SolsticeUtils.el('div', { class: 'solstice__modal-title' }, '🧠 ' + SolsticeLocale.t('dict.title')),
+        SolsticeUtils.el('div', { class: 'solstice__modal-title', id: titleId }, '🧠 ' + SolsticeLocale.t('dict.title')),
         SolsticeUtils.el('button', { class: 'solstice__modal-close', 'aria-label':'Fechar', title:'Fechar (Esc)', onclick: () => overlay.remove() }, '✕')
       ));
 
@@ -10221,13 +10234,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       ];
       let idx = 0;
 
-      const overlay = SolsticeUtils.el('div', { class: 'solstice__modal-overlay' });
+      // Auditoria 2026.4 (Sprint 13a / A11y-02): role=dialog para onboarding
+      const titleId = 'solstice-onb-title-' + Math.random().toString(36).slice(2, 8);
+      const overlay = SolsticeUtils.el('div', {
+        class: 'solstice__modal-overlay',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': titleId
+      });
       const modal   = SolsticeUtils.el('div', { class: 'solstice__modal' });
 
       const body = SolsticeUtils.el('div', { class: 'solstice__modal-body' });
       const content = SolsticeUtils.el('div', { class: 'solstice__onb' });
       const icon = SolsticeUtils.el('div', { class: 'solstice__onb-icon' }, '🌗');
-      const title = SolsticeUtils.el('div', { class: 'solstice__onb-title' });
+      const title = SolsticeUtils.el('div', { class: 'solstice__onb-title', id: titleId });
       const text = SolsticeUtils.el('div', { class: 'solstice__onb-text' });
       content.append(icon, title, text);
 
@@ -27026,7 +27046,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         let dragStartedInside = false;  // Patch B6-r1: proteção contra arraste de seleção
         const lastFocus = document.activeElement;
 
-        const backdrop = SolsticeUtils.el('div', {
+        // Auditoria 2026.4 (Sprint 13a / A11y-02): aria-labelledby + ID no título.
+        // Antes o leitor de tela anunciava "diálogo, modal" mas sem nome.
+        // Agora anuncia o título do modal ao abrir. WCAG 4.1.2.
+        const titleId = 'solstice-modal-title-' + Math.random().toString(36).slice(2, 8);
+        const backdropAttrs = {
           class: 'solstice__cmodal-backdrop',
           role: 'dialog',
           'aria-modal': 'true',
@@ -27040,7 +27064,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             if (dragStartedInside) { dragStartedInside = false; return; } // proteção drag
             close(opts.defaultClose);
           }
-        });
+        };
+        if (opts.title) backdropAttrs['aria-labelledby'] = titleId;
+        else backdropAttrs['aria-label'] = 'Diálogo';
+        const backdrop = SolsticeUtils.el('div', backdropAttrs);
         const modal = SolsticeUtils.el('div', {
           class: 'solstice__cmodal'
             + (opts.size === 'lg' ? ' solstice__cmodal--lg' : '')
@@ -27048,7 +27075,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         });
 
         if (opts.title){
-          modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__cmodal-header' }, opts.title));
+          modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__cmodal-header', id: titleId }, opts.title));
         }
 
         const bodyEl = SolsticeUtils.el('div', { class: 'solstice__cmodal-body' });

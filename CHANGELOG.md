@@ -5,6 +5,39 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 13 — "A11y de modais completa" — 2026-05-23
+
+### ♿ Acessibilidade (Sprint 13a — A11y-02)
+
+Os 4 modais do produto (`SolsticeModal.show`, `SolsticeErrors.show`, `SolsticeDictionary.openConfigModal`, `SolsticeOnboarding.show`) **não tinham `role="dialog"`**. Leitores de tela anunciavam "região" em vez de "diálogo modal".
+
+- **`role="dialog"` + `aria-modal="true"`** em todos os 4 overlays
+- **`aria-labelledby`** apontando para o ID do header — leitor de tela anuncia o título do modal ao abrir (WCAG 4.1.2)
+- IDs únicos gerados via Math.random pra evitar colisão em modais aninhados/sequenciais
+- Modal sem título usa `aria-label="Diálogo"` como fallback
+
+### ♿ Toasts (Sprint 13b — verificado)
+
+Os toasts já tinham a11y correto (R-06 da Auditoria 2026):
+- `role="status"` + `aria-atomic="true"` + `aria-live` dinâmico (`assertive` para erros, `polite` para resto)
+- Container `#toasts` com `aria-live="polite"` desde o HTML inicial
+
+Nada a corrigir. ✅
+
+### ♿ Foco visível (Sprint 13c — verificado)
+
+48 ocorrências de `:focus-visible` no arquivo, incluindo global default no `:focus-visible` (linha 245) com outline + offset + halo do background. Nada a corrigir. ✅
+
+### 📊 Métricas
+
+| Sinal | Sprint 12 | Sprint 13 |
+|---|---|---|
+| Modais com `role="dialog"` | 0/4 | **4/4** ✅ |
+| Modais com `aria-labelledby` | 0/4 | **4/4** ✅ |
+| Validação preview: modal abre com role=dialog + ariaModal=true + ariaLabelledby populado | — | ✅ |
+
+---
+
 ## [Unreleased] — Sprint 10+11+12 — "A11y de tabela + fallbacks silenciosos" — 2026-05-23
 
 Três sprints curtas consolidadas. **Sprint 11 explicitamente movida para roadmap** (refactor estrutural de deepClone exige sprint dedicado com testes de regressão por componente).
