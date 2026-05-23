@@ -3960,6 +3960,27 @@
     flex: 1;
     min-height: 300px;
   }
+  /* Sprint 29 / F-19 v4: KPI/BigNum têm conteúdo intrinsecamente curto.
+   * Causa do espaço vazio: o slot (grid item) com align-items:stretch
+   * esticava o card até a altura do row track — mesmo o row track sendo
+   * definido pelo slot mais alto. !important necessário porque existem
+   * outras regras .solstice__comp[data-style-preset] etc. com mais
+   * especificidade que sobrescreviam o :has(). Validado no preview:
+   * antes 298px (mesmo com cssText="max-height:220px"), depois 205px. */
+  .solstice__slot:has(.solstice__kpi-card),
+  .solstice__slot:has(.solstice__bignum) {
+    align-self: start !important;
+  }
+  .solstice__comp:has(.solstice__kpi-card),
+  .solstice__comp:has(.solstice__bignum) {
+    max-height: 220px !important;
+    min-height: 110px !important;
+    align-self: start !important;
+  }
+  .solstice__comp:has(.solstice__kpi-card) .solstice__comp-body,
+  .solstice__comp:has(.solstice__bignum) .solstice__comp-body {
+    flex: 0 0 auto !important;
+  }
   .solstice__comp:hover { border-color: var(--comp-border-hover, var(--c-accent)); }
   .solstice__comp.is-selected {
     border-color: var(--c-accent);
@@ -6691,11 +6712,9 @@
            recebe role="tablist". WCAG 2.1.1. Handler keyboard adicionado
            no SolsticeSidebarTabs.init. -->
       <div role="tablist" aria-label="Abas do workspace">
-      <!-- v5 (Sprint 28): tab Templates ressuscitada como sidebar tab — user
-           reportou que querer "trocar de template a qualquer momento" sem
-           precisar abrir picker via toolbar. Tab Templates antes da Componentes
-           porque template é decisão de alto nível (vai mostrar comparação?
-           distribuição?) antes de cherry-pick de componente individual. -->
+      <!-- Sprint 29: tab Templates removida do sidebar (user já tem o botão
+           "🗂️ Templates" no canvas toolbar — duplicar polui a UI). Ordem:
+           Dados → Modelo → Componentes → Snapshots → Dicionários. -->
       <div class="solstice__sidebar-tab is-active" id="tab-dados" role="tab" tabindex="0" aria-selected="true">
         <span class="solstice__sidebar-tab-icon">📊</span>
         <span>Dados</span>
@@ -6705,11 +6724,6 @@
         <span class="solstice__sidebar-tab-icon">🗂️</span>
         <span>Modelo</span>
         <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-modelo"></span>
-      </div>
-      <div class="solstice__sidebar-tab" id="tab-templates" role="tab" tabindex="-1" aria-selected="false">
-        <span class="solstice__sidebar-tab-icon">🗂️</span>
-        <span>Templates</span>
-        <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-templates"></span>
       </div>
       <div class="solstice__sidebar-tab" id="tab-componentes" role="tab" tabindex="-1" aria-selected="false">
         <span class="solstice__sidebar-tab-icon">🧩</span>
@@ -6748,11 +6762,9 @@
         <div class="solstice__editor" id="editor-panel" style="margin-top: var(--sp-4);"></div>
       </div>
 
-      <!-- Sprint 28: painel de Templates (categorizado por TIPO de análise:
-           comparação · distribuição · evolução · composição · visão geral).
-           Renderizado por SolsticeTemplates.renderSidebarPanel — clique em
-           template abre Wizard, não aplica direto. -->
-      <div id="templates-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
+      <!-- Sprint 29: templates-panel removido (tab Templates tirada do sidebar).
+           Template Wizard ainda existe via canvas toolbar "🗂️ Templates" e
+           command palette. -->
 
       <!-- Bloco 5 / B7-r2: painel de componentes (catálogo accordion + lista) -->
       <div id="components-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
@@ -11701,8 +11713,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (k === 'd'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('dados'); }
         else if (k === 'c'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('componentes'); }
         else if (k === 's'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('snapshots'); }
-        // Sprint 28: atalho 'g t' (g + t) → aba Templates
-        else if (k === 't'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('templates'); }
+        // Sprint 29: atalho 'g m' → Modelo · 'g t' removido (templates não tem mais aba)
         else if (k === 'm'){ e.preventDefault(); SolsticeSidebarTabs && SolsticeSidebarTabs.activate('modelo'); }
         else if (k === 'i'){ e.preventDefault(); SolsticeStore.set('ui.insights.collapsed', false); SolsticeCanvas.render(); const el = document.querySelector('.solstice__insights'); if (el) el.scrollIntoView({behavior:'smooth'}); }
       }
@@ -24838,11 +24849,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       //     automático), preservando a posição do clique do usuário.
       //   - dblclick → seleciona tudo (intuitivo pra renomear rápido).
       //   - blur com seleção ativa fora do elemento NÃO reverte (mantém edit).
+      // Sprint 29 / UX-02 v2: quando título é default ("Dashboard sem título"),
+      // renderiza placeholder visual em opacity baixa com texto convidativo.
+      // Quando user edita e salva nome diferente do default, opacity volta a 1.
+      const titleIsDefault = !cfg.title || cfg.title === DEFAULT.title;
+      const titleText = titleIsDefault ? 'Clique aqui pra nomear o dashboard' : cfg.title;
       const titleEl = SolsticeUtils.el('h2', {
-        class:'solstice__dash-header-title',
+        class:'solstice__dash-header-title' + (titleIsDefault ? ' solstice__dash-header-title--placeholder' : ''),
         title: 'Clique pra renomear o dashboard (duplo clique seleciona tudo)',
-        style:'cursor:text;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;'
-      }, cfg.title || 'Dashboard sem título');
+        style: 'cursor:text;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;' +
+               (titleIsDefault ? 'opacity:0.5;font-weight:400;font-style:italic;' : '')
+      }, titleText);
       titleEl.addEventListener('mousedown', () => {
         if (titleEl.contentEditable !== 'true'){
           titleEl.contentEditable = 'true';
@@ -24854,6 +24871,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         titleEl.focus();
         const r = document.createRange(); r.selectNodeContents(titleEl);
         const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      });
+      titleEl.addEventListener('focus', () => {
+        // Sprint 29 / UX-02 v2: se é placeholder, limpa texto pro user digitar
+        // direto sem precisar apagar primeiro.
+        if (titleEl.classList.contains('solstice__dash-header-title--placeholder')){
+          titleEl.textContent = '';
+          titleEl.classList.remove('solstice__dash-header-title--placeholder');
+          titleEl.style.opacity = '';
+          titleEl.style.fontWeight = '';
+          titleEl.style.fontStyle = '';
+        }
       });
       titleEl.addEventListener('blur', () => {
         // Sprint 23 / UX-04: se há seleção ativa em qualquer lugar do documento,
@@ -24867,7 +24895,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
         } catch(_){}
         titleEl.contentEditable = 'false';
-        const v = (titleEl.textContent || '').trim() || 'Dashboard sem título';
+        // Sprint 29 / UX-02 v2: se voltou pra vazio, restaura placeholder
+        let v = (titleEl.textContent || '').trim();
+        if (!v){
+          titleEl.textContent = 'Clique aqui pra nomear o dashboard';
+          titleEl.classList.add('solstice__dash-header-title--placeholder');
+          titleEl.style.opacity = '0.5';
+          titleEl.style.fontStyle = 'italic';
+          v = 'Dashboard sem título'; // mantém valor lógico default no Store
+        }
         titleEl.textContent = v;
         try { set({ title: v }); } catch(_){}
         try { document.title = (v && v !== 'Dashboard sem título' ? v + ' — Solstice' : 'Solstice'); } catch(_){}
@@ -26146,12 +26182,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function activate(which){
       active = which;
       SolsticeStore.set('ui.activeTab', which);
-      // v5 (Sprint 28): tab Templates ressuscitada. Templates passa a ser uma
-      // entrada de primeira classe no workspace — não escondida no canvas toolbar.
+      // Sprint 29: tab Templates removida — user já acessa via canvas toolbar.
       const tabs = {
         dados:        document.getElementById('tab-dados'),
         modelo:       document.getElementById('tab-modelo'),
-        templates:    document.getElementById('tab-templates'),
         componentes:  document.getElementById('tab-componentes'),
         snapshots:    document.getElementById('tab-snapshots'),
         dicionarios:  document.getElementById('tab-dicionarios')
@@ -26167,7 +26201,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const panels = {
         dados:       document.getElementById('data-panel'),
         modelo:      document.getElementById('modelo-panel'),
-        templates:   document.getElementById('templates-panel'),
         componentes: document.getElementById('components-panel'),
         snapshots:   document.getElementById('snapshots-panel'),
         dicionarios: document.getElementById('dicionarios-panel')
@@ -26176,7 +26209,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const renderers = {
         dados:       _renderDataPanel,
         modelo:      _renderModeloPanel,
-        templates:   _renderTemplatesPanel,
         componentes: _renderComponentsPanel,
         snapshots:   _renderSnapsPanel,
         dicionarios: _renderDictsPanel
@@ -26187,22 +26219,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         p.classList.remove('solstice__hidden');
         try { r(); } catch(e){ SolsticeLog.warn('[SidebarTabs] render', which, e); }
       }
-    }
-
-    /**
-     * Sprint 28 — renderer do painel Templates na sidebar.
-     * Lista os templates AGNÓSTICOS organizados por tipo de análise
-     * (comparação, distribuição, evolução temporal, composição, visão geral).
-     * Cada item é clicável → abre Template Wizard (não aplica direto).
-     */
-    function _renderTemplatesPanel(){
-      const host = document.getElementById('templates-panel');
-      if (!host) return;
-      if (typeof SolsticeTemplates === 'undefined' || typeof SolsticeTemplates.renderSidebarPanel !== 'function'){
-        host.innerHTML = '<div style="padding:12px;color:var(--c-muted);font-size:12px;">Templates indisponíveis.</div>';
-        return;
-      }
-      SolsticeTemplates.renderSidebarPanel(host);
     }
 
     /**
@@ -28761,14 +28777,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // ENXUGAR3 v4 (Auditoria 2026.4): tag "Agnóstico/Banco PJ" removida do card
       // (era ruído visual). Description já comunica o conteúdo. Domínio
       // continua sendo usado pra agrupar (Sugeridos vs Gerais) mas não polui o card.
-      // Sprint 28: clicar no card de template do empty-state abre o Wizard
-      // (não aplica direto). Usuário pode confirmar/trocar colunas antes.
+      // Sprint 28 + 29: clicar no card de template do empty-state abre o
+      // Wizard. setTimeout 50ms pra evitar race condition se vier de outro
+      // modal (welcome banner etc).
       const card = SolsticeUtils.el('button', {
         class:'solstice__empty-template-card',
         title: (t.description || '') + (t.domain ? ' · ' + (t.domainLabel || t.domain) : ''),
         onclick: () => {
-          if (SolsticeTemplates.openWizard) SolsticeTemplates.openWizard(t.id);
-          else SolsticeTemplates.apply(t.id);
+          const id = t.id;
+          setTimeout(() => {
+            try {
+              if (SolsticeTemplates.openWizard) SolsticeTemplates.openWizard(id);
+              else SolsticeTemplates.apply(id);
+            } catch(e){ SolsticeLog.warn('[empty-state] template open falhou', e); }
+          }, 50);
         }
       });
       const titleEl = SolsticeUtils.el('div', { class:'solstice__empty-template-title' });
@@ -29596,17 +29618,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         slotSpec: ['distribution','distribution','kpi']
       },
       {
-        id:'executive', icon:'👔',
-        name:'Visão Executiva',
-        description:'4 KPIs + narrativa automática contextual. Pronto para apresentação.',
-        domain: null, kind: 'visao-geral',
-        build: () => [_sec('Resumo executivo',
-          _row('4col-equal'),
-          _row('1col')
-        )],
-        slotSpec: ['kpi','kpi','kpi','kpi','narrative-auto']
-      },
-      {
         id:'table-only', icon:'📋',
         name:'Tabela com Filtros',
         description:'Apenas tabela rica com filtros, sort e paginação. Mínimo viável.',
@@ -29616,16 +29627,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         )],
         slotSpec: ['table']
       },
-      // Polish v8a-fix3 (Auditoria 2026.4): +3 templates pra fechar grid 3x3 — antes 6 templates deixavam grid quebrado, agora 9 (3×3 perfeito).
-      // mais template para completar 9 e nao ficar com espaco sobrando").
       {
         id:'correlation', icon:'🔍',
         name:'Correlação & Outliers',
         description:'Scatter com regressão linear + boxplot lado a lado. Identifique padrões e anomalias.',
         domain: null, kind: 'correlacao',
         build: () => [_sec('Análise bivariada',
-          _row('2col-equal'),  // scatter + boxplot
-          _row('1col')          // tabela com casos extremos
+          _row('2col-equal'),
+          _row('1col')
         )],
         slotSpec: ['scatter','distribution','table']
       },
@@ -29635,101 +29644,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         description:'Time-series + heatmap calendário + tendência sazonal. Visão completa de séries temporais.',
         domain: null, kind: 'evolucao',
         build: () => [_sec('Linha do tempo',
-          _row('1col'),        // time-series principal
-          _row('2col-equal')   // heatmap-cal + KPI tendência
+          _row('1col'),
+          _row('2col-equal')
         )],
         slotSpec: ['time-series','heatmap-cal','kpi']
-      },
-      {
-        id:'dense-kpis', icon:'⚡',
-        name:'Grid Denso de KPIs',
-        description:'6 KPIs lado a lado em uma linha (estilo Bloomberg). Pra monitorar múltiplas métricas.',
-        domain: null,
-        build: () => [_sec('Indicadores',
-          _row('6col-equal'),  // 6 KPIs
-          _row('2col-2-1')      // série temporal + tabela top
-        )]
       }
     ];
 
-    // === 6 DOMÍNIO — só aparecem se o dicionário detectado bater ===
-    const DOMAIN = [
-      {
-        id:'banco-pj', icon:'🏦',
-        name:'Carteira PJ',
-        domain:'banco_pj', domainLabel:'Banco PJ',
-        description:'Receita mensal, DPD30, ticket médio, série temporal. Pronto para análise de crédito.',
-        build: () => [
-          _sec('Carteira — visão geral',
-            _row('3col-equal'),     // 3 KPIs: receita, DPD30, ticket médio
-            _row('1col')             // série temporal de receita
-          ),
-          _sec('Inadimplência',
-            _row('2col-equal')       // bar: DPD por segmento  |  donut: composição da carteira
-          )
-        ]
-      },
-      {
-        id:'vendas', icon:'💰',
-        name:'Performance Comercial',
-        domain:'vendas', domainLabel:'Vendas',
-        description:'Receita, ticket, conversão, tendência por canal/categoria.',
-        build: () => [
-          _sec('Resultado',
-            _row('4col-equal'),     // 4 KPIs
-            _row('2col-2-1')         // série + tabela top
-          )
-        ]
-      },
-      {
-        id:'rh', icon:'👥',
-        name:'People Snapshot',
-        domain:'rh', domainLabel:'RH',
-        description:'Headcount, turnover, salário médio, distribuição por área.',
-        build: () => [
-          _sec('People',
-            _row('4col-equal'),
-            _row('2col-equal')
-          )
-        ]
-      },
-      {
-        id:'marketing', icon:'📊',
-        name:'Funil + ROAS',
-        domain:'marketing', domainLabel:'Marketing',
-        description:'CTR, conversão, CAC, ROAS — funil clássico de marketing.',
-        build: () => [
-          _sec('Funil',
-            _row('4col-equal'),
-            _row('1col')
-          )
-        ]
-      },
-      {
-        id:'operacional', icon:'🏭',
-        name:'Operação em Tempo Real',
-        domain:'operacional', domainLabel:'Operacional',
-        description:'SLA, ocupação, lead time, fila — visibilidade operacional contínua.',
-        build: () => [
-          _sec('Operação',
-            _row('4col-equal'),
-            _row('3col-equal')
-          )
-        ]
-      },
-      {
-        id:'cientifico', icon:'🔬',
-        name:'Análise Experimental',
-        domain:'cientifico', domainLabel:'Científico',
-        description:'Médias, desvios, p-valor, tratamento vs controle.',
-        build: () => [
-          _sec('Resultados',
-            _row('2col-equal'),
-            _row('3col-equal')
-          )
-        ]
-      }
-    ];
+    // Sprint 29: DOMAIN array zerado — user pediu pra enxugar; templates de
+    // negócio (banco_pj/vendas/rh/marketing/operacional/cientifico) eram
+    // redundantes com os AGNÓSTICOS quando as colunas são auto-mapeadas.
+    // SolsticeTemplatesItau.init e MultiCSV podem ainda escrever aqui em
+    // runtime — mantemos array vazio (não const-frozen) pra retrocompatibilidade.
+    const DOMAIN = [];
 
     /**
      * UX2 v4 (Auditoria 2026.4): list() agora retorna SEMPRE todos os templates
@@ -29964,7 +29891,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                 // Sprint 28: openPicker agora encaminha pro Wizard em vez de
                 // apply direto — assim qualquer caminho (toolbar, command-
                 // palette, welcome) passa pela revisão de colunas.
-                onclick: () => { if (closeFn) closeFn(); resolve(t.id); openWizard(t.id); }
+                // Sprint 29 / fix: setTimeout 120ms entre close()+openWizard()
+                // — sem isso, o modal anterior ainda estava no DOM e o
+                // SolsticeModal.show abria por baixo (ou nem abria, dependendo
+                // do navegador). User reportou "templates não consegue abrir".
+                onclick: () => {
+                  const targetId = t.id;
+                  if (closeFn) closeFn();
+                  resolve(targetId);
+                  setTimeout(() => { try { openWizard(targetId); } catch(e){ SolsticeLog.warn('[Templates] wizard open falhou', e); } }, 120);
+                }
               });
               card.appendChild(SolsticeUtils.el('span', { style:'font-size:20px;flex-shrink:0;' }, t.icon || '🧩'));
               const txt = SolsticeUtils.el('div', { style:'flex:1;min-width:0;' });
@@ -38370,15 +38306,20 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      * aos templates DOMAIN existentes no init().
      */
     function init(){
-      // Se SolsticeTemplates já tem o array DOMAIN, anexa nossos templates lá
+      // Sprint 29: init() agora é no-op. User pediu pra enxugar templates
+      // (eram 25+, agora 7 essenciais). Templates Itaú específicos ficaram
+      // como TEMPLATES privados desse módulo — não vazam pro picker global.
+      // Caso queira reativar no futuro, é só remover este early return.
+      return;
+      /* eslint-disable no-unreachable */
       if (typeof SolsticeTemplates !== 'undefined' && SolsticeTemplates.DOMAIN){
         TEMPLATES.forEach(t => {
-          // Evita duplicação se init for chamado 2x
           if (!SolsticeTemplates.DOMAIN.find(x => x.id === t.id)){
             SolsticeTemplates.DOMAIN.push(t);
           }
         });
       }
+      /* eslint-enable no-unreachable */
     }
 
     return { list, init, TEMPLATES };
@@ -44068,7 +44009,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             build: () => _build('year')
           }
         ];
-        // Evita duplicação se carregado 2x
+        // Sprint 29: push desativado. User pediu pra enxugar templates —
+        // os 3 compare-* (mês/semana/ano) eram variações úteis mas
+        // sobrepunham com o time-evolution. Mantidos só como helper
+        // interno (_build) caso seja reativado.
+        return;
         templates.forEach(t => {
           if (!SolsticeTemplates.AGNOSTIC.find(x => x.id === t.id)){
             SolsticeTemplates.AGNOSTIC.push(t);
@@ -46746,8 +46691,10 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           };
         });
 
-        // Adiciona um template "Visão Geral diversificada" como agnóstico se não existe
-        if (!SolsticeTemplates.AGNOSTIC.find(t => t.id === 'visao-geral-diversificada')){
+        // Sprint 29: visao-geral-diversificada removido — user pediu pra
+        // enxugar (era basicamente bignum + 3 KPIs + time-series, redundante
+        // com 'kpi-trend'). Bloco mantido como comentário pra fácil reativação.
+        if (false && !SolsticeTemplates.AGNOSTIC.find(t => t.id === 'visao-geral-diversificada')){
           SolsticeTemplates.AGNOSTIC.push({
             id: 'visao-geral-diversificada', icon: '🎯',
             name: 'Visão Geral (layout variado)',
