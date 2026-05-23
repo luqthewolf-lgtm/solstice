@@ -10284,6 +10284,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     let overlay = null;
     let listEl = null;
     const state = {}; // { stepKey: 'running'|'done'|'error' }
+    // B6-04 (v6-autonomous / RES-02 — Sofia/Auth0): cancel
+    let _onCancel = null;
+    let _cancelled = false;
 
     function _render(){
       if (!listEl) return;
@@ -10314,10 +10317,38 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'aria-live': 'polite',
         'aria-label': 'Progresso de importação de ' + (fileName || 'arquivo')
       });
-      overlay.appendChild(SolsticeUtils.el('div',
+      const header = SolsticeUtils.el('div', {
+        style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;'
+      });
+      header.appendChild(SolsticeUtils.el('div',
         { class:'solstice__ingest-progress-title' },
         '📥 Importando ' + (fileName || 'arquivo')
       ));
+      // B6-04: botão cancelar
+      const cancelBtn = SolsticeUtils.el('button', {
+        type: 'button',
+        title: 'Cancelar importação',
+        'aria-label': 'Cancelar importação',
+        style: 'background:transparent;border:1px solid var(--c-border);color:var(--c-muted);padding:2px 10px;border-radius:4px;cursor:pointer;font-size:11px;',
+        onclick: () => {
+          _cancelled = true;
+          if (typeof _onCancel === 'function') _onCancel();
+          // Marca steps em-execução como erro visualmente
+          STEPS.forEach(k => { if (state[k] === 'running') state[k] = 'error'; });
+          state[STEPS[0]] = state[STEPS[0]] || 'error';
+          _render();
+          // Mostra mensagem de cancelado
+          if (listEl){
+            const cancelMsg = SolsticeUtils.el('div', {
+              style: 'margin-top:8px;padding:6px 10px;background:color-mix(in srgb,var(--c-warn) 12%,transparent);border-left:3px solid var(--c-warn);font-size:11px;color:var(--c-text);border-radius:4px;'
+            }, '⚠️ Importação cancelada');
+            listEl.appendChild(cancelMsg);
+          }
+          setTimeout(() => { try { overlay.remove(); } catch(_){} }, 1200);
+        }
+      }, '✕ Cancelar');
+      header.appendChild(cancelBtn);
+      overlay.appendChild(header);
       listEl = SolsticeUtils.el('div', { class:'solstice__ingest-progress-list' });
       overlay.appendChild(listEl);
       document.body.appendChild(overlay);
@@ -10325,6 +10356,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     return {
       update(step, status, _details){
+        if (_cancelled) return;
         _mount();
         state[step] = status;
         _render();
@@ -10334,7 +10366,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           // delay pequeno pra usuário ver "tudo ✓" antes de sumir
           setTimeout(() => { try { overlay.remove(); } catch(_){} }, 350);
         }
-      }
+      },
+      // B6-04: API pra registrar callback de cancelamento
+      onCancel(fn){ _onCancel = fn; },
+      isCancelled(){ return _cancelled; }
     };
   }
 
@@ -11076,6 +11111,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     if (SolsticeOnboarding.isFirstTime()){
       setTimeout(() => SolsticeOnboarding.show(), 400);
     }
+
+    // B6-02 (v6-autonomous / PW-06): sync multi-tab via BroadcastChannel
+    try { if (typeof SolsticeMultiTab !== 'undefined') SolsticeMultiTab.init(); }
+    catch(e){ console.warn('[MultiTab init]', e); }
 
     // B4-02 (v6-autonomous / RES-03): auto-save de estado a cada 5s
     // + tenta restaurar se boot abrir com canvas vazio e há snapshot fresco
@@ -34828,6 +34867,74 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
        canvas.sections + filters + params + canvas.header + dictionary
      ============================================================ */
   /* ============================================================
+     B6-02 (v6-autonomous / PW-06 — Augusto power user) — SolsticeMultiTab
+     Sincronização leve entre múltiplas abas via BroadcastChannel.
+     Caso de uso: usuário tem 2 abas abertas (dashboard + análise);
+     salva snapshot em uma, outra precisa saber.
+
+     API:
+       SolsticeMultiTab.notify(type, payload)   → envia pra outras abas
+       SolsticeMultiTab.subscribe(type, cb)     → escuta msgs daquele tipo
+       SolsticeMultiTab.isSupported()           → boolean
+
+     Eventos auto-emitidos:
+       'theme'      → mudança de palette/mode
+       'view-saved' → SolsticeViews.save() em outra aba
+       'snapshot'   → snapshot salvo
+     ============================================================ */
+  const SolsticeMultiTab = (function(){
+    const CHANNEL = 'solstice-sync';
+    const supported = typeof BroadcastChannel === 'function';
+    let bc = null;
+    const subs = new Map(); // type → Set<cb>
+
+    function isSupported(){ return supported; }
+
+    function _open(){
+      if (bc || !supported) return bc;
+      try {
+        bc = new BroadcastChannel(CHANNEL);
+        bc.onmessage = (ev) => {
+          if (!ev || !ev.data || !ev.data.type) return;
+          const type = ev.data.type;
+          const setCb = subs.get(type);
+          if (setCb) setCb.forEach(cb => { try { cb(ev.data.payload); } catch(_){} });
+          const wildSet = subs.get('*');
+          if (wildSet) wildSet.forEach(cb => { try { cb(ev.data); } catch(_){} });
+        };
+      } catch(e){ console.warn('[MultiTab]', e); bc = null; }
+      return bc;
+    }
+
+    function notify(type, payload){
+      if (!supported) return false;
+      _open();
+      if (!bc) return false;
+      try { bc.postMessage({ type, payload, ts: Date.now() }); return true; }
+      catch(_){ return false; }
+    }
+
+    function subscribe(type, cb){
+      if (typeof cb !== 'function') return () => {};
+      _open();
+      if (!subs.has(type)) subs.set(type, new Set());
+      subs.get(type).add(cb);
+      return () => { const s = subs.get(type); if (s) s.delete(cb); };
+    }
+
+    function init(){
+      _open();
+      // Auto-emit theme change (palette + mode)
+      try {
+        SolsticeStore.subscribe('settings.theme.palette', (v) => notify('theme', { palette: v }));
+        SolsticeStore.subscribe('settings.theme.mode',    (v) => notify('theme', { mode: v }));
+      } catch(_){}
+    }
+
+    return { isSupported, notify, subscribe, init };
+  })();
+
+  /* ============================================================
      B4-01 (v6-autonomous / PW-03 — Augusto power user) — SolsticeViews
      Views salvas LEVES (vs SolsticeSnapshots que captura estado COMPLETO).
      Uma View memoriza só preferências de visualização:
@@ -36211,6 +36318,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         // Formata colunas numericas e congela header
         _applyXLSXFormatting(ws, ingest.columns, ingest.types);
         ws['!freeze'] = { ySplit: 1 };
+        // B6-01 (v6-autonomous / PW-04 — Augusto power user): autofilter habilitado
+        // na aba Dados. Excel mostra dropdown filter em cada coluna automaticamente.
+        if (ws['!ref']){
+          ws['!autofilter'] = { ref: ws['!ref'] };
+        }
         XLSX.utils.book_append_sheet(wb, ws, _sheetName('Dados'));
       }
 
