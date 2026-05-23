@@ -10843,6 +10843,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // BUG-02 v3 + R-03 v3: 'ingest' fica DENTRO do batch mas no except.
     // batch({except:['ingest']}) garante que subscribers de ingest disparam.
     // Antes precisava setá-lo fora; agora código fica mais limpo.
+    //
+    // Sprint 40 / fix crítico (defesa em profundidade): limpa filtros que
+    // referenciam colunas que NÃO existem na nova base. Antes: ao trocar de
+    // CSV (ex: amostra → CSV real), um filtro com coluna "data_atendimento"
+    // sobrava de smartDefault/preset anterior e o apply() zerava TODAS as
+    // rows (Invalid Date). Resultado: KPIs/Série Temporal mostravam "Sem
+    // dataset carregado" mesmo com base válida. SolsticeFilters.apply()
+    // também ignora silenciosamente (validCols check), mas limpar aqui
+    // garante que a UI do filtro não exiba referência morta.
+    try {
+      const _newCols = new Set(result.columns || []);
+      const _curFilters = SolsticeStore.get('filters') || {};
+      const _cleanFilters = {};
+      let _dropped = 0;
+      Object.keys(_curFilters).forEach(c => {
+        if (_newCols.has(c)){ _cleanFilters[c] = _curFilters[c]; }
+        else { _dropped++; }
+      });
+      if (_dropped > 0){
+        SolsticeStore.set('filters', _cleanFilters);
+        SolsticeLog && SolsticeLog.debug &&
+          SolsticeLog.debug('[ingest] ' + _dropped + ' filtro(s) descartado(s) — colunas não existem na nova base');
+      }
+      // Também limpa smartDefaults / shown que referenciam colunas mortas
+      const _sd = SolsticeStore.get('ui.filters.smartDefaults');
+      if (Array.isArray(_sd)){
+        const _sdClean = _sd.filter(s => s && _newCols.has(s.column));
+        if (_sdClean.length !== _sd.length) SolsticeStore.set('ui.filters.smartDefaults', _sdClean);
+      }
+      const _shown = SolsticeStore.get('ui.filters.shown');
+      if (Array.isArray(_shown)){
+        const _shownClean = _shown.filter(c => _newCols.has(c));
+        if (_shownClean.length !== _shown.length) SolsticeStore.set('ui.filters.shown', _shownClean);
+      }
+    } catch(_){}
+
     SolsticeStore.batch(() => {
       SolsticeStore.set('ingest', result);
       SolsticeStore.set('dataset.rows', result.rows);
@@ -34766,6 +34802,8 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     function apply(rows){
       const f = _filters();
       const types = _types();
+      const ingest = _ingest();
+      const validCols = new Set((ingest.columns || []));
       const cross = SolsticeStore.get('crossfilter');
       let out = rows || [];
 
@@ -34773,6 +34811,17 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       for (const col of Object.keys(f)){
         const fv = f[col];
         if (fv == null) continue;
+        // Sprint 40 / fix crítico: ignora filtro silenciosamente quando a coluna
+        // NÃO EXISTE na base ativa. Antes: filtro em coluna inexistente
+        // (ex: "data_atendimento" quando base só tem "data_abertura") zerava
+        // TODAS as rows (new Date(undefined) é Invalid Date → isNaN(d) true →
+        // descartado). Resultado: KPIs mostravam "Sem dataset carregado" mesmo
+        // com CSV importado. Causa raiz reportada pelo usuário em screenshot.
+        if (!validCols.has(col)){
+          SolsticeLog && SolsticeLog.debug &&
+            SolsticeLog.debug('[Filters.apply] coluna inexistente ignorada:', col);
+          continue;
+        }
         const t = (types[col] || {}).type;
         const group = SolsticeTypes.group(t);
 
@@ -45006,6 +45055,29 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           _refKeysB3.forEach(k => { if (cfg[k] && !_newColsSet.has(cfg[k])) missing.push(cfg[k]); });
           if (missing.length) _brokenSlotsB3.push({ id: slot.id, type: slot.type, missing });
         })));
+        // Sprint 40 / fix crítico: limpa filtros que apontam pra colunas
+        // que não existem na nova base ativa. Mesmo padrão do _runIngestFile.
+        try {
+          const _curFiltersMS = SolsticeStore.get('filters') || {};
+          const _cleanFiltersMS = {};
+          let _droppedMS = 0;
+          Object.keys(_curFiltersMS).forEach(c => {
+            if (_newColsSet.has(c)){ _cleanFiltersMS[c] = _curFiltersMS[c]; }
+            else { _droppedMS++; }
+          });
+          if (_droppedMS > 0) SolsticeStore.set('filters', _cleanFiltersMS);
+          const _sdMS = SolsticeStore.get('ui.filters.smartDefaults');
+          if (Array.isArray(_sdMS)){
+            const _sdCleanMS = _sdMS.filter(s => s && _newColsSet.has(s.column));
+            if (_sdCleanMS.length !== _sdMS.length) SolsticeStore.set('ui.filters.smartDefaults', _sdCleanMS);
+          }
+          const _shownMS = SolsticeStore.get('ui.filters.shown');
+          if (Array.isArray(_shownMS)){
+            const _shownCleanMS = _shownMS.filter(c => _newColsSet.has(c));
+            if (_shownCleanMS.length !== _shownMS.length) SolsticeStore.set('ui.filters.shown', _shownCleanMS);
+          }
+        } catch(_){}
+
         // BUG-02 v3 + R-03 v3: batch com except:['ingest'] garante que
         // subscribers de ingest disparam mesmo dentro do batch.
         SolsticeStore.batch(() => {
