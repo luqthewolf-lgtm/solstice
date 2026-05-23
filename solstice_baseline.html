@@ -19867,7 +19867,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
         const dictCol = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[col];
         const friendlyName = SolsticeHumanize.column(col, ctx.dictionary);
-        const higherIsBetter = dictCol && dictCol.higherIsBetter;
+        // Sprint 39: quando dict não tem higherIsBetter explícito, INFERE por
+        // nome da coluna. Antes: undefined → muted (cinza) ou pior, calculado
+        // errado em outro lugar como vermelho. Heurística pt-BR + en-US:
+        //   - palavras "tempo/duracao/custo/erro/atraso/inadimplencia/dpd/
+        //     defeito/falha/reclama/cancelad/perda/refugo" → menor é melhor
+        //   - resto (receita/venda/conversão/qtd/nps/share) → maior é melhor
+        // User: "+99% acima do período anterior" pra Receita estava vermelho
+        // sem fundamento.
+        function _inferHIB(colName){
+          const lower = String(colName || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+          // Termos onde DIMINUIR é bom
+          const LOWER_IS_BETTER = /tempo|duracao|custo|erro|atraso|inadimplenc|dpd|defeito|falha|reclama|cancelad|perda|refugo|churn|abandon|rejei|incident|bug|crash|latenc|delay|wait|fila|ttr|tta|aht|attrition|turnover/;
+          if (LOWER_IS_BETTER.test(lower)) return false;
+          // Termos onde AUMENTAR é bom (heurística positiva pra maioria das métricas de negócio)
+          const HIGHER_IS_BETTER = /receita|venda|faturament|lucro|margem|conversao|nps|csat|sla|aprovad|engaja|click|visualiza|impressao|leads|sessao|usuari|inscri|adesao|reten|cobertura|disponibilidade|uptime|score|rating|qualidade|nota|share|growth|crescimento|ticket|volume|qtd|quantidade|interacoes|atendiment|valor|saldo|patrim|receit|montante|ganho|economia/;
+          if (HIGHER_IS_BETTER.test(lower)) return true;
+          return null; // genuinamente neutro
+        }
+        let higherIsBetter = dictCol && dictCol.higherIsBetter;
+        if (higherIsBetter == null){
+          higherIsBetter = _inferHIB(col);
+        }
         const unit = (dictCol && dictCol.unit) || '';
 
         // Sprint 34 / J-1: SolsticeStats.parseNum entende pt-BR "1.234,56"
