@@ -208,23 +208,7 @@
     --font-display: 'Space Grotesk', var(--font-sans);
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-    /* Escala 1.25 — B3-04 (v6-autonomous / DS-04 — Helena/Vercel):
-       Escala documentada. Tokens semânticos pra evitar font-size hardcoded:
-
-         --fs-3xs:  9px   metadata super-discreta (timestamp, micro)
-         --fs-2xs: 11px   badges, chips, ícone-labels
-         --fs-xs:  ~10px  legendas de chart, footer
-         --fs-sm:  ~13px  body secundário, descrição
-         --fs-base: 16px  body principal
-         --fs-md:  ~20px  headings de seção
-         --fs-lg:  ~25px  títulos de página
-         --fs-xl:  ~31px  hero numbers (KPI value)
-         --fs-2xl: ~39px  big-num gigante
-         --fs-3xl: ~49px  splash welcome
-
-       Audit Sprint v6-autonomous achou 557 ocorrências de font-size
-       hardcoded em px vs 230 com token. Use os tokens em todo código novo. */
-    --fs-3xs: 0.5625rem; --fs-2xs: 0.6875rem;
+    /* Escala 1.25 */
     --fs-xs: 0.64rem; --fs-sm: 0.8rem; --fs-base: 1rem; --fs-md: 1.25rem;
     --fs-lg: 1.563rem; --fs-xl: 1.953rem; --fs-2xl: 2.441rem; --fs-3xl: 3.052rem;
 
@@ -312,22 +296,7 @@
     --c-text: #F4F7FF; --c-text-2: #C5D0E8; --c-muted: #8090B0; --c-border: #34427A;
     --c-accent: #5BA8FF; --c-accent-hi: #87C2FF; --c-accent-lo: #2980E5;
     --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
-    /* B5-03 (v6-autonomous / DS-05 — Helena/Vercel): tons text-only
-       que passam WCAG AA. --c-warn original (FBBF24/D97706) é OK pra
-       backgrounds tintados mas tem 2.8:1 quando usado como `color:`
-       sobre fundo branco. As variantes -text-on-light são escurecidas
-       pra >= 4.5:1. Em dark mode, herdam o original (já passa). */
-    --c-warn-text: #FBBF24;
-    --c-success-text: #4ADE80;
-    --c-error-text: #F87171;
-    --c-info-text: #60A5FA;
-    /* B4-03 (v6-autonomous / DS-03 — Helena/Vercel): 3 elevações documentadas.
-       --sh-1: hover sutil em cards e botões (lift mínimo)
-       --sh-2: dropdown, popover, tooltip (média intensidade)
-       --sh-3: modal, drawer, overlay (máxima — flutua acima de tudo)
-       --sh-glow: estado de foco/destaque (não-elevação) — usar em focus-visible. */
     --sh-1: 0 2px 4px rgba(0,0,0,.5); --sh-2: 0 6px 16px rgba(0,0,0,.55); --sh-3: 0 14px 32px rgba(0,0,0,.65);
-    --sh-glow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 40%, transparent);
   }
   :root[data-palette="ocean"][data-mode="light"] {
     --c-bg: #E8EEFA; --c-surface: #FFFFFF; --c-surface-2: #F4F7FE; --c-surface-3: #E2EAF7;
@@ -335,11 +304,6 @@
     --c-text: #0A1020; --c-text-2: #2A3658; --c-muted: #4F5A78; --c-border: #C8D4EB;
     --c-accent: #1A6FE0; --c-accent-hi: #4D9FFF; --c-accent-lo: #0F4FA8;
     --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
-    /* B5-03: text-only variantes pra AA em light mode (over white) */
-    --c-warn-text: #854500;    /* contraste ~5:1 vs white */
-    --c-success-text: #15803D; /* contraste ~5:1 */
-    --c-error-text: #B91C1C;   /* contraste ~5:1 */
-    --c-info-text: #1D4ED8;    /* contraste ~6:1 */
     --sh-1: 0 2px 4px rgba(15,30,80,.10); --sh-2: 0 6px 14px rgba(15,30,80,.14); --sh-3: 0 14px 28px rgba(15,30,80,.18);
   }
 
@@ -427,16 +391,6 @@
     --c-accent: #EC5F00; --c-accent-hi: #FF6C00; --c-accent-lo: #B84800;
     --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
     --sh-1: 0 1px 2px rgba(80,40,0,.08); --sh-2: 0 4px 12px rgba(80,40,0,.12); --sh-3: 0 12px 28px rgba(80,40,0,.18);
-  }
-
-  /* B5-03 (v6-autonomous / DS-05): variantes -text WCAG AA pra TODAS
-     paletas light (regra geral, sobrescrevível por paleta específica
-     se quiser tom contextual). Aplica só em data-mode="light". */
-  :root[data-mode="light"] {
-    --c-warn-text: #854500;
-    --c-success-text: #15803D;
-    --c-error-text: #B91C1C;
-    --c-info-text: #1D4ED8;
   }
 
   /* === SLATE (neutro corporativo) === */
@@ -536,6 +490,25 @@
   .solstice__brand-name { color: var(--c-text); }
   .solstice__brand-sub  { color: var(--c-muted); font-size: var(--fs-xs); font-weight: var(--fw-regular); }
 
+  /* S4-02 (Sprint 4): título do dashboard ao lado da brand */
+  .solstice__brand-divider {
+    color: var(--c-muted); font-size: var(--fs-xl); margin: 0 var(--sp-1);
+    user-select: none; opacity: 0.5;
+  }
+  .solstice__brand-doctitle {
+    background: transparent; border: 1px solid transparent;
+    color: var(--c-text); font-size: var(--fs-base); font-weight: var(--fw-medium);
+    padding: 4px 10px; border-radius: var(--rad-sm); cursor: text;
+    font-family: inherit; max-width: 280px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .solstice__brand-doctitle:hover { background: var(--c-surface-2); border-color: var(--c-border); }
+  .solstice__brand-doctitle:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+  .solstice__brand-doctitle[contenteditable="true"] {
+    background: var(--c-surface); border-color: var(--c-accent); cursor: text;
+  }
+
   /* Sprint 1 (RC-01): Badge "100% local" no header — sinal de privacidade */
   .solstice__privacy-badge {
     display: inline-flex; align-items: center; gap: 6px;
@@ -633,89 +606,6 @@
   .solstice__btn--ghost { background: transparent; border-color: transparent; }
   .solstice__btn--ghost:hover { background: var(--c-surface-2); }
   .solstice__btn--icon { width: var(--row-h); padding: 0; }
-  /* B3-05 (v6-autonomous / OB-05): FAB Ajuda flutuante */
-  .solstice__help-fab {
-    position: fixed; bottom: 24px; right: 24px;
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    background: var(--c-accent); color: #fff;
-    border: none;
-    font-size: 22px; font-weight: var(--fw-bold); line-height: 1;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0,0,0,.18), 0 0 0 2px color-mix(in srgb, var(--c-accent) 30%, transparent);
-    z-index: 99;
-    transition: transform var(--t-fast), box-shadow var(--t-fast);
-    display: flex; align-items: center; justify-content: center;
-  }
-  /* B5-05 (v6-autonomous / OB-01): pulse na primeira visita pra atrair atenção */
-  .solstice__help-fab.is-first-visit::after {
-    content: '';
-    position: absolute; inset: -6px;
-    border-radius: 50%;
-    border: 2px solid var(--c-accent);
-    opacity: 0;
-    animation: solstice-fab-pulse 2s ease-out infinite;
-  }
-  @keyframes solstice-fab-pulse {
-    0%   { transform: scale(1); opacity: 0.7; }
-    60%  { transform: scale(1.6); opacity: 0; }
-    100% { transform: scale(1.6); opacity: 0; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .solstice__help-fab.is-first-visit::after { animation: none; opacity: 0; }
-  }
-  .solstice__help-fab:hover {
-    transform: scale(1.08);
-    box-shadow: 0 6px 20px rgba(0,0,0,.24), 0 0 0 3px color-mix(in srgb, var(--c-accent) 40%, transparent);
-  }
-  .solstice__help-fab:focus-visible {
-    outline: 3px solid var(--c-accent-hi);
-    outline-offset: 2px;
-  }
-  @media print { .solstice__help-fab { display: none; } }
-
-  /* Popover ancorado no FAB */
-  .solstice__help-popover {
-    position: fixed; bottom: 84px; right: 24px;
-    width: 280px;
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: var(--rad-md);
-    box-shadow: var(--sh-3);
-    padding: 12px;
-    z-index: 100;
-    animation: solstice-fade-in var(--t-base) var(--ease-out);
-  }
-  .solstice__help-popover h4 {
-    margin: 0 0 8px 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
-    color: var(--c-text);
-  }
-  .solstice__help-popover-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px;
-    background: transparent; border: none;
-    width: 100%; text-align: left;
-    border-radius: var(--rad-sm);
-    font-size: var(--fs-sm); color: var(--c-text);
-    cursor: pointer;
-  }
-  .solstice__help-popover-item:hover { background: var(--c-surface-2); }
-  .solstice__help-popover-item-icon { font-size: 16px; flex-shrink: 0; width: 24px; text-align: center; }
-  .solstice__help-popover-item-kbd {
-    margin-left: auto; font-family: var(--font-mono); font-size: 10px;
-    color: var(--c-muted); padding: 2px 6px; background: var(--c-surface-2);
-    border-radius: 3px; border: 1px solid var(--c-border);
-  }
-
-  /* B1-02: estado ativo (ex: botão "📎 atrelar pasta" quando há pasta atrelada) */
-  .solstice__btn.is-active {
-    background: color-mix(in srgb, var(--c-success) 16%, var(--c-surface-2));
-    color: var(--c-success);
-    border-color: color-mix(in srgb, var(--c-success) 35%, var(--c-border));
-  }
-  .solstice__btn.is-active:hover {
-    background: color-mix(in srgb, var(--c-success) 24%, var(--c-surface-2));
-  }
 
   /* Select pill */
   .solstice__pill {
@@ -4009,34 +3899,11 @@
     background: rgba(239,68,68,0.1);
   }
   .solstice__comp-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  /* B2-02 (v6-autonomous / UX-02 — Pedro Nubank): empty state mais convidativo.
-     Antes: 1 linha cinza centralizada. Agora: ícone grande, msg em 2 níveis
-     (título + dica). Visualmente parece "espera-se que apareça algo aqui"
-     em vez de "nada aqui, vai embora". */
   .solstice__comp-empty {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    flex: 1; display: flex; align-items: center; justify-content: center;
     color: var(--c-muted); font-size: var(--fs-sm); text-align: center;
-    padding: var(--sp-4); gap: var(--sp-2);
-    line-height: 1.5;
-    background:
-      repeating-linear-gradient(
-        45deg,
-        transparent, transparent 8px,
-        color-mix(in srgb, var(--c-muted) 4%, transparent) 8px,
-        color-mix(in srgb, var(--c-muted) 4%, transparent) 9px
-      );
-    border-radius: var(--rad-sm);
-    opacity: 0.85;
+    padding: var(--sp-4);
   }
-  .solstice__comp-empty::before {
-    content: '✨';
-    font-size: 24px;
-    line-height: 1;
-    opacity: 0.4;
-    margin-bottom: 4px;
-  }
-  .solstice__comp-empty:hover { opacity: 1; }
 
   /* KPI Card */
   /* KPI Card — layout redesenhado (Patch B5-r2)
@@ -6426,8 +6293,14 @@
         <div class="solstice__brand-name" id="brand-name">Solstice</div>
         <div class="solstice__brand-sub" id="brand-sub">Dashboard Studio</div>
       </div>
-      <!-- v6-autonomous / B1-01: título do dashboard MOVIDO pro SolsticeDashHeader (banner).
-           Aqui no header global fica só a brand (Solstice · Dashboard Studio). -->
+      <!-- S4-02 (Sprint 4 / CR-01): título do dashboard editável ao lado da brand.
+           Clicável pra renomear. Esconde-se quando não há dataset (welcome ainda). -->
+      <div class="solstice__brand-divider" aria-hidden="true">·</div>
+      <button class="solstice__brand-doctitle" id="brand-doctitle" type="button"
+              title="Clique pra renomear o dashboard"
+              aria-label="Renomear dashboard">
+        Dashboard sem título
+      </button>
     </div>
 
     <!-- Sprint 1 (RC-01): Badge "100% local" — sinaliza ao usuário que dados
@@ -6467,10 +6340,6 @@
         <!-- LE-06 (Sprint 2): refresh "manual mas reativo" — re-importa mantendo dashboard -->
         <button class="solstice__btn" id="btn-refresh-data" title="Recarregar dados do arquivo (mantém dashboard montado)" aria-label="Recarregar dados">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;"><path fill="currentColor" d="M13.65 2.35a8 8 0 0 0-13.18 8.6l1.5-1.5a6 6 0 0 1 10.14-5.6l-2.11 2.1H15V0l-1.35 2.35zM2.35 13.65A8 8 0 0 0 15.53 5.05l-1.5 1.5a6 6 0 0 1-10.14 5.6l2.11-2.1H1V16l1.35-2.35z"/></svg>
-        </button>
-        <!-- B1-02 (v6-autonomous): botão DEDICADO atrelar pasta. Substitui Shift+Click oculto. -->
-        <button class="solstice__btn" id="btn-attach-folder" title="Atrelar pasta do disco — refresh automático ao recarregar a página" aria-label="Atrelar pasta">
-          <span aria-hidden="true" style="font-size:14px;vertical-align:-2px;">📎</span>
         </button>
         <button class="solstice__btn" id="btn-save-menu" title="Salvar (Snapshot · Visão · Histórico)" aria-label="Abrir menu Salvar" aria-haspopup="menu">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M2 2h11l1 1v11H2V2zm2 1v4h7V3H4zm4 1h2v2H8V4zM3 9h10v4H3V9z"/></svg>Salvar <span aria-hidden="true" style="opacity:0.6;font-size:10px;">▾</span>
@@ -6759,12 +6628,6 @@
 <!-- ===== TOAST CONTAINER ===== -->
 <div class="solstice__toasts" id="toasts" aria-live="polite"></div>
 
-<!-- B3-05 (v6-autonomous / OB-05 — Cláudia/Stone): FAB Ajuda sempre visível -->
-<button id="solstice-help-fab" class="solstice__help-fab"
-        type="button"
-        title="Ajuda · atalhos · tour (?)"
-        aria-label="Abrir menu de ajuda">?</button>
-
 <!-- ===== SCRIPTS ===== -->
 <script>
 /* ============================================================
@@ -6795,131 +6658,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     compress: s => s, decompress: s => s,
     compressToEncodedURIComponent: s => s, decompressFromEncodedURIComponent: s => s
   };
-
-  /* ============================================================
-     B2-05 (v6-autonomous / MNT-03 — Renata/Spotify) — SolsticeConfig
-     Constantes globais documentadas. Antes esses valores ficavam espalhados
-     como magic numbers (`if (score >= 40)`, `setTimeout(_, 350)`,
-     `if (rows > 50000)`). Centralizar facilita ajuste fino + entendimento.
-
-     Cada chave tem unidade no comment + faixa razoável.
-     ============================================================ */
-  const SolsticeConfig = (function(){
-    return Object.freeze({
-      // Performance thresholds
-      LARGE_CSV_BYTES:        5 * 1024 * 1024, // 5MB — acima usa streaming parser
-      LARGE_DATASET_ROWS:     50000,           // acima ativa virtualização da tabela
-      MAX_DOM_NODES_WARNING:  5000,            // sinal de "talvez virtualize"
-      // Debounce/throttle (ms)
-      INPUT_DEBOUNCE_MS:      300,             // input → search/filter
-      RESIZE_THROTTLE_MS:     150,             // window resize → redraw
-      AUTOSAVE_INTERVAL_MS:   5000,            // estado → localStorage
-      // Confidences
-      DICT_DETECT_MIN_CONF:   0.40,            // detect domain só ativa se >=40%
-      QUERY_MIN_CONFIDENCE:   0.40,            // pergunta NL aceita se confiança >=
-      QUALITY_INVALID_ERROR:  0.25,            // >25% inválidos → vermelho
-      // Insights
-      INSIGHTS_MAX_SHOW:      8,
-      INSIGHTS_OVERVIEW_SCORE: 20,             // score baixo do overview ("o que dá pra construir")
-      TREND_R2_MIN:           0.20,            // R² mínimo pra reportar tendência
-      TREND_MAGNITUDE_MIN:    0.05,            // 5% de variação mínima
-      // Cache
-      CACHE_TTL_MS:           5 * 60 * 1000,   // 5 min — slot-level cache
-      CACHE_MAX_ENTRIES:      120,
-      // Tour / hints
-      TOUR_AUTOSTART_DELAY_MS: 1500,
-      HINT_DEFAULT_DELAY_MS:   1500,
-      // Storage
-      LZ_MIN_SIZE_TO_COMPRESS: 2048,           // só comprime se >2KB
-      SNAPSHOT_MAX_SIZE_BYTES: 4 * 1024 * 1024 // 4MB — limite de URL share
-    });
-  })();
-
-  /* ============================================================
-     B2-01 (v6-autonomous / RES-01 — Sofia/Auth0) — SolsticeErrorBoundary
-     Handler global de erros JS não-capturados.
-
-     Antes: erros silenciosos só apareciam no DevTools. Usuário via comportamento
-     errado (botão não faz nada, dado some) sem entender o que aconteceu.
-
-     Agora:
-       • window.addEventListener('error') → loga + toast "Algo deu errado"
-       • window.addEventListener('unhandledrejection') → loga promises rejeitadas
-       • Mantém últimos 50 erros em SolsticeStore('errors.log') pra debug
-       • Em modo debug (?debug=true), mostra stack trace inline
-
-     Princípios:
-       • Errar é humano — silenciar é negligente
-       • Toast suave (não modal) — não bloqueia uso
-       • Log estruturado: { ts, type, message, stack, source, line, col }
-     ============================================================ */
-  const SolsticeErrorBoundary = (function(){
-    const MAX_LOG = 50;
-    const _log = [];
-    let _toastDebounceTs = 0;
-    const TOAST_DEBOUNCE_MS = 5000; // 1 toast por 5s no máximo
-    let _initialized = false;
-
-    function _record(entry){
-      entry.ts = Date.now();
-      _log.push(entry);
-      if (_log.length > MAX_LOG) _log.shift();
-      try { if (typeof SolsticeStore !== 'undefined') SolsticeStore.set('errors.log', _log.slice()); } catch(_){}
-    }
-
-    function _maybeToast(humanMsg){
-      const now = Date.now();
-      if (now - _toastDebounceTs < TOAST_DEBOUNCE_MS) return;
-      _toastDebounceTs = now;
-      try {
-        if (typeof SolsticeToast !== 'undefined' && SolsticeToast.warn){
-          SolsticeToast.warn('Algo deu errado', humanMsg + ' · Veja Console (F12) pra detalhes.');
-        }
-      } catch(_){}
-    }
-
-    function init(){
-      if (_initialized) return;
-      _initialized = true;
-      // Erros JS síncronos
-      window.addEventListener('error', (e) => {
-        // Filtra erros de recurso (CSS/img/script que falhou ao carregar) — esses já
-        // aparecem na Network tab, não vale toast.
-        if (e && e.target && e.target !== window && e.target.tagName) return;
-        _record({
-          type: 'error',
-          message: (e && e.message) || 'Erro desconhecido',
-          stack: (e && e.error && e.error.stack) || null,
-          source: e && e.filename,
-          line: e && e.lineno,
-          col: e && e.colno
-        });
-        console.error('[SolsticeError]', e && e.message, e && e.error);
-        _maybeToast('Erro JS: ' + ((e && e.message) || 'desconhecido').slice(0, 80));
-      });
-      // Promises rejeitadas sem .catch
-      window.addEventListener('unhandledrejection', (e) => {
-        const reason = e && e.reason;
-        const msg = (reason && (reason.message || reason.toString())) || 'Promise rejeitada';
-        _record({
-          type: 'unhandled-rejection',
-          message: msg,
-          stack: (reason && reason.stack) || null
-        });
-        console.error('[SolsticeError] Unhandled rejection:', reason);
-        _maybeToast('Operação assíncrona falhou: ' + msg.slice(0, 80));
-      });
-      // Loga no console que está ativo
-      try { console.info('[SolsticeErrorBoundary] handler global ativo'); } catch(_){}
-    }
-
-    function getLog(){ return _log.slice(); }
-    function clear(){ _log.length = 0; try { SolsticeStore.set('errors.log', []); } catch(_){} }
-
-    return { init, getLog, clear };
-  })();
-  // Inicializa IMEDIATAMENTE (antes de outros módulos) pra capturar erros do próprio boot
-  try { SolsticeErrorBoundary.init(); } catch(e){ console.warn('[ErrorBoundary] init falhou', e); }
 
   /* ============================================================
      SolsticeUtils — helpers gerais
@@ -6953,31 +6691,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           clearTimeout(t);
           t = setTimeout(()=>{ last = Date.now(); fn.apply(ctx, args); }, ms - (now - last));
         }
-      };
-    }
-
-    /**
-     * B3-01 (v6-autonomous / RT-03 — Roberto/perf): throttle baseado em rAF.
-     * Garante no máximo 1 chamada por frame (~16ms a 60fps), nunca empilha.
-     * Ideal para scroll/resize/mousemove handlers — substitui debounce/throttle
-     * por algo afinado ao tempo de paint do browser.
-     *
-     * Uso:
-     *   const onScroll = SolsticeUtils.rafThrottle(() => {...});
-     *   window.addEventListener('scroll', onScroll);
-     */
-    function rafThrottle(fn){
-      let scheduled = false;
-      let lastArgs = null, lastCtx = null;
-      return function(){
-        lastArgs = arguments;
-        lastCtx = this;
-        if (scheduled) return;
-        scheduled = true;
-        requestAnimationFrame(() => {
-          scheduled = false;
-          try { fn.apply(lastCtx, lastArgs); } catch(e){ console.warn('[rafThrottle]', e); }
-        });
       };
     }
 
@@ -7134,7 +6847,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     const fs  = (size) => 'var(--fs-' + size + ')';
     const fw  = (weight) => 'var(--fw-' + weight + ')';
 
-    return { uuid, debounce, throttle, rafThrottle, clamp, deepClone, hash, seededRandom, qs, qsa, el, on, fire, escapeHtml, trackListener, cleanupListeners, primaryBtn, ghostBtn, destructiveBtn, baseBtn, sp, col, rad, fs, fw };
+    return { uuid, debounce, throttle, clamp, deepClone, hash, seededRandom, qs, qsa, el, on, fire, escapeHtml, trackListener, cleanupListeners, primaryBtn, ghostBtn, destructiveBtn, baseBtn, sp, col, rad, fs, fw };
   })();
 
   /* ============================================================
@@ -7736,92 +7449,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
-     B5-04 (v6-autonomous / I18N-02 — Yuki/Mercado Pago) — SolsticeFmt
-     Helper único com nomes idiomáticos pra formatação. Wrappers + extras
-     que SolsticeLocale não tinha:
-       • formatBRL(n) → "R$ 1.250"
-       • formatPct(n, digits) → "12,5%"
-       • formatInteger(n) → "1.234"
-       • formatDecimal(n, digits)
-       • formatDate(d, format) → "12 mai 2026"
-       • formatCompact(n) → "1,2 mi" / "3,5 mil" / "850" (NOVO)
-       • formatBytes(n) → "5,2 MB" (NOVO)
-       • formatDuration(ms) → "2 h 15 min" (NOVO)
-
-     Por que existe: hardcoded `R$ ` ou `(n*100).toFixed(2)+'%'` em
-     múltiplos lugares quebra na hora de trocar locale. SolsticeFmt
-     delega tudo pra Intl + SolsticeLocale.
-     ============================================================ */
-  const SolsticeFmt = (function(){
-    function formatBRL(n){
-      return SolsticeLocale.currency(n, 'BRL');
-    }
-    function formatPct(n, digits){
-      // n é fração 0..1 (Intl.NumberFormat style:'percent' espera assim)
-      return SolsticeLocale.percent(n, digits);
-    }
-    function formatInteger(n){ return SolsticeLocale.integer(n); }
-    function formatDecimal(n, digits){ return SolsticeLocale.decimal(n, digits); }
-    function formatDate(d, format){
-      const opts = format === 'long'   ? { dateStyle:'long' }
-                 : format === 'short'  ? { dateStyle:'short' }
-                 : format === 'full'   ? { dateStyle:'full' }
-                 : format === 'time'   ? { timeStyle:'short' }
-                 : format === 'datetime' ? { dateStyle:'medium', timeStyle:'short' }
-                 : { dateStyle:'medium' };
-      return SolsticeLocale.date(d, opts);
-    }
-
-    /** formatCompact(1234567) → "1,2 mi" · formatCompact(8500) → "8,5 mil" */
-    function formatCompact(num){
-      if (num == null || isNaN(num)) return '—';
-      try {
-        const loc = SolsticeLocale.get();
-        return new Intl.NumberFormat(loc, {
-          notation: 'compact',
-          maximumFractionDigits: 1
-        }).format(num);
-      } catch(_){
-        // Fallback manual
-        const abs = Math.abs(num);
-        if (abs >= 1e9) return (num/1e9).toFixed(1).replace('.', ',') + ' bi';
-        if (abs >= 1e6) return (num/1e6).toFixed(1).replace('.', ',') + ' mi';
-        if (abs >= 1e3) return (num/1e3).toFixed(1).replace('.', ',') + ' mil';
-        return String(Math.round(num));
-      }
-    }
-
-    /** formatBytes(5242880) → "5,0 MB" */
-    function formatBytes(bytes){
-      if (bytes == null || isNaN(bytes)) return '—';
-      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-      let i = 0;
-      let v = bytes;
-      while (v >= 1024 && i < units.length - 1){
-        v /= 1024;
-        i++;
-      }
-      // 1 decimal pra MB+, 0 pra B/KB
-      const decimals = i >= 2 ? 1 : 0;
-      return v.toFixed(decimals).replace('.', ',') + ' ' + units[i];
-    }
-
-    /** formatDuration(123456) → "2 min 3 s" · formatDuration(7200000) → "2 h" */
-    function formatDuration(ms){
-      if (ms == null || isNaN(ms)) return '—';
-      const s = Math.round(ms / 1000);
-      if (s < 60) return s + ' s';
-      const m = Math.round(s / 60);
-      if (m < 60) return m + ' min';
-      const h = Math.floor(m / 60);
-      const mm = m % 60;
-      return h + ' h' + (mm ? ' ' + mm + ' min' : '');
-    }
-
-    return { formatBRL, formatPct, formatInteger, formatDecimal, formatDate, formatCompact, formatBytes, formatDuration };
-  })();
-
-  /* ============================================================
      SolsticeErrors — catálogo humanizado
      10 erros iniciais. Cada erro: code, message, suggestion, severity.
      Bloco 2+ adicionarão mais via register().
@@ -7836,12 +7463,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'CSV_EMPTY': {
         sev: 'warn', icon: '📭',
         message: 'O CSV não tem linhas de dados.',
-        suggestion: 'Verifique se o arquivo só tem o cabeçalho. Adicione pelo menos uma linha de dado para continuar.',
-        // B3-02 (v6-autonomous / UX-01): action botão direto
-        action: {
-          label: '📊 Ver dataset exemplar',
-          fn: () => { try { if (typeof _loadDummyDataset === 'function') _loadDummyDataset(); } catch(_){} }
-        }
+        suggestion: 'Verifique se o arquivo só tem o cabeçalho. Adicione pelo menos uma linha de dado para continuar.'
       },
       'CSV_NO_HEADER': {
         sev: 'warn', icon: '🏷️',
@@ -7873,11 +7495,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // Auditoria 2026 (R-04 / A-501): mensagem ao usuário não cita nome
         // interno ("Bloco 11") — usa o rótulo visível "Snapshots".
         message: 'Não há espaço para salvar suas configurações.',
-        suggestion: 'Você tem muitos snapshots/perfis salvos. Abra a aba Snapshots na barra lateral e remova alguns antigos.',
-        action: {
-          label: '🗂️ Abrir Snapshots',
-          fn: () => { try { if (typeof SolsticeSnapshot !== 'undefined' && SolsticeSnapshot.openPanel) SolsticeSnapshot.openPanel(); } catch(_){} }
-        }
+        suggestion: 'Você tem muitos snapshots/perfis salvos. Abra a aba Snapshots na barra lateral e remova alguns antigos.'
       },
       'DICTIONARY_NO_MATCH': {
         sev: 'info', icon: '🤔',
@@ -7945,19 +7563,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
       modal.appendChild(body);
 
-      // B3-02 (v6-autonomous / UX-01): action button opcional.
-      // Se def.action = { label, fn }, adiciona botão primário que CLICKA fn (não só fecha).
-      const footer = SolsticeUtils.el('div', { class: 'solstice__modal-footer' });
-      if (def && def.action && typeof def.action.fn === 'function'){
-        footer.appendChild(SolsticeUtils.el('button', {
-          class: 'solstice__btn solstice__btn--primary',
-          onclick: () => { try { def.action.fn(); } catch(e){ console.warn('[err.action]', e); } close(); }
-        }, def.action.label || 'Resolver agora'));
-        footer.appendChild(SolsticeUtils.el('button', { class: 'solstice__btn', onclick: close }, 'Fechar'));
-      } else {
-        footer.appendChild(SolsticeUtils.el('button', { class: 'solstice__btn solstice__btn--primary', onclick: close }, SolsticeLocale.t('err.close')));
-      }
-      modal.appendChild(footer);
+      modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__modal-footer' },
+        SolsticeUtils.el('button', { class: 'solstice__btn solstice__btn--primary', onclick: close }, SolsticeLocale.t('err.close'))
+      ));
 
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
@@ -8607,7 +8215,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__modal-header' },
         SolsticeUtils.el('div', { class: 'solstice__modal-title' }, '🧠 ' + SolsticeLocale.t('dict.title')),
-        SolsticeUtils.el('button', { class: 'solstice__modal-close', 'aria-label':'Fechar', title:'Fechar (Esc)', onclick: () => overlay.remove() }, '✕')
+        SolsticeUtils.el('button', { class: 'solstice__modal-close', onclick: () => overlay.remove() }, '✕')
       ));
 
       const body = SolsticeUtils.el('div', { class: 'solstice__modal-body' });
@@ -10839,63 +10447,45 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    // LE-06 (Sprint 2) + S6-02 (Sprint 6) + B1-02 (v6-autonomous):
-    // Refresh "manual mas reativo" — separado de Atrelar pasta.
-    //   Click no 🔄 (refresh): se há pasta atrelada → re-lê arquivo; senão → file picker
-    //   Click no 📎 (attach):  abre showDirectoryPicker e atrela
-    // Sem mais Shift+Click oculto.
+    // LE-06 (Sprint 2) + S6-02 (Sprint 6): Refresh "manual mas reativo".
+    //
+    // S6-02 (Sprint 6): se o usuário ATRELOU uma pasta com showDirectoryPicker
+    // (Chrome 86+), o refresh re-lê o arquivo do nome SourceName direto da pasta.
+    // Caso contrário: cai no fluxo LE-06 (re-pickeia pelo file picker).
+    //
+    // Atrelar pasta: Shift+Click no botão refresh OU comando "Atrelar pasta"
+    // no Ctrl+K. Handle persiste na sessão atual (IndexedDB futuramente).
     const btnRefreshData = document.getElementById('btn-refresh-data');
     if (btnRefreshData){
-      btnRefreshData.addEventListener('click', async () => {
+      // Shift+click → ATRELAR pasta (showDirectoryPicker)
+      btnRefreshData.addEventListener('click', async (e) => {
         const dsReady = SolsticeStore.get('dataset.ready');
         if (!dsReady){
           SolsticeToast.info('Sem dados pra recarregar', 'Importe um arquivo primeiro.');
+          return;
+        }
+        if (e.shiftKey && typeof SolsticeFolderAttach !== 'undefined'){
+          // Atrelar nova pasta
+          const ok = await SolsticeFolderAttach.attach();
+          if (ok) SolsticeToast.success('Pasta atrelada', 'Refresh (clique simples) agora re-lê o arquivo automaticamente.');
           return;
         }
         // Modo automático se há pasta atrelada
         if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.isAttached()){
           const refreshed = await SolsticeFolderAttach.refresh();
           if (refreshed) return; // sucesso — file reimportado
+          // Se falhou, cai no fluxo manual abaixo
         }
         // Modo manual (sem pasta atrelada ou falha): file picker
         const ingest = SolsticeStore.get('ingest') || {};
         const lastName = ingest.sourceName || 'arquivo';
         const tip = (typeof window.showDirectoryPicker === 'function')
-          ? '💡 Use 📎 (atrelar pasta) ao lado pra refresh automático no futuro.'
+          ? '💡 Shift+Click neste botão pra ATRELAR a pasta — refresh automático futuro.'
           : '';
         SolsticeToast.info('Re-selecione o arquivo', 'Por segurança o navegador não guarda "' + lastName + '". ' + tip);
         fileInput.accept = '.csv,.tsv,.txt,.json';
         fileInput.click();
       });
-    }
-    // B1-02: botão dedicado Atrelar pasta
-    const btnAttachFolder = document.getElementById('btn-attach-folder');
-    if (btnAttachFolder){
-      btnAttachFolder.addEventListener('click', async () => {
-        if (typeof SolsticeFolderAttach === 'undefined' || !SolsticeFolderAttach.isSupported()){
-          SolsticeToast.warn('Não suportado', 'Atrelar pasta requer Chrome/Edge 86+. Continue importando manualmente.');
-          return;
-        }
-        const dsReady = SolsticeStore.get('dataset.ready');
-        if (!dsReady){
-          SolsticeToast.info('Importe primeiro', 'Atrelar pasta funciona depois de carregar um arquivo — assim sabemos qual recarregar.');
-          return;
-        }
-        const ok = await SolsticeFolderAttach.attach();
-        if (ok){
-          SolsticeToast.success('📎 Pasta atrelada', 'O ícone 🔄 agora recarrega automaticamente. Ao reabrir o navegador, o Solstice também atualiza.');
-          // Visual: marca o botão como "ativo"
-          btnAttachFolder.classList.add('is-active');
-          btnAttachFolder.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
-        }
-      });
-      // Restaura estado visual se já tem pasta atrelada (vindo do IDB no boot)
-      setTimeout(() => {
-        if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.isAttached()){
-          btnAttachFolder.classList.add('is-active');
-          btnAttachFolder.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
-        }
-      }, 600);
     }
 
     // 💾 Salvar ▾
@@ -10976,89 +10566,51 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // 5. Help button (reabre onboarding)
     document.getElementById('help-btn').addEventListener('click', () => SolsticeOnboarding.show());
 
-    // B3-05 (v6-autonomous / OB-05 — Cláudia/Stone): FAB Ajuda flutuante
-    // Botão "?" fixo bottom-right que abre menu rápido (atalhos · tour · sobre)
-    (function _initHelpFAB(){
-      const fab = document.getElementById('solstice-help-fab');
-      if (!fab) return;
-      let popover = null;
-
-      function _closePopover(){
-        if (popover) { popover.remove(); popover = null; }
+    // S4-02 (Sprint 4): título do dashboard editável no header
+    (function _initDocTitle(){
+      const btn = document.getElementById('brand-doctitle');
+      if (!btn) return;
+      const STORAGE_KEY = 'solstice.dashboard.title';
+      // Sincroniza: carrega do SolsticeDashHeader (se presente) ou localStorage
+      function _load(){
+        try {
+          const fromHeader = (typeof SolsticeDashHeader !== 'undefined') ? (SolsticeDashHeader.get() || {}).title : null;
+          if (fromHeader && fromHeader !== 'Dashboard sem título') return fromHeader;
+        } catch(_){}
+        try { return (typeof SolsticeStorage !== 'undefined' ? SolsticeStorage.safeGet(STORAGE_KEY) : localStorage.getItem(STORAGE_KEY)) || 'Dashboard sem título'; }
+        catch(_){ return 'Dashboard sem título'; }
       }
-
-      function _openPopover(){
-        if (popover) { _closePopover(); return; }
-        popover = SolsticeUtils.el('div', { class:'solstice__help-popover', role:'menu' });
-        popover.appendChild(SolsticeUtils.el('h4', null, '💡 Ajuda rápida'));
-
-        const items = [
-          { icon:'🧭', label:'Tour interativo (9 passos)', kbd:'',
-            fn: () => { try { SolsticeTour.start(); } catch(_){} } },
-          { icon:'🔍', label:'Pergunte ao Solstice',     kbd:'Ctrl+P',
-            fn: () => { try { SolsticeAsk.open(); } catch(_){} } },
-          { icon:'⌨️', label:'Atalhos de teclado',        kbd:'?',
-            fn: () => { try { SolsticeOnboarding.show(); } catch(_){} } },
-          { icon:'📚', label:'Comando · todos atalhos',   kbd:'Ctrl+K',
-            fn: () => { try { SolsticeCommandPalette.open(); } catch(_){} } },
-          { icon:'🐛', label:'Reportar bug · GitHub',     kbd:'',
-            fn: () => { window.open('https://github.com/lucas/solstice/issues/new?template=bug.md', '_blank'); } }
-        ];
-        items.forEach(it => {
-          const btn = SolsticeUtils.el('button', {
-            type:'button', class:'solstice__help-popover-item', role:'menuitem',
-            onclick: () => { _closePopover(); it.fn(); }
-          });
-          btn.appendChild(SolsticeUtils.el('span', { class:'solstice__help-popover-item-icon', 'aria-hidden':'true' }, it.icon));
-          btn.appendChild(SolsticeUtils.el('span', null, it.label));
-          if (it.kbd) btn.appendChild(SolsticeUtils.el('span', { class:'solstice__help-popover-item-kbd' }, it.kbd));
-          popover.appendChild(btn);
-        });
-        document.body.appendChild(popover);
-        // Fecha ao clicar fora
-        setTimeout(() => {
-          document.addEventListener('click', function _outside(e){
-            if (popover && !popover.contains(e.target) && e.target !== fab){
-              document.removeEventListener('click', _outside);
-              _closePopover();
-            }
-          });
-        }, 50);
+      function _save(v){
+        try {
+          if (typeof SolsticeStorage !== 'undefined') SolsticeStorage.safeSet(STORAGE_KEY, v);
+          else localStorage.setItem(STORAGE_KEY, v);
+        } catch(_){}
+        try {
+          if (typeof SolsticeDashHeader !== 'undefined' && SolsticeDashHeader.set){
+            SolsticeDashHeader.set({ title: v });
+          }
+        } catch(_){}
+        try { document.title = (v && v !== 'Dashboard sem título' ? v + ' — Solstice' : 'Solstice'); } catch(_){}
       }
-
-      fab.addEventListener('click', () => {
-        // B5-05: primeira interação → para o pulse e marca como visitado
-        if (fab.classList.contains('is-first-visit')){
-          fab.classList.remove('is-first-visit');
-          try {
-            if (typeof SolsticeStorage !== 'undefined') SolsticeStorage.safeSet('solstice.help.firstSeen', '1');
-            else localStorage.setItem('solstice.help.firstSeen', '1');
-          } catch(_){}
-        }
-        _openPopover();
+      btn.textContent = _load();
+      btn.addEventListener('click', () => {
+        btn.contentEditable = 'true';
+        btn.focus();
+        // Seleciona tudo
+        const r = document.createRange(); r.selectNodeContents(btn);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
       });
-      // B5-05: primeira visita → pulse no FAB (chama atenção pra ajuda)
-      try {
-        const seen = (typeof SolsticeStorage !== 'undefined')
-          ? SolsticeStorage.safeGet('solstice.help.firstSeen')
-          : localStorage.getItem('solstice.help.firstSeen');
-        if (!seen) fab.classList.add('is-first-visit');
-      } catch(_){}
-      // Atalho "?" (Shift+/) abre o popover
-      document.addEventListener('keydown', (e) => {
-        if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-        if (e.target && e.target.isContentEditable) return;
-        if (e.key === '?' && !e.ctrlKey && !e.metaKey){
-          e.preventDefault();
-          _openPopover();
-        }
+      btn.addEventListener('blur', () => {
+        btn.contentEditable = 'false';
+        const v = (btn.textContent || '').trim() || 'Dashboard sem título';
+        btn.textContent = v;
+        _save(v);
+      });
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter'){ e.preventDefault(); btn.blur(); }
+        if (e.key === 'Escape'){ e.preventDefault(); btn.textContent = _load(); btn.blur(); }
       });
     })();
-
-    // v6-autonomous / B1-01: título do dashboard MOVIDO pro SolsticeDashHeader.
-    // (Antes ficava no header global como #brand-doctitle — removido.)
-    // O título é editável diretamente no banner visual do dashboard, via
-    // SolsticeDashHeader.openConfig() OU pelo doubleclick no <h2> do banner.
 
     // SOL-B1 + SOL-A1: instala Modelo de Dados (relacionamentos) em idle, depois
     // do primeiro paint do welcome — não bloqueia main thread no boot.
@@ -11075,34 +10627,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // 7. Onboarding na primeira visita
     if (SolsticeOnboarding.isFirstTime()){
       setTimeout(() => SolsticeOnboarding.show(), 400);
-    }
-
-    // B4-02 (v6-autonomous / RES-03): auto-save de estado a cada 5s
-    // + tenta restaurar se boot abrir com canvas vazio e há snapshot fresco
-    try {
-      if (typeof SolsticeAutoSave !== 'undefined'){
-        SolsticeAutoSave.init();
-        setTimeout(() => SolsticeAutoSave.tryRestore(), 600);
-      }
-    } catch(e){ console.warn('[AutoSave init]', e); }
-
-    // B1-04 (v6-autonomous): tenta restaurar pasta atrelada + auto-refresh
-    // se permissão ainda granted. Roda async no fundo, não bloqueia boot.
-    if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.restoreFromStorage){
-      setTimeout(() => {
-        SolsticeFolderAttach.restoreFromStorage().then(res => {
-          if (res.restored){
-            const btn = document.getElementById('btn-attach-folder');
-            if (btn){
-              btn.classList.add('is-active');
-              btn.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
-            }
-            if (res.autoRefreshed){
-              console.log('[Solstice] Pasta atrelada restaurada + arquivo recarregado automaticamente.');
-            }
-          }
-        });
-      }, 400);
     }
 
     // 8. Console banner
@@ -11371,8 +10895,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     } catch(_){}
     // Renderiza tabbar inicial
     try { if (typeof SolsticePagesUI !== 'undefined') SolsticePagesUI.render(); } catch(_){}
-    // B1-05 (v6-autonomous): atalhos teclado pra multi-página
-    try { if (typeof SolsticePagesUI !== 'undefined' && SolsticePagesUI.initKeyboard) SolsticePagesUI.initKeyboard(); } catch(_){}
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -13791,27 +13313,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         ' para transformar · duplo-clique numa célula para editar valor.'));
 
       const tw = SolsticeUtils.el('div', { class:'solstice__data-table-wrap' });
-      // B5-02 (v6-autonomous / AC-03 — Marina/NVDA): tabela semântica
-      // role=table garante leitores reconhecerem; aria-rowcount/colcount
-      // ajudam NVDA a anunciar "linha 3 de 47". <caption> dá contexto.
-      const table = SolsticeUtils.el('table', {
-        class:'solstice__data-table',
-        role: 'table',
-        'aria-rowcount': String((rows && rows.length) || 0),
-        'aria-colcount': String((columns && columns.length) || 0)
-      });
-      const captionTxt = 'Preview do dataset' + (rows ? ' — ' + rows.length + ' linhas · ' + columns.length + ' colunas' : '');
-      table.appendChild(SolsticeUtils.el('caption', {
-        style:'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;'
-      }, captionTxt));
+      const table = SolsticeUtils.el('table', { class:'solstice__data-table' });
       const thead = SolsticeUtils.el('thead');
       const trh = SolsticeUtils.el('tr');
       columns.forEach(c => {
         const t = types[c];
         const friendly = SolsticeHumanize.column(c, dict);
         // Header clicável: nome → mudar tipo · ⚡ → transformar
-        // B5-02: scope="col" pra NVDA anunciar coluna ao ler célula
-        const th = SolsticeUtils.el('th', { class:'solstice__data-preview-th-rich', scope: 'col' });
+        const th = SolsticeUtils.el('th', { class:'solstice__data-preview-th-rich' });
         const nameBtn = SolsticeUtils.el('button', {
           class:'solstice__data-preview-th-name',
           type:'button',
@@ -19059,15 +18568,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const agg = cfg.agg || 'sum';
 
         // Container raiz com layout próprio (substitui o padding/flex padrão da casca)
-        // B2-04 (v6-autonomous / AC-01 — Marina/NVDA): KPI card ganha role + aria-label
-        // descritivo. Antes NVDA lia só o número solto "R$ 1.2M" sem contexto.
-        // Agora lê "Região, KPI: Soma de Receita Mensal = R$ 1.2M"
-        const friendlyForLabel = SolsticeHumanize.column(col || '?', ctx.dictionary);
-        const card = SolsticeUtils.el('div', {
-          class:'solstice__kpi-card',
-          role: 'region',
-          'aria-label': 'KPI · ' + (cfg.title || friendlyForLabel)
-        });
+        const card = SolsticeUtils.el('div', { class:'solstice__kpi-card' });
         host.appendChild(card);
 
         if (!col){
@@ -24052,10 +23553,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   const SolsticeDashHeader = (function(){
 
     const DEFAULT = {
-      // v6-autonomous / B1-01: cabeçalho ATIVADO por padrão.
-      // Antes era opt-in (enabled:false) — usuário tinha que descobrir openConfig.
-      // Agora aparece desde o boot como "Dashboard sem título" clicável.
-      enabled: true,
+      enabled: false,
       title: 'Dashboard sem título',
       subtitle: '',
       // SOL-C2: logo do dashboard. data URL ou URL externa. Aparece overlay top-right.
@@ -24162,31 +23660,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         class: cls,
         style: 'background:' + gradient + ';color:' + textColor + ';'
       });
-      // v6-autonomous / B1-01: título inline-editable. Click → contenteditable.
-      // Enter/blur salva via set({ title }), Esc reverte.
-      const titleEl = SolsticeUtils.el('h2', {
-        class:'solstice__dash-header-title',
-        title: 'Clique pra renomear o dashboard',
-        style:'cursor:text;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;'
-      }, cfg.title || 'Dashboard sem título');
-      titleEl.addEventListener('click', () => {
-        titleEl.contentEditable = 'true';
-        titleEl.focus();
-        const r = document.createRange(); r.selectNodeContents(titleEl);
-        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-      });
-      titleEl.addEventListener('blur', () => {
-        titleEl.contentEditable = 'false';
-        const v = (titleEl.textContent || '').trim() || 'Dashboard sem título';
-        titleEl.textContent = v;
-        try { set({ title: v }); } catch(_){}
-        try { document.title = (v && v !== 'Dashboard sem título' ? v + ' — Solstice' : 'Solstice'); } catch(_){}
-      });
-      titleEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter'){ e.preventDefault(); titleEl.blur(); }
-        if (e.key === 'Escape'){ e.preventDefault(); titleEl.textContent = cfg.title || 'Dashboard sem título'; titleEl.blur(); }
-      });
-      el.appendChild(titleEl);
+      el.appendChild(SolsticeUtils.el('h2', { class:'solstice__dash-header-title' }, cfg.title || ''));
       const subText = _buildSubtitleText(cfg);
       if (subText) el.appendChild(SolsticeUtils.el('div', { class:'solstice__dash-header-sub' }, subText));
       // SOL-C2: logo do dashboard (data URL ou URL). Overlay top-right via CSS.
@@ -26997,41 +26471,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    /**
-     * B3-03 (v6-autonomous / UX-05 — Pedro/Nubank): atalho explicativo
-     * para ações DESTRUTIVAS (não recuperáveis sem undo).
-     * Exemplos: excluir coluna, limpar dashboard, deletar snapshot.
-     *
-     * Difere de confirm() porque:
-     *   • Botão de confirmação em VERMELHO (--danger)
-     *   • Title prefixado com ⚠️
-     *   • Texto-padrão "Não pode ser desfeito" (ou opts.consequence custom)
-     *   • Default-focus no Cancelar (acidente é dispendioso)
-     *
-     * Uso:
-     *   const ok = await SolsticeModal.destructive({
-     *     title: 'Excluir coluna "receita"?',
-     *     consequence: '2 KPIs e 1 gráfico vão parar de funcionar.',
-     *     confirmLabel: 'Sim, excluir'
-     *   });
-     */
-    function destructive(opts){
-      opts = opts || {};
-      return confirm({
-        title: '⚠️ ' + (opts.title || 'Confirmar ação destrutiva'),
-        message: SolsticeUtils.el('div', null,
-          opts.message ? SolsticeUtils.el('div', { style:'margin-bottom:8px;' }, opts.message) : null,
-          SolsticeUtils.el('div', {
-            style:'padding:8px 12px;background:color-mix(in srgb, var(--c-error) 10%, transparent);border-left:3px solid var(--c-error);border-radius:4px;font-size:12px;color:var(--c-text-2);line-height:1.5;margin-top:6px;'
-          }, '🔴 ' + (opts.consequence || 'Esta ação não pode ser desfeita facilmente.'))
-        ),
-        danger: true,
-        confirmLabel: opts.confirmLabel || 'Sim, continuar',
-        cancelLabel: opts.cancelLabel || 'Cancelar'
-      });
-    }
-
-    return { show, confirm, destructive, prompt, select, isSkipped, listSkipped, unskip };
+    return { show, confirm, prompt, select, isSkipped, listSkipped, unskip };
   })();
 
   /* ============================================================
@@ -28218,7 +27658,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             class:'solstice__slot-inserter',
             'data-position': pos,
             title:'Adicionar componente nesta posição (modo expert)'
-          }, SolsticeUtils.el('button', { class:'solstice__inserter-btn', tabindex:'-1', 'aria-label':'Inserir componente aqui', title:'Inserir componente' }, '+'));
+          }, SolsticeUtils.el('button', { class:'solstice__inserter-btn', tabindex:'-1' }, '+'));
           inserter.onclick = (e) => {
             e.stopPropagation();
             inserter.classList.add('is-pulsing');
@@ -33390,62 +32830,6 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       SolsticeStore.subscribe('ui.filters.shown', () => {
         if (SolsticeCanvas && SolsticeCanvas.render) SolsticeCanvas.render();
       });
-
-      // B2-03 (v6-autonomous / PW-02 — Augusto power user): persiste filtros
-      // entre sessões em localStorage. Sai dali um analista que vive 5h/dia
-      // no produto e não precisa reconfigurar tudo toda manhã.
-      // Key vinculada ao sourceName do dataset (cada dataset tem seus filtros).
-      const STORAGE_PREFIX = 'solstice.filters.';
-
-      function _storageKey(){
-        const ingest = SolsticeStore.get('ingest') || {};
-        return STORAGE_PREFIX + (ingest.sourceName || '_default_');
-      }
-
-      function _persist(){
-        try {
-          const f = SolsticeStore.get('filters');
-          if (!f || !Object.keys(f).length){
-            // limpa se ficou vazio (não polui localStorage)
-            if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeRemove){
-              SolsticeStorage.safeRemove(_storageKey());
-            }
-            return;
-          }
-          if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeSet){
-            SolsticeStorage.safeSet(_storageKey(), JSON.stringify(f), { silent: true });
-          }
-        } catch(_){}
-      }
-
-      function _restore(){
-        try {
-          const raw = (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeGet)
-            ? SolsticeStorage.safeGet(_storageKey())
-            : localStorage.getItem(_storageKey());
-          if (!raw) return;
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === 'object'){
-            // Só restaura se NÃO há filtro ativo (não sobrescreve estado vindo de snapshot)
-            const cur = SolsticeStore.get('filters');
-            if (!cur || !Object.keys(cur).length){
-              SolsticeStore.set('filters', parsed);
-            }
-          }
-        } catch(_){}
-      }
-
-      // Persiste em mudanças (debounced — evita spammar localStorage)
-      let _persistTimer = null;
-      SolsticeStore.subscribe('filters', () => {
-        clearTimeout(_persistTimer);
-        _persistTimer = setTimeout(_persist, 500);
-      });
-
-      // Restaura quando dataset estiver pronto
-      SolsticeStore.subscribe('dataset.ready', (ready) => { if (ready) _restore(); });
-      // E imediatamente se já estiver pronto (re-init pós-load)
-      if (SolsticeStore.get('dataset.ready')) _restore();
     }
 
     // Auditoria 2026 (RT-03): adapter pra cumprir SolsticeStoreContract.
@@ -34827,257 +34211,6 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      Estado salvo:
        canvas.sections + filters + params + canvas.header + dictionary
      ============================================================ */
-  /* ============================================================
-     B4-01 (v6-autonomous / PW-03 — Augusto power user) — SolsticeViews
-     Views salvas LEVES (vs SolsticeSnapshots que captura estado COMPLETO).
-     Uma View memoriza só preferências de visualização:
-       • filtros globais
-       • cross-filter ativo
-       • página ativa (multi-page)
-       • collapsed states (insights, filterbar)
-
-     Caso de uso: analista que vive 5h/dia no produto, alterna entre
-     visões "Mensal", "Por região Sul", "Top 10 clientes". Cada uma é
-     1 click pra restaurar.
-
-     API:
-       SolsticeViews.list()                   → array<{id, name, savedAt, payload}>
-       SolsticeViews.save(name)               → cria view nova com estado atual
-       SolsticeViews.apply(id)                → restaura filtros/página
-       SolsticeViews.remove(id)               → deleta
-       SolsticeViews.rename(id, newName)      → renomeia
-     ============================================================ */
-  const SolsticeViews = (function(){
-    const STORAGE_KEY = 'solstice.views.v1';
-
-    function _read(){
-      try {
-        const raw = (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeGet)
-          ? SolsticeStorage.safeGet(STORAGE_KEY)
-          : localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch(_){ return []; }
-    }
-
-    function _write(arr){
-      try {
-        const json = JSON.stringify(arr);
-        if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeSet){
-          SolsticeStorage.safeSet(STORAGE_KEY, json);
-        } else {
-          localStorage.setItem(STORAGE_KEY, json);
-        }
-        return true;
-      } catch(_){ return false; }
-    }
-
-    function _captureState(){
-      const state = {
-        filters: SolsticeStore.get('filters') || {},
-        crossfilter: SolsticeStore.get('crossfilter') || null
-      };
-      try {
-        if (typeof SolsticePages !== 'undefined' && SolsticePages.activeId){
-          state.pageId = SolsticePages.activeId();
-        }
-      } catch(_){}
-      try {
-        state.ui = {
-          insightsCollapsed: !!SolsticeStore.get('ui.insights.collapsed'),
-          filtersCollapsed: !!SolsticeStore.get('ui.filters.collapsed')
-        };
-      } catch(_){}
-      return state;
-    }
-
-    function list(){
-      return _read().map(v => ({ id: v.id, name: v.name, savedAt: v.savedAt }));
-    }
-
-    function save(name){
-      name = String(name || '').trim();
-      if (!name) return null;
-      const arr = _read();
-      const view = {
-        id: 'view_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        name,
-        savedAt: new Date().toISOString(),
-        payload: _captureState()
-      };
-      arr.unshift(view);
-      // Limit a 20 views — power user precisa mas não pode explodir
-      if (arr.length > 20) arr.length = 20;
-      _write(arr);
-      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
-        SolsticeAudit.record({ action: 'view_save', target: name, details: { id: view.id } });
-      }
-      return view;
-    }
-
-    function apply(id){
-      const arr = _read();
-      const v = arr.find(x => x.id === id);
-      if (!v || !v.payload) return false;
-      const p = v.payload;
-      try {
-        if (p.filters) SolsticeStore.set('filters', p.filters);
-        if (p.crossfilter !== undefined) SolsticeStore.set('crossfilter', p.crossfilter);
-        if (p.pageId && typeof SolsticePages !== 'undefined' && SolsticePages.switchTo){
-          SolsticePages.switchTo(p.pageId);
-        }
-        if (p.ui){
-          if (typeof p.ui.insightsCollapsed === 'boolean') SolsticeStore.set('ui.insights.collapsed', p.ui.insightsCollapsed);
-          if (typeof p.ui.filtersCollapsed === 'boolean') SolsticeStore.set('ui.filters.collapsed', p.ui.filtersCollapsed);
-        }
-      } catch(e){ console.warn('[Views.apply]', e); return false; }
-      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
-        SolsticeAudit.record({ action: 'view_apply', target: v.name, details: { id } });
-      }
-      return true;
-    }
-
-    function remove(id){
-      const arr = _read().filter(x => x.id !== id);
-      _write(arr);
-    }
-
-    function rename(id, newName){
-      const arr = _read();
-      const v = arr.find(x => x.id === id);
-      if (!v) return false;
-      v.name = String(newName || '').trim() || v.name;
-      _write(arr);
-      return true;
-    }
-
-    return { list, save, apply, remove, rename };
-  })();
-
-  /* ============================================================
-     B4-02 (v6-autonomous / RES-03 — Sofia/Auth0) — SolsticeAutoSave
-     Auto-save de estado em localStorage pra recuperação após crash/
-     refresh acidental. Diferente de SolsticeSnapshots:
-       • Roda silenciosamente em intervalos
-       • 1 slot único (sempre sobrescreve o anterior)
-       • NÃO substitui snapshots manuais — é safety net
-       • Restaura no boot SE último estado for de hoje
-         (estado antigo é stale — usuário esquece)
-
-     Salva:
-       • canvas.sections (estrutura de componentes)
-       • canvas.header (título)
-       • filters globais
-       • página ativa multi-page
-
-     Não salva:
-       • ingest (dataset bruto — pode ser MB)
-       • dictionary (presets pré-carregados)
-     ============================================================ */
-  const SolsticeAutoSave = (function(){
-    const STORAGE_KEY = 'solstice.autosave.v1';
-    const INTERVAL_MS = (typeof SolsticeConfig !== 'undefined') ? SolsticeConfig.AUTOSAVE_INTERVAL_MS : 5000;
-    const STALE_MS = 24 * 60 * 60 * 1000; // 24h — estado mais antigo é descartado
-    let _timer = null;
-    let _lastSnapshot = '';
-
-    function _capture(){
-      try {
-        const snap = {
-          ts: Date.now(),
-          sections: SolsticeStore.get('canvas.sections') || [],
-          header: SolsticeStore.get('canvas.header') || null,
-          filters: SolsticeStore.get('filters') || {},
-          pageId: (typeof SolsticePages !== 'undefined' && SolsticePages.activeId) ? SolsticePages.activeId() : null
-        };
-        return snap;
-      } catch(_){ return null; }
-    }
-
-    function _tick(){
-      const snap = _capture();
-      if (!snap) return;
-      // Só salva se tem algo (não persiste estado vazio)
-      if (!snap.sections.length) return;
-      const json = JSON.stringify(snap);
-      // Evita escrita se nada mudou (poupa I/O)
-      if (json === _lastSnapshot) return;
-      _lastSnapshot = json;
-      try {
-        if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeSet){
-          SolsticeStorage.safeSet(STORAGE_KEY, json, { silent: true });
-        } else {
-          localStorage.setItem(STORAGE_KEY, json);
-        }
-      } catch(_){}
-    }
-
-    function _read(){
-      try {
-        const raw = (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeGet)
-          ? SolsticeStorage.safeGet(STORAGE_KEY)
-          : localStorage.getItem(STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        // Descarta se velho demais
-        if (parsed.ts && (Date.now() - parsed.ts) > STALE_MS) return null;
-        return parsed;
-      } catch(_){ return null; }
-    }
-
-    /** Restaura silenciosamente no boot se houver auto-save fresco
-        E o canvas estiver vazio (sem sobrescrever trabalho ativo). */
-    function tryRestore(){
-      const snap = _read();
-      if (!snap) return false;
-      const current = SolsticeStore.get('canvas.sections') || [];
-      if (current.length > 0) return false; // não sobrescreve
-      try {
-        if (snap.sections && snap.sections.length){
-          SolsticeStore.set('canvas.sections', snap.sections);
-          if (snap.header) SolsticeStore.set('canvas.header', snap.header);
-          if (snap.filters) SolsticeStore.set('filters', snap.filters);
-          if (snap.pageId && typeof SolsticePages !== 'undefined' && SolsticePages.switchTo){
-            try { SolsticePages.switchTo(snap.pageId); } catch(_){}
-          }
-          // Toast leve avisando o usuário
-          setTimeout(() => {
-            if (typeof SolsticeToast !== 'undefined') {
-              const minsAgo = Math.round((Date.now() - snap.ts) / 60000);
-              SolsticeToast.info('💾 Auto-save restaurado',
-                'Recuperado estado de ~' + minsAgo + ' min atrás. ' +
-                (snap.sections.length + ' componente' + (snap.sections.length > 1 ? 's' : '')));
-            }
-          }, 1500);
-          return true;
-        }
-      } catch(e){ console.warn('[AutoSave.restore]', e); }
-      return false;
-    }
-
-    function init(){
-      if (_timer) return;
-      _timer = setInterval(_tick, INTERVAL_MS);
-      // Salva também ao sair da página (best effort)
-      window.addEventListener('beforeunload', _tick);
-    }
-
-    function stop(){ if (_timer) { clearInterval(_timer); _timer = null; } }
-
-    function clear(){
-      try {
-        if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeRemove){
-          SolsticeStorage.safeRemove(STORAGE_KEY);
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
-        }
-      } catch(_){}
-    }
-
-    return { init, stop, clear, tryRestore };
-  })();
-
   const SolsticeSnapshots = (function(){
 
     const LS_KEY_PREFIX = 'solstice.snapshots.';
@@ -35546,74 +34679,6 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
   })();
 
   /* ============================================================
-     B1-03 (v6-autonomous) — SolsticeIDB
-     Wrapper minimalista de IndexedDB pra serializar handles e estado
-     entre sessões. Existe pra:
-       1) Persistir FileSystemDirectoryHandle (Folder Attach)
-       2) (futuro) Cache de datasets pesados, snapshots binários
-
-     API:
-       SolsticeIDB.set(key, value) → Promise<void>
-       SolsticeIDB.get(key)        → Promise<any|null>
-       SolsticeIDB.del(key)        → Promise<void>
-       SolsticeIDB.isSupported()   → boolean
-
-     Schema: 1 DB "solstice-v1", 1 store "kv" {key, value}.
-     ============================================================ */
-  const SolsticeIDB = (function(){
-    const DB_NAME = 'solstice-v1';
-    const STORE   = 'kv';
-    let _dbPromise = null;
-
-    function isSupported(){ return typeof indexedDB !== 'undefined'; }
-
-    function _open(){
-      if (_dbPromise) return _dbPromise;
-      _dbPromise = new Promise((resolve, reject) => {
-        if (!isSupported()) return reject(new Error('IndexedDB indisponível'));
-        const req = indexedDB.open(DB_NAME, 1);
-        req.onupgradeneeded = () => {
-          const db = req.result;
-          if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror   = () => reject(req.error);
-      });
-      return _dbPromise;
-    }
-
-    function _tx(mode){
-      return _open().then(db => db.transaction(STORE, mode).objectStore(STORE));
-    }
-
-    function get(key){
-      return _tx('readonly').then(store => new Promise((resolve, reject) => {
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result == null ? null : req.result);
-        req.onerror   = () => reject(req.error);
-      })).catch(() => null);
-    }
-
-    function set(key, value){
-      return _tx('readwrite').then(store => new Promise((resolve, reject) => {
-        const req = store.put(value, key);
-        req.onsuccess = () => resolve();
-        req.onerror   = () => reject(req.error);
-      })).catch(e => { console.warn('[SolsticeIDB.set]', e); });
-    }
-
-    function del(key){
-      return _tx('readwrite').then(store => new Promise((resolve, reject) => {
-        const req = store.delete(key);
-        req.onsuccess = () => resolve();
-        req.onerror   = () => reject(req.error);
-      })).catch(e => { console.warn('[SolsticeIDB.del]', e); });
-    }
-
-    return { isSupported, get, set, del };
-  })();
-
-  /* ============================================================
      S6-02 (Sprint 6) — SolsticeFolderAttach
      Atrelamento de pasta via File System Access API (Chrome 86+).
      Permite "refresh automático" — re-lê o arquivo do nome SourceName
@@ -35632,13 +34697,10 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     const supported = typeof window.showDirectoryPicker === 'function';
     let dirHandle = null;
     let attachedSourceName = null;
-    const IDB_HANDLE_KEY = 'folder.handle';
-    const IDB_SOURCENAME_KEY = 'folder.sourceName';
 
     function isSupported(){ return supported; }
     function isAttached(){ return !!dirHandle; }
     function getAttachedName(){ return dirHandle ? (dirHandle.name || 'pasta') : null; }
-    function getAttachedSourceName(){ return attachedSourceName; }
 
     async function attach(){
       if (!supported){
@@ -35653,17 +34715,6 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const ingest = SolsticeStore.get('ingest') || {};
         attachedSourceName = ingest.sourceName || null;
         SolsticeStore.set('ui.folder.attachedName', handle.name);
-        // B1-04 (v6-autonomous): persiste handle + sourceName em IndexedDB
-        // pra auto-refresh ao re-abrir o navegador.
-        // Estruturedo clone do FileSystemDirectoryHandle É suportado em IDB
-        // a partir de Chrome 86 / Edge 86. Safari não suporta — set falha
-        // silenciosamente, ok.
-        if (typeof SolsticeIDB !== 'undefined' && SolsticeIDB.isSupported()){
-          try {
-            await SolsticeIDB.set(IDB_HANDLE_KEY, handle);
-            if (attachedSourceName) await SolsticeIDB.set(IDB_SOURCENAME_KEY, attachedSourceName);
-          } catch(e){ console.warn('[FolderAttach.persist]', e); }
-        }
         if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
           SolsticeAudit.record({ action:'folder_attach', target: handle.name });
         }
@@ -35680,76 +34731,16 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       dirHandle = null;
       attachedSourceName = null;
       SolsticeStore.set('ui.folder.attachedName', null);
-      // B1-04: limpa persistência
-      if (typeof SolsticeIDB !== 'undefined' && SolsticeIDB.isSupported()){
-        try {
-          SolsticeIDB.del(IDB_HANDLE_KEY);
-          SolsticeIDB.del(IDB_SOURCENAME_KEY);
-        } catch(_){}
-      }
     }
 
-    /**
-     * B1-04 (v6-autonomous): tenta restaurar handle do IDB ao boot.
-     * Se permissão ainda granted, faz auto-refresh do arquivo.
-     * Se permissão revogada (esperado), só restaura o estado visual
-     * e usuário precisa clicar refresh pra re-grant.
-     * Retorna { restored: bool, autoRefreshed: bool }.
-     */
-    async function restoreFromStorage(){
-      if (!supported) return { restored: false, autoRefreshed: false };
-      if (typeof SolsticeIDB === 'undefined' || !SolsticeIDB.isSupported()){
-        return { restored: false, autoRefreshed: false };
-      }
-      try {
-        const handle = await SolsticeIDB.get(IDB_HANDLE_KEY);
-        if (!handle) return { restored: false, autoRefreshed: false };
-        const sourceName = await SolsticeIDB.get(IDB_SOURCENAME_KEY);
-        dirHandle = handle;
-        attachedSourceName = sourceName || null;
-        SolsticeStore.set('ui.folder.attachedName', handle.name || 'pasta');
-
-        // Verifica permissão. Após reload, geralmente está 'prompt' (precisa user gesture).
-        const perm = await handle.queryPermission({ mode: 'read' });
-        if (perm === 'granted'){
-          // Auto-refresh imediato!
-          if (sourceName){
-            // Pequeno delay pra UI estabilizar antes do toast
-            setTimeout(async () => {
-              const ok = await refresh({ silent: false });
-              if (ok && typeof SolsticeAudit !== 'undefined') {
-                SolsticeAudit.record({ action: 'folder_auto_refresh', target: sourceName });
-              }
-            }, 800);
-            return { restored: true, autoRefreshed: true };
-          }
-        } else {
-          // Permissão precisa de re-grant via gesto do usuário.
-          // Mostra toast convidando a clicar no 🔄
-          setTimeout(() => {
-            SolsticeToast.info(
-              '📎 Pasta atrelada (' + (handle.name || 'pasta') + ')',
-              'Clique no 🔄 pra autorizar e recarregar "' + (sourceName || 'arquivo') + '" automaticamente.'
-            );
-          }, 1200);
-        }
-        return { restored: true, autoRefreshed: false };
-      } catch(e){
-        console.warn('[FolderAttach.restoreFromStorage]', e);
-        return { restored: false, autoRefreshed: false };
-      }
-    }
-
-    /** refresh(opts) — tenta re-ler o arquivo do nome SourceName da pasta atrelada.
-        opts.silent (default false) — não mostra toast "Recarregando…".
+    /** refresh() — tenta re-ler o arquivo do nome SourceName da pasta atrelada.
         Retorna true se conseguiu reimportar, false se precisar fallback manual. */
-    async function refresh(opts){
-      opts = opts || {};
+    async function refresh(){
       if (!dirHandle) return false;
       const ingest = SolsticeStore.get('ingest') || {};
       const fileName = attachedSourceName || ingest.sourceName;
       if (!fileName){
-        if (!opts.silent) SolsticeToast.warn('Sem arquivo de origem', 'Importe um arquivo primeiro.');
+        SolsticeToast.warn('Sem arquivo de origem', 'Importe um arquivo primeiro.');
         return false;
       }
       try {
@@ -35758,13 +34749,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         if (perm !== 'granted'){
           const req = await dirHandle.requestPermission({ mode:'read' });
           if (req !== 'granted'){
-            if (!opts.silent) SolsticeToast.warn('Permissão negada', 'Re-atrelar pasta pra continuar.');
+            SolsticeToast.warn('Permissão negada', 'Re-atrelar pasta pra continuar.');
             return false;
           }
         }
         const fileHandle = await dirHandle.getFileHandle(fileName);
         const file = await fileHandle.getFile();
-        if (!opts.silent) SolsticeToast.info('Recarregando…', fileName + ' (' + Math.round(file.size/1024) + ' KB)');
+        SolsticeToast.info('Recarregando…', fileName + ' (' + Math.round(file.size/1024) + ' KB)');
         // Chama o pipeline de ingest com o File obtido (mesma rota do file picker)
         if (typeof _runIngestFile === 'function'){
           await _runIngestFile(file, {});
@@ -35777,18 +34768,16 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         return true;
       } catch(e){
         console.warn('[FolderAttach.refresh]', e);
-        if (!opts.silent){
-          if (e && e.name === 'NotFoundError'){
-            SolsticeToast.warn('Arquivo não encontrado', '"' + fileName + '" não está na pasta atrelada. Re-atrelar ou re-importar manualmente.');
-          } else {
-            SolsticeToast.warn('Falha no refresh', e.message || 'Erro desconhecido');
-          }
+        if (e && e.name === 'NotFoundError'){
+          SolsticeToast.warn('Arquivo não encontrado', '"' + fileName + '" não está na pasta atrelada. Re-atrelar ou re-importar manualmente.');
+        } else {
+          SolsticeToast.warn('Falha no refresh', e.message || 'Erro desconhecido');
         }
         return false;
       }
     }
 
-    return { isSupported, isAttached, getAttachedName, getAttachedSourceName, attach, detach, refresh, restoreFromStorage };
+    return { isSupported, isAttached, getAttachedName, attach, detach, refresh };
   })();
 
   /* ============================================================
@@ -36887,9 +35876,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // Barra inferior
       const bar = SolsticeUtils.el('div', { class:'solstice__slides-bar' });
       const nav = SolsticeUtils.el('div', { class:'solstice__slides-nav' });
-      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', 'aria-label':'Slide anterior', title:'Anterior (←)', onclick: prev, disabled: currentIndex === 0 ? '' : null }, '←'));
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: prev, disabled: currentIndex === 0 ? '' : null }, '←'));
       nav.appendChild(SolsticeUtils.el('span', { class:'solstice__slides-counter' }, (currentIndex + 1) + ' / ' + secs.length));
-      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', 'aria-label':'Próximo slide', title:'Próximo (→)', onclick: next, disabled: currentIndex === secs.length - 1 ? '' : null }, '→'));
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: next, disabled: currentIndex === secs.length - 1 ? '' : null }, '→'));
       bar.appendChild(nav);
 
       const progress = SolsticeUtils.el('div', { class:'solstice__slides-progress' });
@@ -37869,30 +36858,25 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       });
 
       // Botão "+" pra criar nova página
-      // B1-05 (v6-autonomous): label "+ Nova página" mais convidativo + tooltip com atalho
       const plusBtn = SolsticeUtils.el('button', {
         type:'button',
         class:'solstice__page-tab-add',
-        title:'Criar nova página (Ctrl+Shift+T)',
+        title:'Criar nova página',
         'aria-label':'Nova página',
-        onclick: async () => _createPagePrompt()
-      });
-      plusBtn.appendChild(SolsticeUtils.el('span', { style:'font-size:14px;margin-right:4px;' }, '+'));
-      plusBtn.appendChild(SolsticeUtils.el('span', { style:'font-size:11px;font-weight:400;' }, 'Nova página'));
+        onclick: async () => {
+          const name = await SolsticeModal.prompt({
+            title:'Nova página',
+            message:'Nome da página:',
+            placeholder:'Ex: Outliers, Detalhe, Anomalias',
+            defaultValue:'Página ' + (SolsticePages.list().length + 1)
+          });
+          if (!name) return;
+          SolsticePages.create({ name: name.trim() });
+          SolsticeToast.success('Página criada', name);
+          render();
+        }
+      }, '+');
       host.appendChild(plusBtn);
-    }
-
-    async function _createPagePrompt(){
-      const name = await SolsticeModal.prompt({
-        title:'Nova página',
-        message:'Nome da página:',
-        placeholder:'Ex: Outliers, Detalhe, Anomalias',
-        defaultValue:'Página ' + (SolsticePages.list().length + 1)
-      });
-      if (!name) return;
-      SolsticePages.create({ name: name.trim() });
-      SolsticeToast.success('Página criada', name);
-      render();
     }
 
     function _openPageMenu(pageId, x, y){
@@ -37978,48 +36962,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       SolsticeStore.subscribe('canvas', () => { try { render(); } catch(_){} });
     } catch(_){}
 
-    /** B1-05 (v6-autonomous): atalhos de teclado pra navegação multi-página.
-        Ctrl+Shift+T → nova página
-        Ctrl+Alt+→ / ← → próxima / anterior página
-        Ctrl+1..9 → vai pra Nésima página */
-    function initKeyboard(){
-      document.addEventListener('keydown', (e) => {
-        if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-        if (e.target && e.target.isContentEditable) return;
-        // Sem dataset, não faz sentido
-        if (!SolsticeStore.get('dataset.ready')) return;
-        // Sem modais abertos
-        if (document.querySelector('.solstice__modal-overlay')) return;
-
-        // Ctrl+Shift+T → nova página
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'T' || e.key === 't')){
-          e.preventDefault();
-          _createPagePrompt();
-          return;
-        }
-        // Ctrl+Alt+→ / Ctrl+Alt+← → próxima / anterior
-        if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')){
-          e.preventDefault();
-          const pages = SolsticePages.list();
-          const cur = SolsticePages.activeId();
-          const idx = pages.findIndex(p => p.id === cur);
-          if (idx < 0) return;
-          const next = e.key === 'ArrowRight'
-            ? pages[(idx + 1) % pages.length]
-            : pages[(idx - 1 + pages.length) % pages.length];
-          if (next) { SolsticePages.switchTo(next.id); render(); }
-          return;
-        }
-        // Ctrl+1..9 → ir pra Nésima página
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)){
-          const pages = SolsticePages.list();
-          const idx = parseInt(e.key, 10) - 1;
-          if (pages[idx]) { e.preventDefault(); SolsticePages.switchTo(pages[idx].id); render(); }
-        }
-      });
-    }
-
-    return { render, _openPageMenu, initKeyboard, createPagePrompt: _createPagePrompt };
+    return { render, _openPageMenu };
   })();
 
   /* ============================================================

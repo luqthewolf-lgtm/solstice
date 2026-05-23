@@ -312,15 +312,6 @@
     --c-text: #F4F7FF; --c-text-2: #C5D0E8; --c-muted: #8090B0; --c-border: #34427A;
     --c-accent: #5BA8FF; --c-accent-hi: #87C2FF; --c-accent-lo: #2980E5;
     --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
-    /* B5-03 (v6-autonomous / DS-05 — Helena/Vercel): tons text-only
-       que passam WCAG AA. --c-warn original (FBBF24/D97706) é OK pra
-       backgrounds tintados mas tem 2.8:1 quando usado como `color:`
-       sobre fundo branco. As variantes -text-on-light são escurecidas
-       pra >= 4.5:1. Em dark mode, herdam o original (já passa). */
-    --c-warn-text: #FBBF24;
-    --c-success-text: #4ADE80;
-    --c-error-text: #F87171;
-    --c-info-text: #60A5FA;
     /* B4-03 (v6-autonomous / DS-03 — Helena/Vercel): 3 elevações documentadas.
        --sh-1: hover sutil em cards e botões (lift mínimo)
        --sh-2: dropdown, popover, tooltip (média intensidade)
@@ -335,11 +326,6 @@
     --c-text: #0A1020; --c-text-2: #2A3658; --c-muted: #4F5A78; --c-border: #C8D4EB;
     --c-accent: #1A6FE0; --c-accent-hi: #4D9FFF; --c-accent-lo: #0F4FA8;
     --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
-    /* B5-03: text-only variantes pra AA em light mode (over white) */
-    --c-warn-text: #854500;    /* contraste ~5:1 vs white */
-    --c-success-text: #15803D; /* contraste ~5:1 */
-    --c-error-text: #B91C1C;   /* contraste ~5:1 */
-    --c-info-text: #1D4ED8;    /* contraste ~6:1 */
     --sh-1: 0 2px 4px rgba(15,30,80,.10); --sh-2: 0 6px 14px rgba(15,30,80,.14); --sh-3: 0 14px 28px rgba(15,30,80,.18);
   }
 
@@ -427,16 +413,6 @@
     --c-accent: #EC5F00; --c-accent-hi: #FF6C00; --c-accent-lo: #B84800;
     --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
     --sh-1: 0 1px 2px rgba(80,40,0,.08); --sh-2: 0 4px 12px rgba(80,40,0,.12); --sh-3: 0 12px 28px rgba(80,40,0,.18);
-  }
-
-  /* B5-03 (v6-autonomous / DS-05): variantes -text WCAG AA pra TODAS
-     paletas light (regra geral, sobrescrevível por paleta específica
-     se quiser tom contextual). Aplica só em data-mode="light". */
-  :root[data-mode="light"] {
-    --c-warn-text: #854500;
-    --c-success-text: #15803D;
-    --c-error-text: #B91C1C;
-    --c-info-text: #1D4ED8;
   }
 
   /* === SLATE (neutro corporativo) === */
@@ -646,23 +622,6 @@
     z-index: 99;
     transition: transform var(--t-fast), box-shadow var(--t-fast);
     display: flex; align-items: center; justify-content: center;
-  }
-  /* B5-05 (v6-autonomous / OB-01): pulse na primeira visita pra atrair atenção */
-  .solstice__help-fab.is-first-visit::after {
-    content: '';
-    position: absolute; inset: -6px;
-    border-radius: 50%;
-    border: 2px solid var(--c-accent);
-    opacity: 0;
-    animation: solstice-fab-pulse 2s ease-out infinite;
-  }
-  @keyframes solstice-fab-pulse {
-    0%   { transform: scale(1); opacity: 0.7; }
-    60%  { transform: scale(1.6); opacity: 0; }
-    100% { transform: scale(1.6); opacity: 0; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .solstice__help-fab.is-first-visit::after { animation: none; opacity: 0; }
   }
   .solstice__help-fab:hover {
     transform: scale(1.08);
@@ -7736,92 +7695,6 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
-     B5-04 (v6-autonomous / I18N-02 — Yuki/Mercado Pago) — SolsticeFmt
-     Helper único com nomes idiomáticos pra formatação. Wrappers + extras
-     que SolsticeLocale não tinha:
-       • formatBRL(n) → "R$ 1.250"
-       • formatPct(n, digits) → "12,5%"
-       • formatInteger(n) → "1.234"
-       • formatDecimal(n, digits)
-       • formatDate(d, format) → "12 mai 2026"
-       • formatCompact(n) → "1,2 mi" / "3,5 mil" / "850" (NOVO)
-       • formatBytes(n) → "5,2 MB" (NOVO)
-       • formatDuration(ms) → "2 h 15 min" (NOVO)
-
-     Por que existe: hardcoded `R$ ` ou `(n*100).toFixed(2)+'%'` em
-     múltiplos lugares quebra na hora de trocar locale. SolsticeFmt
-     delega tudo pra Intl + SolsticeLocale.
-     ============================================================ */
-  const SolsticeFmt = (function(){
-    function formatBRL(n){
-      return SolsticeLocale.currency(n, 'BRL');
-    }
-    function formatPct(n, digits){
-      // n é fração 0..1 (Intl.NumberFormat style:'percent' espera assim)
-      return SolsticeLocale.percent(n, digits);
-    }
-    function formatInteger(n){ return SolsticeLocale.integer(n); }
-    function formatDecimal(n, digits){ return SolsticeLocale.decimal(n, digits); }
-    function formatDate(d, format){
-      const opts = format === 'long'   ? { dateStyle:'long' }
-                 : format === 'short'  ? { dateStyle:'short' }
-                 : format === 'full'   ? { dateStyle:'full' }
-                 : format === 'time'   ? { timeStyle:'short' }
-                 : format === 'datetime' ? { dateStyle:'medium', timeStyle:'short' }
-                 : { dateStyle:'medium' };
-      return SolsticeLocale.date(d, opts);
-    }
-
-    /** formatCompact(1234567) → "1,2 mi" · formatCompact(8500) → "8,5 mil" */
-    function formatCompact(num){
-      if (num == null || isNaN(num)) return '—';
-      try {
-        const loc = SolsticeLocale.get();
-        return new Intl.NumberFormat(loc, {
-          notation: 'compact',
-          maximumFractionDigits: 1
-        }).format(num);
-      } catch(_){
-        // Fallback manual
-        const abs = Math.abs(num);
-        if (abs >= 1e9) return (num/1e9).toFixed(1).replace('.', ',') + ' bi';
-        if (abs >= 1e6) return (num/1e6).toFixed(1).replace('.', ',') + ' mi';
-        if (abs >= 1e3) return (num/1e3).toFixed(1).replace('.', ',') + ' mil';
-        return String(Math.round(num));
-      }
-    }
-
-    /** formatBytes(5242880) → "5,0 MB" */
-    function formatBytes(bytes){
-      if (bytes == null || isNaN(bytes)) return '—';
-      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-      let i = 0;
-      let v = bytes;
-      while (v >= 1024 && i < units.length - 1){
-        v /= 1024;
-        i++;
-      }
-      // 1 decimal pra MB+, 0 pra B/KB
-      const decimals = i >= 2 ? 1 : 0;
-      return v.toFixed(decimals).replace('.', ',') + ' ' + units[i];
-    }
-
-    /** formatDuration(123456) → "2 min 3 s" · formatDuration(7200000) → "2 h" */
-    function formatDuration(ms){
-      if (ms == null || isNaN(ms)) return '—';
-      const s = Math.round(ms / 1000);
-      if (s < 60) return s + ' s';
-      const m = Math.round(s / 60);
-      if (m < 60) return m + ' min';
-      const h = Math.floor(m / 60);
-      const mm = m % 60;
-      return h + ' h' + (mm ? ' ' + mm + ' min' : '');
-    }
-
-    return { formatBRL, formatPct, formatInteger, formatDecimal, formatDate, formatCompact, formatBytes, formatDuration };
-  })();
-
-  /* ============================================================
      SolsticeErrors — catálogo humanizado
      10 erros iniciais. Cada erro: code, message, suggestion, severity.
      Bloco 2+ adicionarão mais via register().
@@ -11026,24 +10899,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }, 50);
       }
 
-      fab.addEventListener('click', () => {
-        // B5-05: primeira interação → para o pulse e marca como visitado
-        if (fab.classList.contains('is-first-visit')){
-          fab.classList.remove('is-first-visit');
-          try {
-            if (typeof SolsticeStorage !== 'undefined') SolsticeStorage.safeSet('solstice.help.firstSeen', '1');
-            else localStorage.setItem('solstice.help.firstSeen', '1');
-          } catch(_){}
-        }
-        _openPopover();
-      });
-      // B5-05: primeira visita → pulse no FAB (chama atenção pra ajuda)
-      try {
-        const seen = (typeof SolsticeStorage !== 'undefined')
-          ? SolsticeStorage.safeGet('solstice.help.firstSeen')
-          : localStorage.getItem('solstice.help.firstSeen');
-        if (!seen) fab.classList.add('is-first-visit');
-      } catch(_){}
+      fab.addEventListener('click', _openPopover);
       // Atalho "?" (Shift+/) abre o popover
       document.addEventListener('keydown', (e) => {
         if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
@@ -13791,27 +13647,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         ' para transformar · duplo-clique numa célula para editar valor.'));
 
       const tw = SolsticeUtils.el('div', { class:'solstice__data-table-wrap' });
-      // B5-02 (v6-autonomous / AC-03 — Marina/NVDA): tabela semântica
-      // role=table garante leitores reconhecerem; aria-rowcount/colcount
-      // ajudam NVDA a anunciar "linha 3 de 47". <caption> dá contexto.
-      const table = SolsticeUtils.el('table', {
-        class:'solstice__data-table',
-        role: 'table',
-        'aria-rowcount': String((rows && rows.length) || 0),
-        'aria-colcount': String((columns && columns.length) || 0)
-      });
-      const captionTxt = 'Preview do dataset' + (rows ? ' — ' + rows.length + ' linhas · ' + columns.length + ' colunas' : '');
-      table.appendChild(SolsticeUtils.el('caption', {
-        style:'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;'
-      }, captionTxt));
+      const table = SolsticeUtils.el('table', { class:'solstice__data-table' });
       const thead = SolsticeUtils.el('thead');
       const trh = SolsticeUtils.el('tr');
       columns.forEach(c => {
         const t = types[c];
         const friendly = SolsticeHumanize.column(c, dict);
         // Header clicável: nome → mudar tipo · ⚡ → transformar
-        // B5-02: scope="col" pra NVDA anunciar coluna ao ler célula
-        const th = SolsticeUtils.el('th', { class:'solstice__data-preview-th-rich', scope: 'col' });
+        const th = SolsticeUtils.el('th', { class:'solstice__data-preview-th-rich' });
         const nameBtn = SolsticeUtils.el('button', {
           class:'solstice__data-preview-th-name',
           type:'button',

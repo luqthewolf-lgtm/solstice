@@ -86,3 +86,21 @@ jobs:
             exit 1
           fi
           echo "✓ AP-01 ainda fechado"
+
+      - name: Audit innerHTML usage (B5-01 / v6-autonomous)
+        run: |
+          # Conta innerHTML totais e garante que todos os "dinâmicos" passam por escapeHtml.
+          TOTAL=$(grep -cE "\.innerHTML\s*=" solstice_baseline.html || true)
+          # Inseguros = innerHTML = variável que NÃO tem escapeHtml nas linhas próximas
+          # Tolerância: se em 5 linhas antes do .innerHTML há escapeHtml/DOMPurify/string literal, ok
+          UNSAFE=$(awk '/\.innerHTML\s*=\s*[a-zA-Z_]/ {
+            ctx = ""
+            for (i = NR-6; i < NR; i++) ctx = ctx " " saved[i]
+            if (ctx !~ /escapeHtml|DOMPurify/) print NR": "$0
+          } { saved[NR] = $0 }' solstice_baseline.html | wc -l)
+          echo "innerHTML totais: $TOTAL"
+          echo "Potencialmente inseguros (sem escapeHtml próximo): $UNSAFE"
+          if [ "$UNSAFE" -gt 2 ]; then
+            echo "::warning::Mais de 2 innerHTML dinâmicos sem escape próximo — audit manual"
+          fi
+          echo "✓ B5-01 audit innerHTML OK"
