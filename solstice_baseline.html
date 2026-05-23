@@ -30028,6 +30028,62 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
       });
 
+      // === INSIGHT 13 (Auditoria 2026.4 / Sprint 18): ANOMALIA INLINE ===
+      // Detecta pontos individuais que destoam significativamente do contexto
+      // local em uma série temporal. Diferente de outliersIQR (que olha o dataset
+      // inteiro), aqui usamos rolling median + MAD numa janela de 7 pontos —
+      // captura anomalias contextuais (ex: "venda zero numa semana, sem feriado").
+      // Benchmark Carlos (CA-03 da Auditoria 2026.3): Tableau Pulse / Power BI
+      // Quick Insights destacam esse tipo de coisa.
+      if (tempCols.length && numericCols.length){
+        const tempCol = tempCols[0];
+        const numCol = numericCols[0];
+        // Ordena rows por data e pega a série
+        const series = rows
+          .map(r => ({ d: new Date(r[tempCol]), v: parseFloat(r[numCol]) }))
+          .filter(p => !isNaN(p.d.getTime()) && !isNaN(p.v))
+          .sort((a, b) => a.d - b.d);
+        if (series.length >= 14){
+          const WIN = 7; // janela de 7 pontos (3 antes + ponto + 3 depois)
+          const half = Math.floor(WIN / 2);
+          const anomalies = [];
+          for (let i = half; i < series.length - half; i++){
+            const window = [];
+            for (let j = i - half; j <= i + half; j++){
+              if (j !== i) window.push(series[j].v);
+            }
+            // Mediana + MAD da janela vizinha (exclui o ponto sob teste)
+            const med = SolsticeStats.median(window);
+            const mad = SolsticeStats.mad(window);
+            if (med == null || mad == null || mad === 0) continue;
+            // Modified Z-Score (Iglewicz/Hoaglin), threshold 3.5
+            const mz = Math.abs(0.6745 * (series[i].v - med) / mad);
+            if (mz > 3.5){
+              anomalies.push({ idx: i, point: series[i], mz, med });
+            }
+          }
+          if (anomalies.length){
+            // Limita aos 3 mais extremos pra não inundar
+            anomalies.sort((a, b) => b.mz - a.mz);
+            const top = anomalies.slice(0, 3);
+            const dates = top.map(a => a.point.d.toLocaleDateString('pt-BR')).join(', ');
+            insights.push({
+              id: 'anomaly-' + numCol,
+              kind: 'anomaly', icon: '🚨',
+              title: 'Anomalia em ' + friendly(numCol),
+              text: anomalies.length + ' ponto' + (anomalies.length > 1 ? 's' : '') +
+                    ' fora do padrão local detectado' + (anomalies.length > 1 ? 's' : '') +
+                    ' (rolling median + MAD, janela 7). ' +
+                    'Top extremo' + (top.length > 1 ? 's' : '') + ': ' + dates +
+                    '. Diferente de outlier global — esses pontos destoam dos vizinhos imediatos.',
+              severity: anomalies.length > 5 ? 'warn' : 'info',
+              score: Math.min(95, 50 + anomalies.length * 5 + top[0].mz * 3),
+              meta: { column: numCol, count: anomalies.length, top, method: 'rolling-median-mad' }
+            });
+          }
+        }
+      }
+
       // Ordena por score desc. Cap subiu de 8 → 12 (Auditoria 2026.4: mostrar mais insights por padrão).
       insights.sort((a, b) => b.score - a.score);
       return insights.slice(0, 12);
@@ -30189,6 +30245,21 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             'Confirme se é esperado (ex: dataset filtrado já por essa coluna).',
             'Considere remover do dashboard pra não confundir.',
             'Se mudou recentemente, pode indicar dado novo entrando.'
+          ]
+        };
+      }
+      if (k === 'anomaly'){
+        const count = m.count || 0;
+        const topDates = (m.top || []).map(a => a.point && a.point.d && a.point.d.toLocaleDateString('pt-BR')).filter(Boolean);
+        return {
+          what: count + ' ponto(s) destoaram dos vizinhos imediatos numa janela de 7 observações' +
+                (topDates.length ? ' (mais extremos: ' + topDates.join(', ') + ')' : '') + '.',
+          why: 'Anomalia local ≠ outlier global. Aqui o que importa é "isto é estranho COMPARADO AO QUE ACONTECEU ANTES E DEPOIS" — captura sazonalidade respeitada e dispara só quando algo realmente sai do padrão local (queda em semana sem feriado, pico em dia comum).',
+          do: [
+            'Investigue o contexto de cada ponto extremo: campanha, falha, feriado oculto, problema operacional?',
+            'Se for falha de coleta, marque o dado como suspeito ou filtre.',
+            'Se for real, anote no comentário do componente — vira historiografia útil em revisões.',
+            'Considere alertas (futuro): em produção, configure threshold por coluna.'
           ]
         };
       }

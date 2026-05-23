@@ -5,6 +5,41 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 18 — "Anomaly detection inline (rolling median + MAD)" — 2026-05-23
+
+Atende ao item CA-07 do roadmap da Auditoria 2026.3 (e benchmark Carlos): Tableau Pulse / Power BI Quick Insights destacam pontos que destoam **do contexto local**, não só outliers globais via IQR.
+
+### ✨ Feature nova — Insight `kind: 'anomaly'`
+
+`SolsticeInsights.compute()` agora detecta anomalias inline em séries temporais quando há ≥1 coluna `temporal` + ≥1 coluna `numeric` no dataset (≥14 pontos):
+
+- Algoritmo: **rolling median + MAD (Iglewicz/Hoaglin)** numa janela de 7 pontos (3 antes + 3 depois). Modified Z-Score > 3.5 marca o ponto como anomalia local.
+- Diferente de `outliersIQR` (que olha o dataset inteiro): captura anomalias **contextuais** — "venda 5% do normal numa semana SEM feriado", "pico de 5× em terça comum".
+- Limita aos 3 mais extremos no card pra não inundar. Severity `warn` se >5 anomalias.
+
+### ✏️ `_explainKind('anomaly')` — explicação educativa
+
+Card de insight tem botão 💡 que abre explicação:
+- **🔎 O que é:** "N pontos destoaram dos vizinhos imediatos numa janela de 7 observações (mais extremos: DD/MM, DD/MM)."
+- **❓ Por que importa:** "Anomalia local ≠ outlier global. Captura sazonalidade respeitada e dispara só quando algo realmente sai do padrão local."
+- **✅ O que fazer:** investigar contexto, marcar falha de coleta como suspeita, anotar nos comentários do componente, considerar alertas no futuro.
+
+### Validação preview
+
+```
+Injetei dataset sintético: 30 dias, vendas com tendência + sin(t/3) + 2 anomalias
+em dias específicos (i=10: queda 5; i=20: pico 500).
+
+Resultado:
+- anomalyCount: 2 ✓
+- top extremos: 10/01/2026, 20/01/2026 ✓ (datas exatas que injetei)
+- title: "Anomalia em Vendas"
+- kinds da lista de insights: [anomaly, recency, outliers, overview]
+- anomaly ficou no topo (score alto)
+```
+
+---
+
 ## [Unreleased] — Sprint 16 — "aria-label em buttons só com ícone" — 2026-05-23
 
 ### ♿ A11y polish (Sprint 16 — A11y-03)
