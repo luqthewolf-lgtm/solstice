@@ -490,25 +490,6 @@
   .solstice__brand-name { color: var(--c-text); }
   .solstice__brand-sub  { color: var(--c-muted); font-size: var(--fs-xs); font-weight: var(--fw-regular); }
 
-  /* S4-02 (Sprint 4): título do dashboard ao lado da brand */
-  .solstice__brand-divider {
-    color: var(--c-muted); font-size: var(--fs-xl); margin: 0 var(--sp-1);
-    user-select: none; opacity: 0.5;
-  }
-  .solstice__brand-doctitle {
-    background: transparent; border: 1px solid transparent;
-    color: var(--c-text); font-size: var(--fs-base); font-weight: var(--fw-medium);
-    padding: 4px 10px; border-radius: var(--rad-sm); cursor: text;
-    font-family: inherit; max-width: 280px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    transition: background var(--t-fast), border-color var(--t-fast);
-  }
-  .solstice__brand-doctitle:hover { background: var(--c-surface-2); border-color: var(--c-border); }
-  .solstice__brand-doctitle:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
-  .solstice__brand-doctitle[contenteditable="true"] {
-    background: var(--c-surface); border-color: var(--c-accent); cursor: text;
-  }
-
   /* Sprint 1 (RC-01): Badge "100% local" no header — sinal de privacidade */
   .solstice__privacy-badge {
     display: inline-flex; align-items: center; gap: 6px;
@@ -606,6 +587,15 @@
   .solstice__btn--ghost { background: transparent; border-color: transparent; }
   .solstice__btn--ghost:hover { background: var(--c-surface-2); }
   .solstice__btn--icon { width: var(--row-h); padding: 0; }
+  /* B1-02: estado ativo (ex: botão "📎 atrelar pasta" quando há pasta atrelada) */
+  .solstice__btn.is-active {
+    background: color-mix(in srgb, var(--c-success) 16%, var(--c-surface-2));
+    color: var(--c-success);
+    border-color: color-mix(in srgb, var(--c-success) 35%, var(--c-border));
+  }
+  .solstice__btn.is-active:hover {
+    background: color-mix(in srgb, var(--c-success) 24%, var(--c-surface-2));
+  }
 
   /* Select pill */
   .solstice__pill {
@@ -6293,14 +6283,8 @@
         <div class="solstice__brand-name" id="brand-name">Solstice</div>
         <div class="solstice__brand-sub" id="brand-sub">Dashboard Studio</div>
       </div>
-      <!-- S4-02 (Sprint 4 / CR-01): título do dashboard editável ao lado da brand.
-           Clicável pra renomear. Esconde-se quando não há dataset (welcome ainda). -->
-      <div class="solstice__brand-divider" aria-hidden="true">·</div>
-      <button class="solstice__brand-doctitle" id="brand-doctitle" type="button"
-              title="Clique pra renomear o dashboard"
-              aria-label="Renomear dashboard">
-        Dashboard sem título
-      </button>
+      <!-- v6-autonomous / B1-01: título do dashboard MOVIDO pro SolsticeDashHeader (banner).
+           Aqui no header global fica só a brand (Solstice · Dashboard Studio). -->
     </div>
 
     <!-- Sprint 1 (RC-01): Badge "100% local" — sinaliza ao usuário que dados
@@ -6340,6 +6324,10 @@
         <!-- LE-06 (Sprint 2): refresh "manual mas reativo" — re-importa mantendo dashboard -->
         <button class="solstice__btn" id="btn-refresh-data" title="Recarregar dados do arquivo (mantém dashboard montado)" aria-label="Recarregar dados">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;"><path fill="currentColor" d="M13.65 2.35a8 8 0 0 0-13.18 8.6l1.5-1.5a6 6 0 0 1 10.14-5.6l-2.11 2.1H15V0l-1.35 2.35zM2.35 13.65A8 8 0 0 0 15.53 5.05l-1.5 1.5a6 6 0 0 1-10.14 5.6l2.11-2.1H1V16l1.35-2.35z"/></svg>
+        </button>
+        <!-- B1-02 (v6-autonomous): botão DEDICADO atrelar pasta. Substitui Shift+Click oculto. -->
+        <button class="solstice__btn" id="btn-attach-folder" title="Atrelar pasta do disco — refresh automático ao recarregar a página" aria-label="Atrelar pasta">
+          <span aria-hidden="true" style="font-size:14px;vertical-align:-2px;">📎</span>
         </button>
         <button class="solstice__btn" id="btn-save-menu" title="Salvar (Snapshot · Visão · Histórico)" aria-label="Abrir menu Salvar" aria-haspopup="menu">
           <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;"><path fill="currentColor" d="M2 2h11l1 1v11H2V2zm2 1v4h7V3H4zm4 1h2v2H8V4zM3 9h10v4H3V9z"/></svg>Salvar <span aria-hidden="true" style="opacity:0.6;font-size:10px;">▾</span>
@@ -10447,45 +10435,63 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    // LE-06 (Sprint 2) + S6-02 (Sprint 6): Refresh "manual mas reativo".
-    //
-    // S6-02 (Sprint 6): se o usuário ATRELOU uma pasta com showDirectoryPicker
-    // (Chrome 86+), o refresh re-lê o arquivo do nome SourceName direto da pasta.
-    // Caso contrário: cai no fluxo LE-06 (re-pickeia pelo file picker).
-    //
-    // Atrelar pasta: Shift+Click no botão refresh OU comando "Atrelar pasta"
-    // no Ctrl+K. Handle persiste na sessão atual (IndexedDB futuramente).
+    // LE-06 (Sprint 2) + S6-02 (Sprint 6) + B1-02 (v6-autonomous):
+    // Refresh "manual mas reativo" — separado de Atrelar pasta.
+    //   Click no 🔄 (refresh): se há pasta atrelada → re-lê arquivo; senão → file picker
+    //   Click no 📎 (attach):  abre showDirectoryPicker e atrela
+    // Sem mais Shift+Click oculto.
     const btnRefreshData = document.getElementById('btn-refresh-data');
     if (btnRefreshData){
-      // Shift+click → ATRELAR pasta (showDirectoryPicker)
-      btnRefreshData.addEventListener('click', async (e) => {
+      btnRefreshData.addEventListener('click', async () => {
         const dsReady = SolsticeStore.get('dataset.ready');
         if (!dsReady){
           SolsticeToast.info('Sem dados pra recarregar', 'Importe um arquivo primeiro.');
-          return;
-        }
-        if (e.shiftKey && typeof SolsticeFolderAttach !== 'undefined'){
-          // Atrelar nova pasta
-          const ok = await SolsticeFolderAttach.attach();
-          if (ok) SolsticeToast.success('Pasta atrelada', 'Refresh (clique simples) agora re-lê o arquivo automaticamente.');
           return;
         }
         // Modo automático se há pasta atrelada
         if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.isAttached()){
           const refreshed = await SolsticeFolderAttach.refresh();
           if (refreshed) return; // sucesso — file reimportado
-          // Se falhou, cai no fluxo manual abaixo
         }
         // Modo manual (sem pasta atrelada ou falha): file picker
         const ingest = SolsticeStore.get('ingest') || {};
         const lastName = ingest.sourceName || 'arquivo';
         const tip = (typeof window.showDirectoryPicker === 'function')
-          ? '💡 Shift+Click neste botão pra ATRELAR a pasta — refresh automático futuro.'
+          ? '💡 Use 📎 (atrelar pasta) ao lado pra refresh automático no futuro.'
           : '';
         SolsticeToast.info('Re-selecione o arquivo', 'Por segurança o navegador não guarda "' + lastName + '". ' + tip);
         fileInput.accept = '.csv,.tsv,.txt,.json';
         fileInput.click();
       });
+    }
+    // B1-02: botão dedicado Atrelar pasta
+    const btnAttachFolder = document.getElementById('btn-attach-folder');
+    if (btnAttachFolder){
+      btnAttachFolder.addEventListener('click', async () => {
+        if (typeof SolsticeFolderAttach === 'undefined' || !SolsticeFolderAttach.isSupported()){
+          SolsticeToast.warn('Não suportado', 'Atrelar pasta requer Chrome/Edge 86+. Continue importando manualmente.');
+          return;
+        }
+        const dsReady = SolsticeStore.get('dataset.ready');
+        if (!dsReady){
+          SolsticeToast.info('Importe primeiro', 'Atrelar pasta funciona depois de carregar um arquivo — assim sabemos qual recarregar.');
+          return;
+        }
+        const ok = await SolsticeFolderAttach.attach();
+        if (ok){
+          SolsticeToast.success('📎 Pasta atrelada', 'O ícone 🔄 agora recarrega automaticamente. Ao reabrir o navegador, o Solstice também atualiza.');
+          // Visual: marca o botão como "ativo"
+          btnAttachFolder.classList.add('is-active');
+          btnAttachFolder.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
+        }
+      });
+      // Restaura estado visual se já tem pasta atrelada (vindo do IDB no boot)
+      setTimeout(() => {
+        if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.isAttached()){
+          btnAttachFolder.classList.add('is-active');
+          btnAttachFolder.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
+        }
+      }, 600);
     }
 
     // 💾 Salvar ▾
@@ -10566,51 +10572,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // 5. Help button (reabre onboarding)
     document.getElementById('help-btn').addEventListener('click', () => SolsticeOnboarding.show());
 
-    // S4-02 (Sprint 4): título do dashboard editável no header
-    (function _initDocTitle(){
-      const btn = document.getElementById('brand-doctitle');
-      if (!btn) return;
-      const STORAGE_KEY = 'solstice.dashboard.title';
-      // Sincroniza: carrega do SolsticeDashHeader (se presente) ou localStorage
-      function _load(){
-        try {
-          const fromHeader = (typeof SolsticeDashHeader !== 'undefined') ? (SolsticeDashHeader.get() || {}).title : null;
-          if (fromHeader && fromHeader !== 'Dashboard sem título') return fromHeader;
-        } catch(_){}
-        try { return (typeof SolsticeStorage !== 'undefined' ? SolsticeStorage.safeGet(STORAGE_KEY) : localStorage.getItem(STORAGE_KEY)) || 'Dashboard sem título'; }
-        catch(_){ return 'Dashboard sem título'; }
-      }
-      function _save(v){
-        try {
-          if (typeof SolsticeStorage !== 'undefined') SolsticeStorage.safeSet(STORAGE_KEY, v);
-          else localStorage.setItem(STORAGE_KEY, v);
-        } catch(_){}
-        try {
-          if (typeof SolsticeDashHeader !== 'undefined' && SolsticeDashHeader.set){
-            SolsticeDashHeader.set({ title: v });
-          }
-        } catch(_){}
-        try { document.title = (v && v !== 'Dashboard sem título' ? v + ' — Solstice' : 'Solstice'); } catch(_){}
-      }
-      btn.textContent = _load();
-      btn.addEventListener('click', () => {
-        btn.contentEditable = 'true';
-        btn.focus();
-        // Seleciona tudo
-        const r = document.createRange(); r.selectNodeContents(btn);
-        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-      });
-      btn.addEventListener('blur', () => {
-        btn.contentEditable = 'false';
-        const v = (btn.textContent || '').trim() || 'Dashboard sem título';
-        btn.textContent = v;
-        _save(v);
-      });
-      btn.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter'){ e.preventDefault(); btn.blur(); }
-        if (e.key === 'Escape'){ e.preventDefault(); btn.textContent = _load(); btn.blur(); }
-      });
-    })();
+    // v6-autonomous / B1-01: título do dashboard MOVIDO pro SolsticeDashHeader.
+    // (Antes ficava no header global como #brand-doctitle — removido.)
+    // O título é editável diretamente no banner visual do dashboard, via
+    // SolsticeDashHeader.openConfig() OU pelo doubleclick no <h2> do banner.
 
     // SOL-B1 + SOL-A1: instala Modelo de Dados (relacionamentos) em idle, depois
     // do primeiro paint do welcome — não bloqueia main thread no boot.
@@ -10627,6 +10592,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // 7. Onboarding na primeira visita
     if (SolsticeOnboarding.isFirstTime()){
       setTimeout(() => SolsticeOnboarding.show(), 400);
+    }
+
+    // B1-04 (v6-autonomous): tenta restaurar pasta atrelada + auto-refresh
+    // se permissão ainda granted. Roda async no fundo, não bloqueia boot.
+    if (typeof SolsticeFolderAttach !== 'undefined' && SolsticeFolderAttach.restoreFromStorage){
+      setTimeout(() => {
+        SolsticeFolderAttach.restoreFromStorage().then(res => {
+          if (res.restored){
+            const btn = document.getElementById('btn-attach-folder');
+            if (btn){
+              btn.classList.add('is-active');
+              btn.title = '📎 Pasta atrelada: ' + (SolsticeFolderAttach.getAttachedName() || 'pasta') + '. Clique pra trocar.';
+            }
+            if (res.autoRefreshed){
+              console.log('[Solstice] Pasta atrelada restaurada + arquivo recarregado automaticamente.');
+            }
+          }
+        });
+      }, 400);
     }
 
     // 8. Console banner
@@ -10895,6 +10879,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     } catch(_){}
     // Renderiza tabbar inicial
     try { if (typeof SolsticePagesUI !== 'undefined') SolsticePagesUI.render(); } catch(_){}
+    // B1-05 (v6-autonomous): atalhos teclado pra multi-página
+    try { if (typeof SolsticePagesUI !== 'undefined' && SolsticePagesUI.initKeyboard) SolsticePagesUI.initKeyboard(); } catch(_){}
 
     // Sentinel de integridade — se este log não aparece no console, o boot foi
     // interrompido por erro silencioso em algum dos passos acima (ADR-024).
@@ -23553,7 +23539,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   const SolsticeDashHeader = (function(){
 
     const DEFAULT = {
-      enabled: false,
+      // v6-autonomous / B1-01: cabeçalho ATIVADO por padrão.
+      // Antes era opt-in (enabled:false) — usuário tinha que descobrir openConfig.
+      // Agora aparece desde o boot como "Dashboard sem título" clicável.
+      enabled: true,
       title: 'Dashboard sem título',
       subtitle: '',
       // SOL-C2: logo do dashboard. data URL ou URL externa. Aparece overlay top-right.
@@ -23660,7 +23649,31 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         class: cls,
         style: 'background:' + gradient + ';color:' + textColor + ';'
       });
-      el.appendChild(SolsticeUtils.el('h2', { class:'solstice__dash-header-title' }, cfg.title || ''));
+      // v6-autonomous / B1-01: título inline-editable. Click → contenteditable.
+      // Enter/blur salva via set({ title }), Esc reverte.
+      const titleEl = SolsticeUtils.el('h2', {
+        class:'solstice__dash-header-title',
+        title: 'Clique pra renomear o dashboard',
+        style:'cursor:text;outline:none;border-radius:4px;padding:2px 6px;margin:-2px -6px;'
+      }, cfg.title || 'Dashboard sem título');
+      titleEl.addEventListener('click', () => {
+        titleEl.contentEditable = 'true';
+        titleEl.focus();
+        const r = document.createRange(); r.selectNodeContents(titleEl);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      });
+      titleEl.addEventListener('blur', () => {
+        titleEl.contentEditable = 'false';
+        const v = (titleEl.textContent || '').trim() || 'Dashboard sem título';
+        titleEl.textContent = v;
+        try { set({ title: v }); } catch(_){}
+        try { document.title = (v && v !== 'Dashboard sem título' ? v + ' — Solstice' : 'Solstice'); } catch(_){}
+      });
+      titleEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter'){ e.preventDefault(); titleEl.blur(); }
+        if (e.key === 'Escape'){ e.preventDefault(); titleEl.textContent = cfg.title || 'Dashboard sem título'; titleEl.blur(); }
+      });
+      el.appendChild(titleEl);
       const subText = _buildSubtitleText(cfg);
       if (subText) el.appendChild(SolsticeUtils.el('div', { class:'solstice__dash-header-sub' }, subText));
       // SOL-C2: logo do dashboard (data URL ou URL). Overlay top-right via CSS.
@@ -34679,6 +34692,74 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
   })();
 
   /* ============================================================
+     B1-03 (v6-autonomous) — SolsticeIDB
+     Wrapper minimalista de IndexedDB pra serializar handles e estado
+     entre sessões. Existe pra:
+       1) Persistir FileSystemDirectoryHandle (Folder Attach)
+       2) (futuro) Cache de datasets pesados, snapshots binários
+
+     API:
+       SolsticeIDB.set(key, value) → Promise<void>
+       SolsticeIDB.get(key)        → Promise<any|null>
+       SolsticeIDB.del(key)        → Promise<void>
+       SolsticeIDB.isSupported()   → boolean
+
+     Schema: 1 DB "solstice-v1", 1 store "kv" {key, value}.
+     ============================================================ */
+  const SolsticeIDB = (function(){
+    const DB_NAME = 'solstice-v1';
+    const STORE   = 'kv';
+    let _dbPromise = null;
+
+    function isSupported(){ return typeof indexedDB !== 'undefined'; }
+
+    function _open(){
+      if (_dbPromise) return _dbPromise;
+      _dbPromise = new Promise((resolve, reject) => {
+        if (!isSupported()) return reject(new Error('IndexedDB indisponível'));
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => reject(req.error);
+      });
+      return _dbPromise;
+    }
+
+    function _tx(mode){
+      return _open().then(db => db.transaction(STORE, mode).objectStore(STORE));
+    }
+
+    function get(key){
+      return _tx('readonly').then(store => new Promise((resolve, reject) => {
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result == null ? null : req.result);
+        req.onerror   = () => reject(req.error);
+      })).catch(() => null);
+    }
+
+    function set(key, value){
+      return _tx('readwrite').then(store => new Promise((resolve, reject) => {
+        const req = store.put(value, key);
+        req.onsuccess = () => resolve();
+        req.onerror   = () => reject(req.error);
+      })).catch(e => { console.warn('[SolsticeIDB.set]', e); });
+    }
+
+    function del(key){
+      return _tx('readwrite').then(store => new Promise((resolve, reject) => {
+        const req = store.delete(key);
+        req.onsuccess = () => resolve();
+        req.onerror   = () => reject(req.error);
+      })).catch(e => { console.warn('[SolsticeIDB.del]', e); });
+    }
+
+    return { isSupported, get, set, del };
+  })();
+
+  /* ============================================================
      S6-02 (Sprint 6) — SolsticeFolderAttach
      Atrelamento de pasta via File System Access API (Chrome 86+).
      Permite "refresh automático" — re-lê o arquivo do nome SourceName
@@ -34697,10 +34778,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     const supported = typeof window.showDirectoryPicker === 'function';
     let dirHandle = null;
     let attachedSourceName = null;
+    const IDB_HANDLE_KEY = 'folder.handle';
+    const IDB_SOURCENAME_KEY = 'folder.sourceName';
 
     function isSupported(){ return supported; }
     function isAttached(){ return !!dirHandle; }
     function getAttachedName(){ return dirHandle ? (dirHandle.name || 'pasta') : null; }
+    function getAttachedSourceName(){ return attachedSourceName; }
 
     async function attach(){
       if (!supported){
@@ -34715,6 +34799,17 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const ingest = SolsticeStore.get('ingest') || {};
         attachedSourceName = ingest.sourceName || null;
         SolsticeStore.set('ui.folder.attachedName', handle.name);
+        // B1-04 (v6-autonomous): persiste handle + sourceName em IndexedDB
+        // pra auto-refresh ao re-abrir o navegador.
+        // Estruturedo clone do FileSystemDirectoryHandle É suportado em IDB
+        // a partir de Chrome 86 / Edge 86. Safari não suporta — set falha
+        // silenciosamente, ok.
+        if (typeof SolsticeIDB !== 'undefined' && SolsticeIDB.isSupported()){
+          try {
+            await SolsticeIDB.set(IDB_HANDLE_KEY, handle);
+            if (attachedSourceName) await SolsticeIDB.set(IDB_SOURCENAME_KEY, attachedSourceName);
+          } catch(e){ console.warn('[FolderAttach.persist]', e); }
+        }
         if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
           SolsticeAudit.record({ action:'folder_attach', target: handle.name });
         }
@@ -34731,16 +34826,76 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       dirHandle = null;
       attachedSourceName = null;
       SolsticeStore.set('ui.folder.attachedName', null);
+      // B1-04: limpa persistência
+      if (typeof SolsticeIDB !== 'undefined' && SolsticeIDB.isSupported()){
+        try {
+          SolsticeIDB.del(IDB_HANDLE_KEY);
+          SolsticeIDB.del(IDB_SOURCENAME_KEY);
+        } catch(_){}
+      }
     }
 
-    /** refresh() — tenta re-ler o arquivo do nome SourceName da pasta atrelada.
+    /**
+     * B1-04 (v6-autonomous): tenta restaurar handle do IDB ao boot.
+     * Se permissão ainda granted, faz auto-refresh do arquivo.
+     * Se permissão revogada (esperado), só restaura o estado visual
+     * e usuário precisa clicar refresh pra re-grant.
+     * Retorna { restored: bool, autoRefreshed: bool }.
+     */
+    async function restoreFromStorage(){
+      if (!supported) return { restored: false, autoRefreshed: false };
+      if (typeof SolsticeIDB === 'undefined' || !SolsticeIDB.isSupported()){
+        return { restored: false, autoRefreshed: false };
+      }
+      try {
+        const handle = await SolsticeIDB.get(IDB_HANDLE_KEY);
+        if (!handle) return { restored: false, autoRefreshed: false };
+        const sourceName = await SolsticeIDB.get(IDB_SOURCENAME_KEY);
+        dirHandle = handle;
+        attachedSourceName = sourceName || null;
+        SolsticeStore.set('ui.folder.attachedName', handle.name || 'pasta');
+
+        // Verifica permissão. Após reload, geralmente está 'prompt' (precisa user gesture).
+        const perm = await handle.queryPermission({ mode: 'read' });
+        if (perm === 'granted'){
+          // Auto-refresh imediato!
+          if (sourceName){
+            // Pequeno delay pra UI estabilizar antes do toast
+            setTimeout(async () => {
+              const ok = await refresh({ silent: false });
+              if (ok && typeof SolsticeAudit !== 'undefined') {
+                SolsticeAudit.record({ action: 'folder_auto_refresh', target: sourceName });
+              }
+            }, 800);
+            return { restored: true, autoRefreshed: true };
+          }
+        } else {
+          // Permissão precisa de re-grant via gesto do usuário.
+          // Mostra toast convidando a clicar no 🔄
+          setTimeout(() => {
+            SolsticeToast.info(
+              '📎 Pasta atrelada (' + (handle.name || 'pasta') + ')',
+              'Clique no 🔄 pra autorizar e recarregar "' + (sourceName || 'arquivo') + '" automaticamente.'
+            );
+          }, 1200);
+        }
+        return { restored: true, autoRefreshed: false };
+      } catch(e){
+        console.warn('[FolderAttach.restoreFromStorage]', e);
+        return { restored: false, autoRefreshed: false };
+      }
+    }
+
+    /** refresh(opts) — tenta re-ler o arquivo do nome SourceName da pasta atrelada.
+        opts.silent (default false) — não mostra toast "Recarregando…".
         Retorna true se conseguiu reimportar, false se precisar fallback manual. */
-    async function refresh(){
+    async function refresh(opts){
+      opts = opts || {};
       if (!dirHandle) return false;
       const ingest = SolsticeStore.get('ingest') || {};
       const fileName = attachedSourceName || ingest.sourceName;
       if (!fileName){
-        SolsticeToast.warn('Sem arquivo de origem', 'Importe um arquivo primeiro.');
+        if (!opts.silent) SolsticeToast.warn('Sem arquivo de origem', 'Importe um arquivo primeiro.');
         return false;
       }
       try {
@@ -34749,13 +34904,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         if (perm !== 'granted'){
           const req = await dirHandle.requestPermission({ mode:'read' });
           if (req !== 'granted'){
-            SolsticeToast.warn('Permissão negada', 'Re-atrelar pasta pra continuar.');
+            if (!opts.silent) SolsticeToast.warn('Permissão negada', 'Re-atrelar pasta pra continuar.');
             return false;
           }
         }
         const fileHandle = await dirHandle.getFileHandle(fileName);
         const file = await fileHandle.getFile();
-        SolsticeToast.info('Recarregando…', fileName + ' (' + Math.round(file.size/1024) + ' KB)');
+        if (!opts.silent) SolsticeToast.info('Recarregando…', fileName + ' (' + Math.round(file.size/1024) + ' KB)');
         // Chama o pipeline de ingest com o File obtido (mesma rota do file picker)
         if (typeof _runIngestFile === 'function'){
           await _runIngestFile(file, {});
@@ -34768,16 +34923,18 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         return true;
       } catch(e){
         console.warn('[FolderAttach.refresh]', e);
-        if (e && e.name === 'NotFoundError'){
-          SolsticeToast.warn('Arquivo não encontrado', '"' + fileName + '" não está na pasta atrelada. Re-atrelar ou re-importar manualmente.');
-        } else {
-          SolsticeToast.warn('Falha no refresh', e.message || 'Erro desconhecido');
+        if (!opts.silent){
+          if (e && e.name === 'NotFoundError'){
+            SolsticeToast.warn('Arquivo não encontrado', '"' + fileName + '" não está na pasta atrelada. Re-atrelar ou re-importar manualmente.');
+          } else {
+            SolsticeToast.warn('Falha no refresh', e.message || 'Erro desconhecido');
+          }
         }
         return false;
       }
     }
 
-    return { isSupported, isAttached, getAttachedName, attach, detach, refresh };
+    return { isSupported, isAttached, getAttachedName, getAttachedSourceName, attach, detach, refresh, restoreFromStorage };
   })();
 
   /* ============================================================
@@ -36858,25 +37015,30 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       });
 
       // Botão "+" pra criar nova página
+      // B1-05 (v6-autonomous): label "+ Nova página" mais convidativo + tooltip com atalho
       const plusBtn = SolsticeUtils.el('button', {
         type:'button',
         class:'solstice__page-tab-add',
-        title:'Criar nova página',
+        title:'Criar nova página (Ctrl+Shift+T)',
         'aria-label':'Nova página',
-        onclick: async () => {
-          const name = await SolsticeModal.prompt({
-            title:'Nova página',
-            message:'Nome da página:',
-            placeholder:'Ex: Outliers, Detalhe, Anomalias',
-            defaultValue:'Página ' + (SolsticePages.list().length + 1)
-          });
-          if (!name) return;
-          SolsticePages.create({ name: name.trim() });
-          SolsticeToast.success('Página criada', name);
-          render();
-        }
-      }, '+');
+        onclick: async () => _createPagePrompt()
+      });
+      plusBtn.appendChild(SolsticeUtils.el('span', { style:'font-size:14px;margin-right:4px;' }, '+'));
+      plusBtn.appendChild(SolsticeUtils.el('span', { style:'font-size:11px;font-weight:400;' }, 'Nova página'));
       host.appendChild(plusBtn);
+    }
+
+    async function _createPagePrompt(){
+      const name = await SolsticeModal.prompt({
+        title:'Nova página',
+        message:'Nome da página:',
+        placeholder:'Ex: Outliers, Detalhe, Anomalias',
+        defaultValue:'Página ' + (SolsticePages.list().length + 1)
+      });
+      if (!name) return;
+      SolsticePages.create({ name: name.trim() });
+      SolsticeToast.success('Página criada', name);
+      render();
     }
 
     function _openPageMenu(pageId, x, y){
@@ -36962,7 +37124,48 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       SolsticeStore.subscribe('canvas', () => { try { render(); } catch(_){} });
     } catch(_){}
 
-    return { render, _openPageMenu };
+    /** B1-05 (v6-autonomous): atalhos de teclado pra navegação multi-página.
+        Ctrl+Shift+T → nova página
+        Ctrl+Alt+→ / ← → próxima / anterior página
+        Ctrl+1..9 → vai pra Nésima página */
+    function initKeyboard(){
+      document.addEventListener('keydown', (e) => {
+        if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+        if (e.target && e.target.isContentEditable) return;
+        // Sem dataset, não faz sentido
+        if (!SolsticeStore.get('dataset.ready')) return;
+        // Sem modais abertos
+        if (document.querySelector('.solstice__modal-overlay')) return;
+
+        // Ctrl+Shift+T → nova página
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'T' || e.key === 't')){
+          e.preventDefault();
+          _createPagePrompt();
+          return;
+        }
+        // Ctrl+Alt+→ / Ctrl+Alt+← → próxima / anterior
+        if ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')){
+          e.preventDefault();
+          const pages = SolsticePages.list();
+          const cur = SolsticePages.activeId();
+          const idx = pages.findIndex(p => p.id === cur);
+          if (idx < 0) return;
+          const next = e.key === 'ArrowRight'
+            ? pages[(idx + 1) % pages.length]
+            : pages[(idx - 1 + pages.length) % pages.length];
+          if (next) { SolsticePages.switchTo(next.id); render(); }
+          return;
+        }
+        // Ctrl+1..9 → ir pra Nésima página
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)){
+          const pages = SolsticePages.list();
+          const idx = parseInt(e.key, 10) - 1;
+          if (pages[idx]) { e.preventDefault(); SolsticePages.switchTo(pages[idx].id); render(); }
+        }
+      });
+    }
+
+    return { render, _openPageMenu, initKeyboard, createPagePrompt: _createPagePrompt };
   })();
 
   /* ============================================================
