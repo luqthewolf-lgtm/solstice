@@ -21978,9 +21978,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const totalV = filteredFlows.reduce((sum, f) => sum + f.v, 0) || 1;
 
         const tier = _tierFor(host);
-        const W = tier.isLarge ? 540 : 420;
+        // Sprint 36 / EV-COMP-03: padX aumentado pra evitar labels do destino
+        // cortados (UFs como "MT", "RS" cabiam OK, mas "Centro-Oeste" e
+        // "Sudeste" ultrapassavam viewBox). Aumentado proporcionalmente +
+        // viewBox um pouco maior pra dar respiração.
+        const W = tier.isLarge ? 600 : 480;
         const H = tier.isLarge ? 340 : 280;
-        const padX = tier.isLarge ? 90 : 70, nodeW = 14, gap = 8;
+        const padX = tier.isLarge ? 110 : 90, nodeW = 14, gap = 8;
         const innerH = H - 40;
 
         // Calcula posições verticais cumulativas (alinhadas por proporção do total)
@@ -26131,15 +26135,64 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /** Nome amigável da coluna: dicionário > Title Case do snake_case. */
+    // Sprint 36 / EV-MODAL-04: dicionário BR de termos comuns com acento.
+    // Como CSV.gerar (Dummy) e CSVs reais costumam vir com headers sem
+    // acentuação (ASCII-safe), aplicamos um mapping pós-Title-Case que
+    // restaura acentos comuns: "regiao" → "Região", "uf" → "UF",
+    // "ticket_medio" → "Ticket Médio", etc.
+    const _BR_HUMANIZE_ACCENTS = {
+      'regiao': 'Região',
+      'regioes': 'Regiões',
+      'uf': 'UF',
+      'cpf': 'CPF',
+      'cnpj': 'CNPJ',
+      'cep': 'CEP',
+      'medio': 'Médio',
+      'media': 'Média',
+      'minimo': 'Mínimo',
+      'maximo': 'Máximo',
+      'numero': 'Número',
+      'periodo': 'Período',
+      'comissao': 'Comissão',
+      'devolucao': 'Devolução',
+      'devolucoes': 'Devoluções',
+      'transacao': 'Transação',
+      'transacoes': 'Transações',
+      'sessao': 'Sessão',
+      'sessoes': 'Sessões',
+      'liquido': 'Líquido',
+      'liquida': 'Líquida',
+      'unitario': 'Unitário',
+      'unitaria': 'Unitária',
+      'voluntario': 'Voluntário',
+      'mes': 'Mês',
+      'meses': 'Meses',
+      'pais': 'País',
+      'paises': 'Países',
+      'producao': 'Produção',
+      'duracao': 'Duração',
+      'cliente': 'Cliente',
+      'clientes': 'Clientes',
+      'situacao': 'Situação',
+      'situacoes': 'Situações',
+      'numeracao': 'Numeração'
+    };
     function column(columnName, dictionary){
       if (!columnName) return '—';
       const dictCol = dictionary && dictionary.columns && dictionary.columns[columnName];
       if (dictCol && dictCol.friendlyName) return dictCol.friendlyName;
-      return String(columnName)
+      const titled = String(columnName)
         .replace(/[_-]+/g, ' ')
         .replace(/([a-z])([A-Z])/g, '$1 $2')
         .toLowerCase()
         .replace(/\b\w/g, c => c.toUpperCase());
+      // Sprint 36: aplica acentos BR comum. Tokeniza por espaço pra
+      // preservar palavras compostas ("Ticket Medio" → "Ticket Médio").
+      return titled.split(' ').map(tok => {
+        const lower = tok.toLowerCase();
+        if (_BR_HUMANIZE_ACCENTS[lower]) return _BR_HUMANIZE_ACCENTS[lower];
+        return tok;
+      }).join(' ');
     }
 
     return { aggregation, delta, recordCount, timeRange, column };
@@ -26977,19 +27030,46 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           'Nenhum snapshot ainda. Salve o estado atual para reabrir depois.'));
       }
       snaps.forEach(snap => {
-        const item = SolsticeUtils.el('div', { class:'solstice__dict-item' });
+        // Sprint 36 / EV-ABA-03: melhorias na lista de snapshots:
+        //   - Tooltip com nome completo (já que aba lateral é estreita)
+        //   - Botões "Restaurar" (texto + emoji) em vez de só 📂 (não-óbvio)
+        //   - Nome usa só hora se for "Snapshot DD/MM/YYYY, HH:MM:SS" auto
+        const item = SolsticeUtils.el('div', {
+          class:'solstice__dict-item',
+          title: snap.name + ' · ' + new Date(snap.savedAt).toLocaleString('pt-BR')
+        });
         item.appendChild(SolsticeUtils.el('span', { class:'solstice__dict-item-icon' }, '📸'));
         const body = SolsticeUtils.el('div', { class:'solstice__dict-item-body' });
-        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, snap.name));
+        // Se nome auto-gerado começa com "Snapshot DD/MM..." abrevia pra "HH:MM"
+        let displayName = snap.name;
+        const autoMatch = /^Snapshot\s+\d{1,2}\/\d{1,2}\/\d{2,4}/.test(snap.name);
+        if (autoMatch){
+          const d = new Date(snap.savedAt);
+          displayName = 'Snapshot ' + d.toLocaleString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        }
+        body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-name' }, displayName));
         body.appendChild(SolsticeUtils.el('div', { class:'solstice__dict-item-meta' },
           new Date(snap.savedAt).toLocaleDateString('pt-BR') + ' · ' + Math.round(snap.size/1024) + ' KB'));
         item.appendChild(body);
         const acts = SolsticeUtils.el('div', { class:'solstice__dict-item-actions' });
-        acts.appendChild(SolsticeUtils.el('button', { title:'Carregar', 'aria-label':'Carregar snapshot ' + snap.name, onclick: () => SolsticeSnapshots.load(snap.id) }, '📂'));
-        acts.appendChild(SolsticeUtils.el('button', { title:'Remover', 'aria-label':'Remover snapshot ' + snap.name, onclick: async () => {
-          const ok = await SolsticeModal.confirm({ title:'Remover snapshot?', danger:true, message:snap.name, confirmLabel:'Remover' });
-          if (ok){ SolsticeSnapshots.remove(snap.id); _renderSnapsPanel(); }
-        }}, '🗑️'));
+        // Sprint 36 / EV-ABA-03: botão "Restaurar" mais óbvio — ↻ Restaurar
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--ghost',
+          style: 'font-size:11px;padding:3px 8px;',
+          title:'Restaurar este snapshot (substitui o dashboard atual)',
+          'aria-label':'Restaurar snapshot ' + snap.name,
+          onclick: () => SolsticeSnapshots.load(snap.id)
+        }, '↻ Restaurar'));
+        acts.appendChild(SolsticeUtils.el('button', {
+          class:'solstice__btn solstice__btn--ghost',
+          style: 'font-size:11px;padding:3px 8px;',
+          title:'Remover snapshot',
+          'aria-label':'Remover snapshot ' + snap.name,
+          onclick: async () => {
+            const ok = await SolsticeModal.confirm({ title:'Remover snapshot?', danger:true, message:snap.name, confirmLabel:'Remover' });
+            if (ok){ SolsticeSnapshots.remove(snap.id); _renderSnapsPanel(); }
+          }
+        }, '🗑️'));
         item.appendChild(acts);
         list.appendChild(item);
       });
@@ -33138,12 +33218,17 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // não precisa ser repetida em texto de negócio.
 
       // === Coleta KPIs com analytics ===
-      const kpis = _collect('kpi');
+      // Sprint 36 / EV-COMP-12: bug crítico — Narrativa Automática mostrava
+      // placeholder "Adicione KPIs..." mesmo com 4 KPIs aplicados. Causa:
+      // `parseFloat(r[col])` falha em colunas BR ("R$ 1.234,56"), values=[],
+      // kpiAnalytics=[], cai no fallback. Migrado pra SolsticeStats.parseNum
+      // (J-1, Sprint 33). Também coleta 'bignum' (que conta como KPI).
+      const kpis = _collect('kpi').concat(_collect('bignum'));
       const kpiAnalytics = kpis.map(k => {
         const col = k.config && k.config.column;
         if (!col) return null;
         const agg = (k.config && k.config.agg) || 'sum';
-        const values = rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        const values = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (!values.length) return null;
         const val = SolsticeStats[agg] ? SolsticeStats[agg](values) : SolsticeStats.sum(values);
         const trend = SolsticeStats.trend(values) || { direction:'flat', magnitude:0 };
@@ -33227,8 +33312,14 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         lines.push('');
       }
 
+      // Sprint 36 / EV-COMP-12: fallback mais informativo — distingue
+      // "sem KPI no dashboard" de "KPIs sem coluna configurada"
       if (!kpiAnalytics.length){
-        lines.push('_Adicione KPIs ao dashboard para um resumo executivo completo._');
+        if (!kpis.length){
+          lines.push('_Sem KPI Cards ou BigNum no dashboard. Adicione pelo menos um para ver destaques/alertas no resumo._');
+        } else {
+          lines.push('_Há ' + kpis.length + ' KPI(s) no dashboard, mas nenhum tem coluna numérica configurada. Selecione cada KPI e escolha uma coluna em ⚙️ Configurar._');
+        }
       }
 
       // Auditoria 2026 (M-N-1 / A-707): leitura cruzada entre métricas.
