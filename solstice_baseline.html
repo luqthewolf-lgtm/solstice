@@ -3221,11 +3221,14 @@
      Cards grandes em grid 3-col responsivo. Primary = Express (accent).
      Briefing v5.4: "welcome reescrito em 3 caminhos progressivos". */
   .solstice__welcome-paths {
+    /* Sprint 25 / F-16: tour interativo (row de cima) ficava grudado nos
+     * cards de import. Adicionado margin-top pra dar respiro visual. */
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--sp-3);
     width: 100%;
     max-width: 920px;
+    margin-top: var(--sp-5);
     margin-bottom: var(--sp-4);
   }
     .solstice__welcome-path {
@@ -3924,6 +3927,10 @@
      ADR-062 (B7-r1): teto vertical absoluto como salvaguarda contra estouro de seção.
      Camada Style: lê CSS custom properties que SolsticeStyle.apply() injeta. */
   .solstice__comp {
+    /* Sprint 25 / F-10: max-height antes era 460px hardcoded — Vtable em slot
+     * solo (1col) ficava limitada a 460px e usuário tinha que scrollar
+     * dentro pra ver todas as linhas, mesmo com slot grande. Aumentado pra
+     * 80vh, com exceção mais permissiva pra Vtable abaixo (:has). */
     background: var(--comp-bg, var(--c-surface));
     border: var(--comp-border-width, 1px) var(--comp-border-style, solid) var(--comp-border-color, var(--c-border));
     border-radius: var(--comp-radius, var(--rad-md));
@@ -3931,7 +3938,7 @@
     padding: var(--comp-padding, var(--sp-3) var(--sp-4));
     display: flex; flex-direction: column;
     min-height: 120px;
-    max-height: 460px;
+    max-height: 80vh;
     overflow: hidden;
     transition: all var(--t-fast);
     position: relative;
@@ -3939,6 +3946,19 @@
     font-family: var(--comp-font-family, inherit);
     text-align: var(--comp-text-align, left);
     color: var(--comp-text-color, inherit);
+  }
+  /* Sprint 25 / F-10: Vtable usa todo o espaço vertical disponível.
+   * :has(.v56-vtable) detecta o slot que contém a tabela virtualizada. */
+  .solstice__comp:has(.v56-vtable) {
+    max-height: 95vh;
+  }
+  .solstice__comp:has(.v56-vtable) .solstice__comp-body {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .solstice__comp:has(.v56-vtable) .v56-vtable {
+    flex: 1;
+    min-height: 300px;
   }
   .solstice__comp:hover { border-color: var(--comp-border-hover, var(--c-accent)); }
   .solstice__comp.is-selected {
@@ -13391,12 +13411,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         (panel.__editorFolder || panel).appendChild(moreBtn);
       }
 
-      // PASTAS v5 (Auditoria 2026.4): renderiza outras bases como pastas FECHADAS abaixo da ativa.
-      // Clique no summary abre. Clique em "▶ Ativar" troca pra essa base (vira ativa).
+      // PASTAS v6 (Sprint 25 / F-05 + F-06): renderiza outras bases como pastas
+      // ABERTAS abaixo da ativa, com colunas visíveis. Antes ficavam fechadas
+      // — user reclamou que "2ª base não mostra colunas". Agora vê tudo ao
+      // mesmo tempo. Mantém botão Ativar pra trocar base principal.
+      // F-06: mantém aqui ao invés de duplicar em Modelo — esta é a view de
+      // colunas (Dados), Modelo trata da TOPOLOGIA das bases e relações.
       const otherDatasets = datasets.filter(d => d.id !== activeId);
       otherDatasets.forEach(ds => {
         const otherFolder = SolsticeUtils.el('details', {
           class:'solstice__editor-folder',
+          open: '',  // Sprint 25 / F-05: aberta por default pra ver colunas
           style:'margin-top:4px;'
         });
         const otherSummary = SolsticeUtils.el('summary', {
@@ -13410,7 +13435,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         otherSummary.appendChild(SolsticeUtils.el('span', {
           style:'font-family:var(--font-mono);font-size:10px;color:var(--c-muted);'
         }, (ds.columns || []).length + ' col'));
-        // Botão Ativar
+        // Sprint 25 / F-07: agora 2 botões — Ativar (vira principal) e Desvincular (remove do painel)
+        otherSummary.appendChild(SolsticeUtils.el('button', {
+          style:'background:transparent;color:var(--c-muted);border:1px solid var(--c-border);border-radius:var(--rad-xs);padding:2px 8px;font-size:10px;cursor:pointer;',
+          title:'Remover esta base do painel (arquivo original intacto)',
+          onclick: async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+              const ok = await SolsticeModal.confirm({
+                title: 'Desvincular base?',
+                message: 'A base "' + ds.name + '" será removida do painel. O arquivo original não é deletado.',
+                confirmLabel: 'Desvincular',
+                danger: true
+              });
+              if (!ok) return;
+              const MC = (window.Solstice && window.Solstice.V56 && window.Solstice.V56.MultiCSV);
+              if (MC && MC.remove) MC.remove(ds.id);
+            } catch(_){}
+          }
+        }, '✕'));
         otherSummary.appendChild(SolsticeUtils.el('button', {
           style:'background:var(--c-accent);color:#fff;border:0;border-radius:var(--rad-xs);padding:2px 8px;font-size:10px;font-weight:600;cursor:pointer;',
           title:'Ativar esta base como principal do app',
@@ -13424,21 +13468,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
         }, '▶ Ativar'));
         otherFolder.appendChild(otherSummary);
-        // Body com lista compacta (sem fillbar/issues — só nome + tipo)
+        // Body com lista compacta (sem fillbar/issues — só nome + tipo).
+        // Sprint 25 / F-05: aumentado limite de 15 → 30 colunas pra cobrir
+        // casos mais comuns sem precisar de "+ X colunas" truncado.
         const body = SolsticeUtils.el('div', {
           style:'padding:6px 8px;display:flex;flex-direction:column;gap:2px;font-family:var(--font-mono);font-size:11px;color:var(--c-text-2);'
         });
-        (ds.columns || []).slice(0, 15).forEach(c => {
+        (ds.columns || []).slice(0, 30).forEach(c => {
           const t = (ds.types && ds.types[c] && ds.types[c].type) || '?';
           const ic = (typeof SolsticeTypes !== 'undefined' && SolsticeTypes.icon) ? (SolsticeTypes.icon(t) || '·') : '·';
           body.appendChild(SolsticeUtils.el('div', {
             style:'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'
           }, ic + ' ' + c));
         });
-        if ((ds.columns || []).length > 15){
+        if ((ds.columns || []).length > 30){
           body.appendChild(SolsticeUtils.el('div', {
             style:'color:var(--c-muted);font-size:10px;margin-top:2px;'
-          }, '+ ' + ((ds.columns || []).length - 15) + ' colunas'));
+          }, '+ ' + ((ds.columns || []).length - 30) + ' colunas — ative pra ver todas'));
         }
         otherFolder.appendChild(body);
         panel.appendChild(otherFolder);
