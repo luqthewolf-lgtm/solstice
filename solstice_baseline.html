@@ -20449,8 +20449,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const summary = SolsticeUtils.el('div', {
           style: 'font-size:11px;color:var(--c-text-2);margin-top:8px;display:flex;justify-content:space-between;align-items:center;'
         });
+        // Sprint 34 / BUG-VIS-01: concordância pt-BR adequada por bin.
+        // Antes: "6 monthes" (bin "month" + "es" no plural — quebrado).
+        const _binLabel = (() => {
+          const map = {
+            day:   { sing: 'dia',     plural: 'dias' },
+            week:  { sing: 'semana',  plural: 'semanas' },
+            month: { sing: 'mês',     plural: 'meses' },
+            year:  { sing: 'ano',     plural: 'anos' }
+          };
+          const m = map[cfg.bin] || map.month;
+          return periods === 1 ? m.sing : m.plural;
+        })();
         summary.appendChild(SolsticeUtils.el('span', null,
-          'Projeta ' + ctx.L.decimal(lastProj, 1) + ' em ' + periods + ' ' + (cfg.bin || 'mês') + (periods === 1 ? '' : 'es')));
+          'Projeta ' + ctx.L.decimal(lastProj, 1) + ' em ' + periods + ' ' + _binLabel));
         summary.appendChild(SolsticeUtils.el('span', { style: 'color:' + color + ';font-weight:600;' },
           direction + ' ' + Math.abs(deltaPct).toFixed(1) + '% vs último período histórico'));
         host.appendChild(summary);
@@ -21670,11 +21682,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (typeof SolsticeParams !== 'undefined' && SolsticeParams.resolveText){
         pre = SolsticeParams.resolveText(pre);
       }
+      // Sprint 34 / S-01 (André/Sec CVSS 7.5): escape do valor cru do Store
+      // antes da concatenação. Antes: `String(v)` ia direto pro innerHTML, e
+      // atacante que controlasse qualquer chave do Store (ex: nome de
+      // dataset/coluna importada) podia injetar HTML/JS. Com CSP fraca
+      // (unsafe-inline), virava RCE-no-cliente. Agora escapamos.
+      const _esc = (s) => SolsticeUtils.escapeHtml(String(s));
       const withVars = pre.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, p) => {
         const v = SolsticeStore.get(p);
-        if (v == null) return '<span class="solstice__md-placeholder">{{' + p + '}}</span>';
-        if (typeof v === 'object') return '<span class="solstice__md-placeholder">' + p + '</span>';
-        return String(v);
+        if (v == null) return '<span class="solstice__md-placeholder">{{' + _esc(p) + '}}</span>';
+        if (typeof v === 'object') return '<span class="solstice__md-placeholder">' + _esc(p) + '</span>';
+        return _esc(v);
       });
       // Auditoria 2026 (JM-01 / HV-01): renderer de markdown — exceção
       // controlada à política. innerHTML é usado APÓS cada token dinâmico
