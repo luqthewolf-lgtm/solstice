@@ -5168,10 +5168,12 @@
      Section-body com padding interno para "respirar" — rows ficam visivelmente
      CONTIDAS na seção. Header é o "topo do manto" com ações da seção. */
   .solstice__section {
+    /* Sprint 37: espaçamento entre seções aumentado (sp-4 → sp-5)
+     * pra melhor respiração visual entre blocos. */
     background: var(--c-surface);
     border: 1px solid color-mix(in srgb, var(--c-accent) 18%, var(--c-border));
     border-radius: var(--rad-md);
-    margin-bottom: var(--sp-4);
+    margin-bottom: var(--sp-5);
     overflow: hidden;
     box-shadow: 0 1px 3px color-mix(in srgb, var(--c-text) 6%, transparent),
                 0 4px 12px color-mix(in srgb, var(--c-text) 3%, transparent);
@@ -5182,10 +5184,11 @@
   }
   /* Body com padding interno = "espaço respirável" dentro do manto */
   .solstice__section-body {
-    padding: var(--sp-3);
+    /* Sprint 37: padding e gap aumentados pra respiração entre rows */
+    padding: var(--sp-4);
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-4);
     background: color-mix(in srgb, var(--c-bg) 60%, var(--c-surface));
   }
   /* ADR-158 (v3): section-head gruda no topo do canvas-scroller enquanto a seção
@@ -5319,9 +5322,16 @@
      do Style. Permite ver que rows são containers, e ao hover/select fica claro
      que aquela linha pode ser manipulada. */
   .solstice__row {
+    /* Sprint 37: alinhamento vertical top-aligned por default. Antes
+     * era stretch (default do grid), gerando KPIs esticados quando havia
+     * charts altos na mesma row. Slots que QUEREM stretch (charts) podem
+     * usar align-self: stretch individualmente — pra cima default é
+     * mais previsível e bate com o que o usuário espera (alinhados pelo
+     * topo, como Power BI). */
     display: grid;
     gap: var(--sp-3);
-    margin-bottom: var(--sp-3);
+    margin-bottom: var(--sp-4);
+    align-items: start;
     position: relative;
     min-height: 80px;
     /* Manto sutil */
@@ -13045,11 +13055,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return totalCells > 0 ? 1 - (totalNulls / totalCells) : 0;
     }
     function _validity(issues, totalCells, rows){
-      // Sprint 26 / F-08: antes contava TODOS os invalid como problema de
-      // qualidade — mas se >95% dos valores de uma coluna são "inválidos"
-      // pra o tipo inferido, é o TIPO que está errado (ex: "regiao" inferida
-      // como geo_uf, mas valores são "Sudeste/Sul/etc" — dimensão livre).
-      // Nessa situação não penalizamos validity, só sinalizamos via flag.
+      // Sprint 26 / F-08 + Sprint 37: classificação MACRO importa mais que micro.
+      // Se >95% inválidos pra micro tipo MAS macro está OK (dimension/geo/id),
+      // não conta como problema — sistema funciona com a classificação macro.
+      // Se macro também não bate (ex: tentaram inferir number mas é dimension),
+      // aí sim conta.
       if (totalCells === 0) return 1;
       const rowCount = (rows && rows.length) || 1;
       let realInvalid = 0;
@@ -13142,6 +13152,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           // alguns outliers" — não erro de qualidade, é INFO com sugestão.
           // Sprint 26 / F-08: 3 níveis agora — pequeno desvio (info), tipo
           // possivelmente errado (warn), ou problema real (error).
+          // Sprint 37: classificação MACRO primeiro. Quando micro tipo
+          // (geo_uf/email/cpf) não bate, o sistema sabe que pelo macro
+          // (Dimensão) está OK. Não alarmamos como "errado" — informamos
+          // discretamente como "info", e o macro tipo é o que importa pra
+          // montar dashboard. User pode reclassificar se quiser refinar.
+          const macroGroup = SolsticeTypes.userGroup ? SolsticeTypes.userGroup(types[c] && types[c].type, types[c]) : null;
+          const isDimensionByMacro = macroGroup === 'dimension' || macroGroup === 'geo' ||
+                                     macroGroup === 'ordinal' || macroGroup === 'id' ||
+                                     macroGroup === 'contact';
           if (invalidRatio < 0.25){
             flags.push({
               col: c, level: 'info',
@@ -13149,12 +13168,21 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               actionable: { reclassifyTo: 'dimension' }
             });
           } else if (invalidRatio >= 0.95){
-            // Tipo provavelmente errado — não é defeito de dados.
-            flags.push({
-              col: c, level: 'warn',
-              msg: `Tipo "${typeName}" provavelmente errado — valores não casam. Reclassifique pra dimensão.`,
-              actionable: { reclassifyTo: 'dimension' }
-            });
+            // Sprint 37: micro tipo errado mas macro OK = level=info (era warn).
+            // Mensagem positiva: macro já está classificado, micro é refinamento.
+            if (isDimensionByMacro){
+              flags.push({
+                col: c, level: 'info',
+                msg: `Classificado como Dimensão · subtipo "${typeName}" não casa. Funciona pra dashboard mesmo assim — clique pra refinar.`,
+                actionable: { reclassifyTo: 'dimension' }
+              });
+            } else {
+              flags.push({
+                col: c, level: 'warn',
+                msg: `Tipo "${typeName}" provavelmente errado — valores não casam. Reclassifique pra dimensão.`,
+                actionable: { reclassifyTo: 'dimension' }
+              });
+            }
           } else {
             flags.push({ col: c, level: 'error', msg: `${colIssue.invalid} inválidos (tipo ${typeName})` });
           }
@@ -19462,11 +19490,58 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
 
       // Patch UX (ADR-105): handle ↘ no canto inferior direito para resize livre
+      // Sprint 37: tooltip menciona duplo-clique pra reset. User reportou
+      // que arrastava o card e não conseguia voltar pro tamanho padrão.
       const corner = SolsticeUtils.el('div', {
         class:'solstice__resize-corner',
-        title:'Arraste para redimensionar (largura + altura)'
+        title:'Arraste para redimensionar · Duplo-clique para resetar ao padrão'
       }, '↘');
       corner.addEventListener('mousedown', (e) => _onCornerResizeStart(e, slot, wrap));
+      // Sprint 37: duplo-clique no canto reseta tamanho do slot + widths da row
+      corner.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
+          let reset = false;
+          for (const sec of sections) for (const r of sec.rows){
+            const sl = r.slots.find(x => x.id === slot.id);
+            if (sl){
+              // Apaga override de tamanho do slot
+              if (sl.config && sl.config.size){
+                delete sl.config.size;
+                reset = true;
+              }
+              // Apaga widths customizado da row (volta pro layout default)
+              if (r.widths){
+                delete r.widths;
+                if (r.layout === 'custom'){
+                  // Restaura layout em colunas iguais se não há layout prévio
+                  r.layout = r.slots.length === 1 ? '1col' :
+                             r.slots.length === 2 ? '2col-equal' :
+                             r.slots.length === 3 ? '3col-equal' :
+                             '4col-equal';
+                }
+                reset = true;
+              }
+              if (r.minHeight && r.minHeight > 80){
+                delete r.minHeight;
+                reset = true;
+              }
+              break;
+            }
+          }
+          if (reset){
+            SolsticeStore.set('canvas.sections', sections);
+            SolsticeToast.success('Tamanho resetado', 'Card voltou ao padrão da linha');
+            try {
+              SolsticeAudit.record({ action:'reset_slot_size', target: slot.id });
+            } catch(_){}
+          } else {
+            SolsticeToast.info('Já no tamanho padrão', 'Este card não tem override de tamanho');
+          }
+        } catch(err){ SolsticeLog.warn('[resize-reset]', err); }
+      });
       wrap.appendChild(corner);
 
       host.appendChild(wrap);
