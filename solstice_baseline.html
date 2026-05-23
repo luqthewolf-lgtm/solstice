@@ -359,8 +359,9 @@
 /* ===== TEMAS — 6 PALETAS × DARK/LIGHT ===== */
 @layer theme {
 
-  /* === OCEAN (default) — v8 polish: surface-2/3 mais escuros para texto branco legível
-     Lucas: "diminuir o tom do cinza pra ficar um pouco mais preto pra conseguir ler texto branco" */
+  /* === OCEAN (default) — v8 polish: surface-2/3 mais escuros para texto branco legível.
+     Tons mais escuros melhoram contraste WCAG AA pra texto branco sobre surface
+     escura, especialmente em densidade compact. */
   :root[data-palette="ocean"][data-mode="dark"] {
     --c-bg: #060B18; --c-surface: #14203A; --c-surface-2: #1B2A4D; --c-surface-3: #243559;
     --c-text: #F4F7FF; --c-text-2: #C5D0E8; --c-muted: #8090B0; --c-border: #34427A;
@@ -1621,10 +1622,10 @@
   }
   .solstice__style-section-body .solstice__props-field {
     margin-bottom: 0;
-    /* Lucas Fix 16: manto sutil em CADA field do Style tab (Aparência,
-       Tipografia, Específico, Visibilidade). Antes só Cores>Conteúdo tinha.
-       Lucas: "por que não fez na aparencia do card? e é exatamente isso que
-       eu quero que faça na linha da seção". */
+    /* Style Tab Fix 16 (Auditoria 2026.4): manto sutil em CADA field do
+       Style tab (Aparência, Tipografia, Específico, Visibilidade). Antes só
+       Cores>Conteúdo tinha — inconsistência visual entre fields. Agora todos
+       seguem o mesmo padrão. */
     padding: 8px 10px;
     background: color-mix(in srgb, var(--c-accent) 4%, var(--c-surface));
     border: 1px solid var(--c-border);
@@ -4596,11 +4597,12 @@
     height: 48px; width: 3px;
   }
 
-  /* HOTFIX v5.5 #112: Manto da linha redimensionavel (altura).
-     Lucas: "seria legal poder puxar o manto da linha que protege e poder
-     aumentar diminuir alargar e afins". Adiciona handle na borda inferior
-     do .solstice__row pra arrastar altura. Largura ja eh controlada por
-     grid (data-layout) + widths customizadas dos slots. */
+  /* HOTFIX v5.5 #112: Linha redimensionável (altura).
+     Antes a altura da row era fixa pelo conteúdo; usuário queria aumentar/
+     diminuir manualmente pra criar hierarquia visual entre rows. Adiciona
+     handle na borda inferior do .solstice__row para arrastar altura.
+     Largura continua controlada por grid (data-layout) + widths customizadas
+     dos slots. */
   .solstice__row-resize-bottom {
     position: absolute;
     left: 0; right: 0; bottom: -4px;
@@ -4787,9 +4789,9 @@
      conflitar com botões do header (excluir, configurar etc). */
   .solstice__slot-inserter {
     /* Audit Fix 14: hit area com APENAS 12-15% da altura do componente, no centro
-       vertical. Lucas: "pegaria um pedacinho 10 15% e um + bem clarinho pra
-       adicionar kpis do lados referente. menos em cima ou em baixo."
-       IDLE: invisível. HOVER: halo + botão "+" suave. Não invade header/footer. */
+       vertical. Reserva header/footer do slot para suas próprias ações (editar,
+       configurar, remover) sem conflito de clique. IDLE: invisível. HOVER: halo
+       + botão "+" suave. Não invade header/footer. */
     position: absolute;
     top: 42%;                  /* Começa em 42% da altura (centro vertical) */
     height: 16%;                /* Apenas 16% — bem ofuscado, NUNCA em cima/baixo */
@@ -4894,8 +4896,9 @@
     position: relative;
   }
   /* Resize corner ↘ visível em TODOS os componentes (com e sem conteúdo).
-     Lucas: "tirou o re-size de quando coloca o componente, está errado. era
-     pra continuar com a logica." Voltei pra visibilidade normal por hover. */
+     Auditoria 2026.4: regressão temporária escondia o corner em slots vazios;
+     restaurado o comportamento de visibilidade por hover em todos os estados.
+     Mantém affordance consistente entre slot preenchido e vazio. */
   .solstice__resize-corner {
     position: absolute;
     bottom: 0;
@@ -5088,8 +5091,10 @@
 
   /* Section */
   /* Audit Fix 15: SEÇÃO como "manto que abraça as rows".
-     Lucas: "criar opção de deixar um fundo que agrupe as linhas pra entender
-     que é realmente um espaço dentro dele e deixar a função de alterar,
+     Fundo sutil agrupa visualmente as rows da seção — torna explícito o
+     escopo da seção e fornece superfície visual para affordances de
+     edição (mover, renomear, etc.) sem competir com o conteúdo dos slots.
+     Auditoria 2026.4: comentário reformulado para remover citação direta.
      duplicar e afins com ele mesmo. como um manto que protege."
 
      Visual: bg sutil contrastando com canvas + border accent + sombra.
@@ -5184,9 +5189,10 @@
     background: var(--c-surface-3);
     color: var(--c-text);
   }
-  /* Lucas Fix 16: mover cima/baixo com estado disabled CLARO
-     (Lucas: "o mover pra baixo e mover pra cima da seção n da pra entender nada").
-     Antes: '·' como conteúdo (parecia bullet aleatório). Agora: ↑/↓ sempre,
+  /* Audit Fix 16 (Auditoria 2026.4): mover cima/baixo com estado disabled CLARO.
+     Antes: glyph '·' como conteúdo (parecia bullet aleatório, sem affordance
+     de direção). Agora: ↑/↓ sempre visíveis, com estado disabled explícito
+     quando não há mais para onde mover. Aumenta legibilidade do controle.
      com opacity reduzida e cursor not-allowed quando desabilitado. */
   .solstice__section-btn[disabled],
   .solstice__section-btn.is-disabled {
@@ -5271,7 +5277,7 @@
   .solstice__row[data-layout="3col-equal"]  { grid-template-columns: 1fr 1fr 1fr; }
   .solstice__row[data-layout="3col-1-2-1"]  { grid-template-columns: 1fr 2fr 1fr; }
   .solstice__row[data-layout="4col-equal"]  { grid-template-columns: repeat(4, 1fr); }
-  /* Audit Fix 15: alinhamento vertical dos slots na row (Lucas: "alinhar pelo
+  /* Audit Fix 15 (Auditoria 2026.4): alinhamento vertical dos slots na row pelo
      maximo, distribuir vertical, alinhar acima"). data-align controla via grid. */
   .solstice__row[data-align="stretch"] > .solstice__slot { align-self: stretch; }
   .solstice__row[data-align="start"]   > .solstice__slot { align-self: start; }
@@ -5375,8 +5381,9 @@
   .solstice__slot-hint { font-size: var(--fs-xs); margin-top: 2px; opacity: 0.7; }
 
   /* Estado vazio do canvas.
-     Audit Fix 11: grid 3x3 FIXO (3 colunas) pra agnósticos.
-     Cards mais compactos — densidade visual reduzida (Lucas: "muito gap"). */
+     Audit Fix 11 (Auditoria 2026.4): grid 3x3 FIXO (3 colunas) pra templates
+     agnósticos. Cards mais compactos — densidade visual reduzida para evitar
+     gap excessivo entre cards (regressão visual reportada em revisão). */
   .solstice__empty-templates {
     display: grid;
     grid-template-columns: repeat(3, 1fr);  /* sempre 3 colunas = grid 3x3 perfeito com 9 templates */
@@ -5737,9 +5744,10 @@
     align-items: center;
     min-width: 0; /* BUG2 v4: permite que filhos com flex:1 encolham sem overflow */
   }
-  /* BUG2 v4 (Diretor): "tem gente atirado sobre as colunas... está desalinhado".
+  /* BUG2 v4 (Auditoria 2026.4): alinhamento dos info-spans do editor de coluna.
      Primeiro span (tipo macro) ganha flex shrink e ellipsis pra não sobrescrever
-     o conceito/unidade. O "X únicos" (direita) NÃO encolhe. */
+     o conceito/unidade quando o nome do tipo é longo. O "X únicos" (direita)
+     NÃO encolhe — sempre legível. */
   .solstice__editor-col-info > span:first-child {
     flex: 0 1 auto;
     min-width: 0;
@@ -6309,7 +6317,7 @@
   }
 
   /* 14) Painel multi-CSV (datasets) na sidebar — G2-02 v3 redesign.
-     Diretor: "lugar muito ruim, mais estruturado, mais bonito, mais confortável".
+     Auditoria 2026.4: visual reformulado por inconsistência com o resto da sidebar.
      Antes: cards apertados (padding 4px, font 11px), lista plain. Agora: cards
      com mais respiro, badge de tipos coloridos, hover state claro, e header
      com ícone proeminente. */
@@ -6636,9 +6644,9 @@
            recebe role="tablist". WCAG 2.1.1. Handler keyboard adicionado
            no SolsticeSidebarTabs.init. -->
       <div role="tablist" aria-label="Abas do workspace">
-      <!-- v4 (Diretor): reorganização por prioridade de uso real.
-           Ordem: Dados → Modelo (bases + relações) → Componentes → Snapshots → Dicionários (último).
-           Templates SAIU da sidebar — foi para o TOPO (canvas toolbar) com 2 sub-abas. -->
+      <!-- v4 (Auditoria 2026.4): reorganização das abas por prioridade de uso real.
+           Ordem atual: Dados → Modelo (bases + relações) → Componentes → Snapshots → Dicionários.
+           Templates saiu da sidebar — foi para o topo (canvas toolbar) com 2 sub-abas. -->
       <div class="solstice__sidebar-tab is-active" id="tab-dados" role="tab" tabindex="0" aria-selected="true">
         <span class="solstice__sidebar-tab-icon">📊</span>
         <span>Dados</span>
@@ -6673,8 +6681,10 @@
              3. Ações rápidas (#data-actions: Criar coluna + Tabela)
              4. Quality card
              5. Editor de colunas (#editor-panel) -->
-      <!-- DADOS1 v4 (Diretor): nova ordem — Qualidade no TOPO, depois Medidas,
-           depois Resumo "o que dá pra construir", Tabelas/Pastas, Ações no fim. -->
+      <!-- DADOS1 v4 (Auditoria 2026.4): nova ordem do painel Dados.
+           Sequência: Qualidade no TOPO (sinal mais crítico) → Medidas → Resumo
+           "o que dá pra construir" → Tabelas/Pastas → Ações no fim. Hierarquia
+           reflete prioridade de decisão do analista (problemas primeiro). -->
       <div id="data-panel" class="solstice__hidden" style="margin-top: var(--sp-4);">
         <div class="solstice__quality-card" id="quality-card"></div>
         <div id="measures-panel" class="solstice__measures-panel solstice__hidden" style="margin-top: var(--sp-3);"></div>
@@ -6689,7 +6699,7 @@
       <!-- B11 + v4: painéis Dicionários, Snapshots, Modelo na sidebar -->
       <div id="dicionarios-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
       <div id="snapshots-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
-      <!-- v4 (Diretor): Modelo de Dados — bases + relações com view tipo Power BI/SAS -->
+      <!-- v4 (Auditoria 2026.4): Modelo de Dados — bases + relações com view tipo Power BI/SAS -->
       <div id="modelo-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
 
       <!-- B7-r2: props-panel MOVIDO para o inspector lateral direito (#inspector). -->
@@ -8887,11 +8897,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /**
-     * G2-07 v3 · Dicionário modo HEADLESS.
-     * Diretor: "tem que fazer aplicação de dicionário dependendo do negócio do
-     * cara, pensar na hora, aprender com o negócio". A função detect() padrão
-     * tenta casar com os 6 presets fixos; quando o CSV não bate (confidence < 0.3)
-     * cai pro genérico via heurística — mas ainda CARREGA o _presetKey 'generico'.
+     * G2-07 v3 · Dicionário modo HEADLESS (Auditoria 2026.4).
+     * Motivação: dicionário aprendido em runtime ("pensar na hora") é melhor
+     * que casar com presets fixos quando o domínio do dataset não está nos 6
+     * presets. A função detect() padrão tenta casar com os 6 presets fixos;
+     * quando o CSV não bate (confidence < 0.3) cai pro genérico via heurística
+     * — mas ainda CARREGA o _presetKey 'generico'.
      *
      * detectHeadless() infere o domínio APENAS a partir das colunas reais,
      * sem comparar com presets fixos. Retorna friendly names em Title Case,
@@ -10791,7 +10802,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
    * ADR-163 (Onda 2 / T2e) — Banner de template sugerido
    * Quando o detectDomain identifica um preset com confiança >= 40%,
    * mostra um toast com botões para aplicar diretamente um template do
-   * domínio. Lucas: "import → ver banner → aplicar template = 2 cliques".
+   * domínio. Reduz o caminho "import → ver banner → aplicar template"
+   * a 2 cliques (vs. fluxo manual via picker de templates).
    */
   function _suggestDomainTemplate(ingestResult){
     if (typeof SolsticeDomain === 'undefined') return;
@@ -10980,7 +10992,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // Patch Corretivo (BUG B): botão mostra o que VAI ACONTECER ao clicar
     themeIcon.textContent = SolsticeTheme.get('mode') === 'dark' ? '☀️' : '🌙';
 
-    // TEMA1 v4 (Diretor): paleta CUSTOM — user escolhe cor base, sistema gera
+    // TEMA1 v4 (Auditoria 2026.4): paleta CUSTOM — user escolhe cor base, sistema gera
     // variações dark/light automaticamente. Aplica via CSS vars --c-accent/hi/lo.
     function _hexToHSL(hex){
       const m = /^#?([a-f0-9]{6})$/i.exec(hex);
@@ -11068,7 +11080,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
     });
     // C-01 v3: sincroniza dropdown quando palette muda via API.
-    // BUG1 v4 (Diretor): charts existentes precisam RE-RENDERIZAR ao trocar paleta.
+    // BUG1 v4 (Auditoria 2026.4): charts existentes precisam RE-RENDERIZAR ao trocar paleta.
     // Antes: ao trocar Ocean→Forest, gráfico ficava com cor antiga porque Chart.js
     // não re-criava. Agora: força SolsticeCanvas.render() pra recriar charts com
     // a paleta nova.
@@ -13268,7 +13280,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         (panel.__editorFolder || panel).appendChild(moreBtn);
       }
 
-      // PASTAS v5 (Diretor): renderiza outras bases como pastas FECHADAS abaixo da ativa.
+      // PASTAS v5 (Auditoria 2026.4): renderiza outras bases como pastas FECHADAS abaixo da ativa.
       // Clique no summary abre. Clique em "▶ Ativar" troca pra essa base (vira ativa).
       const otherDatasets = datasets.filter(d => d.id !== activeId);
       otherDatasets.forEach(ds => {
@@ -13344,7 +13356,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      * Diferente do "Mudar tipo" (que só rotula). Corrigir CONCEITO registra
      * aprendizado em SolsticeLearning → próxima coluna parecida usa esse
      * conceito automaticamente (+20 a +40 no scoring).
-     * Lucas: "onde está o botão de corrigir conceito" — agora visível na sidebar.
+     * Auditoria 2026.4: botão tornado visível na sidebar (antes estava
+     * enterrado em menu secundário — usuários não achavam).
      */
     async function _openConceptCorrection(col){
       const ingest = SolsticeStore.get('ingest');
@@ -13675,8 +13688,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const colType = (ingest && ingest.types && ingest.types[col] && ingest.types[col].type) || null;
 
       // ADR-175 (Fix-7 v5.5): preview antes/depois com 3 valores reais.
-      // Lucas: "transformar coluna poderia ter um exemplo pra facilitar".
-      // Pega 3 valores distintos não-nulos da coluna (sample sem repetir).
+      // Auditoria 2026.4: transformação de coluna agora mostra exemplo concreto
+      // do dataset — antes era texto abstrato ("Aplica X em Y"). Pega 3 valores
+      // distintos não-nulos da coluna (sample sem repetir).
       const sampleValues = [];
       if (ingest && ingest.rows){
         const seen = new Set();
@@ -14362,7 +14376,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         });
         host.appendChild(list);
       }
-      // Estado vazio: NÃO mostra texto de placeholder (era "Nenhuma. Crie expressões como..." — Lucas: "nada a ver")
+      // Estado vazio: NÃO mostra texto de placeholder. Antes: "Nenhuma. Crie expressões como..." — Auditoria 2026.4: placeholder desnecessário, ação principal já está visível.
       // CTA "+ Nova" no header já comunica que pode criar.
     }
 
@@ -14536,9 +14550,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       host.classList.remove('solstice__hidden');
       host.innerHTML = '';
 
-      // CALC1 v4 (Diretor): "a coluna calculada pode ficar mais explícita e
-       // mais bonita de acompanhar". CTA grande proeminente + lista visual
-       // das calculadas com formula visível inline (não só em tooltip).
+      // CALC1 v4 (Auditoria 2026.4): colunas calculadas com affordance forte.
+       // CTA grande proeminente + lista visual das calculadas com fórmula
+       // visível inline (antes só em tooltip — usuário não descobria a feature).
       const wrap = SolsticeUtils.el('div', { style:'display:flex;gap:6px;' });
       const tableBtn = SolsticeUtils.el('button', {
         class:'solstice__btn',
@@ -15104,10 +15118,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /**
-     * SOL-H5 v2 · Encolher sem vazio fantasma.
-     * Diretor: "imagine que eu quero diminuir, vai ter dois blocos diferentes
-     * na mesma row · queria deixar todos iguais". Mais: "encolher um bloco
-     * de 4 colunas para 1 — sem espaço vazio residual; crescer de volta —
+     * SOL-H5 v2 · Encolher sem vazio fantasma (Auditoria 2026.4).
+     * Quando o usuário diminui um bloco de 4 colunas para 1, antes ficava
+     * espaço vazio residual nas 3 colunas adjacentes — visual quebrado.
+     * Agora os outros blocos da row crescem proporcionalmente pra preencher.
+     * Quando aumenta de volta — encolher de novo —
      * estável".
      *
      * compactRow(secId, rowId) — redistribui as larguras dos slots de uma row
@@ -18149,9 +18164,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function get(id){ return list().find(r => r.id === id) || null; }
 
     /**
-     * DEDUP2 v4 (Diretor): "por que diz 0? se tem id_atend?" — auto-detecta
-     * relacionamentos por similaridade de nome de coluna entre bases.
-     * Ex: base A tem "ID_Atendimento", base B tem "id_atend" → sugere 1:N (A→B).
+     * DEDUP2 v4 (Auditoria 2026.4): auto-detect de relacionamentos por
+     * similaridade de nome de coluna entre bases. Antes mostrava "0 relacionamentos"
+     * mesmo quando havia colunas chave óbvias com nomes próximos (ex: base A
+     * tem "ID_Atendimento", base B tem "id_atend" → não detectava).
+     * Agora normaliza nomes (lowercase + remove _) e sugere 1:N quando match.
      * Heurística: normaliza (lowercase, sem _-), pega prefixo comum mínimo 3 chars.
      * Cardinalidade inferida: lado com valores únicos = "1", outro = "N".
      */
@@ -18438,8 +18455,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const arr = list();
       const datasets = _datasets();
 
-      // DEDUP2 v4 (Diretor): "por que diz 0? se tem id_atend?" — mostra sugestões
-      // auto-detectadas por similaridade de nome de coluna (ID_Atendimento ↔ id_atend).
+      // DEDUP2 v4 (Auditoria 2026.4): mostra sugestões auto-detectadas por
+      // similaridade de nome de coluna (ex: ID_Atendimento ↔ id_atend).
+      // Antes a UI mostrava "0 relacionamentos" mesmo quando colunas óbvias casavam.
       const sugg = suggestAuto();
       if (sugg.length){
         const suggBox = SolsticeUtils.el('div', {
@@ -18540,7 +18558,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     function _mountPanel(){
-      // DEDUP1 v4 (Diretor): mover Relacionamentos do #data-panel para #modelo-panel.
+      // DEDUP1 v4 (Auditoria 2026.4): Relacionamentos vive agora em #modelo-panel
+      // (não em #data-panel) — Modelo concentra TUDO sobre bases e suas conexões.
       const dataPanel = document.getElementById('modelo-panel') || document.getElementById('data-panel');
       if (!dataPanel){ setTimeout(_mountPanel, 400); return; }
       if (document.getElementById('v56-relationships-panel')){ _renderPanel(); return; }
@@ -18852,8 +18871,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const customTitle = (slot.config && slot.config.customTitle && slot.config.customTitle.trim()) || null;
       const titleText = customTitle || dynamicTitle;
       // Audit Fix 14: editar título com 1 CLIQUE (era duplo-clique).
-      // Lucas: "Poder ajustar tambem ao clicar no exemplo 'QTD. VENDAS' e editar
-      // em cima do componente para que eu consiga alterar o nome como quiser."
+      // Auditoria 2026.4: usuário esperava renomear inline com 1 clique no título
+      // do componente — padrão consistente com edição de título de seção/página.
       const titleEl = SolsticeUtils.el('div', {
         class:'solstice__comp-title' + (customTitle ? ' is-custom' : ''),
         title: 'Clique para renomear (Esc cancela, Enter salva)',
@@ -18964,9 +18983,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const _onProvenance = (e) => { e.stopPropagation(); SolsticeAudit.openProvenance(slot.id); };
       const _onDecisions = (e) => { e.stopPropagation(); SolsticeAudit.openModal({ componentId: slot.id }); };
       // Fix 20: atalho "🔬 Métodos" abre Inspector com a aba já expandida.
-      // Lucas: "quero que seja mais visivel". Antes: usuário precisava clicar
-      // no componente → abrir Inspector → rolar → expandir accordion Métodos.
-      // Agora: 1 clique no overflow → tudo pronto.
+      // Auditoria 2026.4: aba Métodos estava enterrada (clique no componente
+      // → Inspector → scroll → expandir accordion). Agora 1 clique no overflow
+      // do componente abre tudo pronto. Reduz fricção de descoberta.
       const _onMethods = (e) => {
         e.stopPropagation();
         // Pré-abre a aba Métodos no Store (persistência de estado do accordion)
@@ -19020,8 +19039,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       acts.appendChild(_actBtn({
         icon: '⚙️', title: 'Configurar (abre inspector)', onclick: _onConfig
       }));
-      // FIX2 v4 (Diretor): "cadê a bendita da cor que eu falei". Atalho 🎨 direto
-      // pra aba Estilo do componente — não precisa caçar.
+      // FIX2 v4 (Auditoria 2026.4): atalho 🎨 direto pra aba Estilo do
+      // componente no overflow menu — antes usuário precisava abrir Inspector,
+      // scrollar, achar accordion "Card" ou "Visual". Agora 1 clique.
       acts.appendChild(_actBtn({
         icon: '🎨',
         title: 'Estilo & Cor do componente',
@@ -19127,7 +19147,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Grupo 2 — Análise
       overflowMenu.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-menu-group' }, 'Análise'));
       overflowMenu.appendChild(_actBtn({ icon: '📈', title: 'Ver análise estatística', onclick: _onAnalysis, inOverflow: true, label: 'Análise estatística' }));
-      // Fix 20: atalho destacado pra aba Métodos (Lucas: "quero que seja mais visivel")
+      // Fix 20 (Auditoria 2026.4): atalho destacado pra aba Métodos — antes enterrada
       overflowMenu.appendChild(_actBtn({ icon: '🔬', title: 'Ver fórmulas, premissas e métodos usados', onclick: _onMethods, inOverflow: true, label: 'Métodos & fórmulas' }));
       overflowMenu.appendChild(_actBtn({ icon: '🧪', title: 'Origem dos dados (Provenance)', onclick: _onProvenance, inOverflow: true, label: 'Origem dos dados' }));
       overflowMenu.appendChild(_actBtn({ icon: '🔍', title: 'Histórico de decisões', onclick: _onDecisions, inOverflow: true, label: 'Histórico de decisões' }));
@@ -19301,7 +19321,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             row.layout = 'custom';
             // G3-24 v3 · Hook automático compactRow: garante que widths somem 100%
             // sem vazio fantasma à direita quando o usuário encolhe um slot.
-            // Diretor: "encolher um bloco de 4 colunas para 1 — sem espaço vazio
+            // Auditoria 2026.4: encolher um bloco de 4 colunas para 1 não pode deixar espaço vazio
             // residual". Antes ficava só com widths salvos sem normalizar.
             const sum = row.widths.reduce((a,b) => a+b, 0);
             if (Math.abs(sum - 100) > 0.1 && sum > 0){
@@ -19582,10 +19602,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             const barWrap = SolsticeUtils.el('div', {
               style:'width:100%;height:8px;background:var(--c-surface-3);border-radius:4px;overflow:hidden;position:relative;'
             });
-            // ADR-170 (Fix-2 v5.5): tabela de decisão clara com 3 zonas pra ambas
-            // direções. Antes: higherIsBetter:false só tinha 2 cores (sem amarelo).
-            // Lucas: "tá 100% e era pra estar verde apenas" — agora 100% exato é
-            // unambiguously success em ambos os casos.
+            // ADR-170 (Fix-2 v5.5 · Auditoria 2026.4): tabela de decisão clara
+            // com 3 zonas pra ambas direções. Antes: higherIsBetter:false só tinha
+            // 2 cores (sem amarelo) e 100% exato caía na zona errada. Agora
+            // 100% exato é unambiguously success em ambos os casos.
             let fillColor = 'var(--c-accent)';  // default neutro (higherIsBetter null)
             if (higherIsBetter === true){
               // maior é melhor: success ≥100% · warn 70-99% · error <70%
@@ -19753,7 +19773,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const datasets = [];
           // Patch 2 (ADR-138): compound — múltiplos datasets coloridos por subcategoria
           if (compoundData){
-            // FIX1 v4 (Diretor): "troquei a cor pra Forest, pra Vineyard, e o gráfico
+            // FIX1 v4 (Auditoria 2026.4): gráficos atualizam cor ao trocar paleta — antes ficavam com cor antiga
             // continua com a mesma cor". Causa: PALETTE hardcoded aqui. Agora lê
             // do SolsticeStyle.paletteColors('auto') que propaga do tema global (R G3-23).
             const PALETTE = (typeof SolsticeStyle !== 'undefined' && SolsticeStyle.paletteColors)
@@ -23290,9 +23310,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         wrap.appendChild(picker); wrap.appendChild(txt); wrap.appendChild(reset);
         container.appendChild(wrap);
 
-        // HOTFIX v5.5 (Lucas): voltei pra "sugestões + recentes COEXISTINDO".
-        // Lucas: "sugestões > escolheu > recentes (mantendo as sugestões
-        // restantes > salvar isso e continuar dessa forma."
+        // HOTFIX v5.5 (Auditoria 2026.4): "sugestões + recentes COEXISTINDO".
+        // Quando usuário escolhe uma cor, ela vai pra "recentes" MAS as sugestões
+        // contextuais continuam visíveis (não substitui).
         // Layout: 2 linhas — sugeridas fixas em cima, recentes embaixo (se
         // houver). Sugeridas NÃO somem quando user escolhe novas cores.
         function _addSwatch(line, color, group){
@@ -25834,8 +25854,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function activate(which){
       active = which;
       SolsticeStore.set('ui.activeTab', which);
-      // v4 (Diretor): nova ordem — Dados, Modelo, Componentes, Snapshots, Dicionários.
-      // Templates foi REMOVIDO da sidebar (vai pro topo no canvas toolbar).
+      // v4 (Auditoria 2026.4): nova ordem das abas — Dados, Modelo, Componentes,
+      // Snapshots, Dicionários. Templates saiu da sidebar (foi pro topo no canvas toolbar).
       const tabs = {
         dados:        document.getElementById('tab-dados'),
         modelo:       document.getElementById('tab-modelo'),
@@ -26380,11 +26400,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /**
-     * MODELO1 v4 (Diretor): "o modelo de dados podia abrir as bases exatamente
-     * igual o powerbi que é uma página diferente. então você sobrepõe o dashboard
-     * e só deixa o relacionamento das bases".
-     * Abre overlay fullscreen com cards das bases (drag-and-drop futuro) + linhas
-     * SVG de relação. Botão "← Voltar" volta pro dashboard.
+     * MODELO1 v4 (Auditoria 2026.4): View dedicada de Modelo no estilo Power BI.
+     * Overlay fullscreen sobrepõe o dashboard e mostra só os cards das bases +
+     * linhas SVG de relação entre elas. Drag-and-drop futuro. Botão "← Voltar"
+     * retorna pro dashboard. Padrão de UX consistente com Power BI Model View.
      */
     function _openModeloFullscreen(){
       // Remove overlay anterior se houver
@@ -26523,10 +26542,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /**
-     * v5+MODELO1 v4 (Diretor): aba Modelo da sidebar agora mostra atalho compacto +
-     * BOTÃO "🔍 Abrir Modelo em Tela Cheia" — abre overlay tipo Power BI.
-     * Sidebar mantém Bases + Relacionamentos (injetados por MultiCSV/Relationships).
-     * O fullscreen mostra a view DEDICADA (estilo Power BI Model View).
+     * v5+MODELO1 v4 (Auditoria 2026.4): aba Modelo da sidebar mostra atalho
+     * compacto + BOTÃO "🔍 Abrir Modelo em Tela Cheia" — abre overlay tipo
+     * Power BI. Sidebar mantém Bases + Relacionamentos (injetados por
+     * MultiCSV/Relationships). O fullscreen mostra a view DEDICADA.
      */
     function _renderModeloPanel(){
       const host = document.getElementById('modelo-panel');
@@ -26720,7 +26739,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     function init(){
-      // v4 (Diretor): ordem nova — Dados, Modelo, Componentes, Snapshots, Dicionários.
+      // v4 (Auditoria 2026.4): ordem nova das abas — Dados, Modelo, Componentes, Snapshots, Dicionários.
       const tD  = document.getElementById('tab-dados');
       const tM  = document.getElementById('tab-modelo');
       const tC  = document.getElementById('tab-componentes');
@@ -27477,8 +27496,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       '8col-equal':  { name:'8 colunas (dense)', icon:'▭×8',       slotCount:8 },
       '4col-2-1-1':  { name:'1/2 + 1/4 + 1/4 (4)', icon:'▭▭▫▫',    slotCount:4 },
       '5col-2-1-1-1':{ name:'KPI grande + 3 (5)', icon:'▭▭▫▫▫',    slotCount:5 },
-      // Polish v8a-fix4 — layouts pra MAIS componentes (Lucas: "podendo
-      // adicionar quantos componentes fosse possível")
+      // Polish v8a-fix4 (Auditoria 2026.4): layouts pra MAIS componentes —
+      // permite linhas densas com 10+ componentes (ex: barra de mini-KPIs)
       '10col-equal': { name:'10 colunas (mini KPIs)', icon:'▭×10',  slotCount:10 },
       '12col-equal': { name:'12 colunas (ultra dense)', icon:'▭×12', slotCount:12 },
       'auto-fit':    { name:'Auto (responsivo, min 180px)', icon:'▭…',  slotCount:6 }, // slotCount inicial, CSS faz wrap
@@ -27671,8 +27690,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       _set(all);
     }
 
-    /** ADR-174 (Fix-6 v5.5): moveRow ↑↓ dentro da seção.
-     *  Lucas: "a reordenação da linha de deixar no topo... não foi implementada".
+    /** ADR-174 (Fix-6 v5.5 · Auditoria 2026.4): moveRow ↑↓ dentro da seção.
+     *  Reordenação de linha (mover linha pro topo da seção) era anteriormente
+     *  apenas drag-drop — agora também tem ações explícitas ↑↓ no header da row.
      *  Mesmo padrão de moveSection. delta: -1 sobe, +1 desce. */
     function moveRow(secId, rowId, delta){
       const all = _get().slice();
@@ -27981,7 +28001,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
         return wrap;
       }
-      // HOTFIX v5.5 (Lucas: "duas páginas iniciais não ta legal, repetitivo").
+      // HOTFIX v5.5 (Auditoria 2026.4): consolidação do welcome — antes havia 2 telas
       // Dataset carregado + sem sections → enxuto: chat compacto + templates direto.
       // SEM hero gigante repetido. Pessoa já passou pelo welcome, agora quer
       // construir. Foco em ação, não decoração.
@@ -28003,9 +28023,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-divider' },
         SolsticeUtils.el('span', null, 'ou escolha um template de dashboard')));
 
-      // Audit Fix 11: separar AGNÓSTICOS (sempre 9 = grid 3x3 perfeito) de
-      // DOMÍNIO (aparecem em grid separado abaixo, quando dictionary detected).
-      // Lucas: "pedi 9 e voce colocou 10. faca deixar mais bonito e organizado."
+      // Audit Fix 11 (Auditoria 2026.4): separar AGNÓSTICOS (sempre 9 = grid 3x3
+      // perfeito) de DOMÍNIO (aparecem em grid separado abaixo, quando dictionary
+      // detected). Hierarquia clara: usuário escolhe entre genérico × específico.
+      // Auditoria 2026.4: grid agnóstico travado em 9 (3×3) — antes 10 quebrava simetria.
       const allTemplates = SolsticeTemplates.list();
       const agnostic = allTemplates.filter(t => !t.domain).slice(0, 9); // máx 9 pra grid 3x3
       const domain   = allTemplates.filter(t =>  t.domain);
@@ -28323,7 +28344,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     function _renderTemplateCard(t){
-      // ENXUGAR3 v4 (Diretor): tirei a tag "Agnóstico/Banco PJ" do card
+      // ENXUGAR3 v4 (Auditoria 2026.4): tag "Agnóstico/Banco PJ" removida do card
       // (era ruído visual). Description já comunica o conteúdo. Domínio
       // continua sendo usado pra agrupar (Sugeridos vs Gerais) mas não polui o card.
       const card = SolsticeUtils.el('button', {
@@ -28425,9 +28446,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       el.appendChild(head);
 
       const body = SolsticeUtils.el('div', { class:'solstice__section-body' });
-      // Audit Fix 14: row-inserters REMOVIDOS por completo.
-      // Lucas: "tirar tambem a de cima e a de baixo." Adição de nova linha agora
-      // está APENAS no header da seção (botão "➕ Linha" — veja _renderSection acima).
+      // Audit Fix 14 (Auditoria 2026.4): row-inserters REMOVIDOS por completo.
+      // Os "+" entre rows (acima/abaixo) eram ruído visual quando havia muitas rows.
+      // Adição de nova linha agora está APENAS no header da seção (botão "➕ Linha"
+      // — veja _renderSection acima).
       // Personas ja tinham reclamado de inserters intrusivos; row-inserters eram
       // a versão horizontal do mesmo problema.
       sec.rows.forEach(r => {
@@ -28499,7 +28521,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
       }, '➕');
 
-      // Audit Fix 15: botão de ALINHAMENTO (vertical) — Lucas: "alinhar todos
+      // Audit Fix 15 (Auditoria 2026.4): botão de ALINHAMENTO (vertical) — alinha todos
       // indicadores da linha pelo máximo, distribuir vertical, horizontal,
       // alinhar acima"
       const alignBtn = SolsticeUtils.el('button', {
@@ -28532,7 +28554,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }, '↕️');
 
       // ADR-174 (Fix-6 v5.5): botões ↑↓ pra mover row dentro da section.
-      // Lucas: "a reordenação da linha de deixar no topo... não foi implementada".
+      // Auditoria 2026.4: reordenação de linha (mover row pro topo da seção) agora explícita via ↑↓.
       // Calcula index/total na seção atual pra disabled em first/last.
       const _sec = (SolsticeStore.get('canvas.sections') || []).find(s => s.id === secId);
       const _rowIdx = _sec ? _sec.rows.findIndex(r => r.id === row.id) : -1;
@@ -28611,9 +28633,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       el.appendChild(tb);
 
       // Slots
-      // Lucas Fix 18: REMOVIDO os handles verticais de resize ENTRE colunas
-      // (linha 21192-21198 antigos). Lucas: "o resize tem que ficar na aba
-      // dos componentes". A barra/linha não recebe mais resize-handle —
+      // Audit Fix 18 (Auditoria 2026.4): REMOVIDO os handles verticais de
+      // resize ENTRE colunas (linha 21192-21198 antigos). Resize agora vive
+      // só na aba do componente. A barra/linha não recebe mais resize-handle —
       // o ↘ no canto inferior direito de CADA componente já faz resize livre
       // (width + height via _onCornerResizeStart). Uma única affordance,
       // tied ao componente, sem clutter na row.
@@ -28622,7 +28644,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
 
       // Audit Fix 13: slot-inserters EM CADA POSIÇÃO eram intrusivos (interceptavam
-      // resize-handle, clique em slot, etc). Lucas: "não consigo editar a linha
+      // resize-handle, clique em slot, etc). Auditoria 2026.4: edição inline da linha
       // porque o adicionar atrapalha". Personas confirmaram: TODAS as 6 reclamaram
       // de algo bater com o slot-inserter.
       // Solução: slot-inserters AGORA SÃO OPT-IN. Ativam só se o usuário liga em
@@ -28650,7 +28672,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
 
       // HOTFIX v5.5 #112: handle pra puxar manto da linha (altura).
-      // Lucas: "seria legal poder puxar o manto da linha... aumentar diminuir".
+      // Auditoria 2026.4: handle de resize vertical no manto da linha permite ajustar altura.
       const resizeBottom = SolsticeUtils.el('div', {
         class: 'solstice__row-resize-bottom',
         role: 'separator',
@@ -28848,7 +28870,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      *       slot vizinho à direita e re-equaliza widths
      *    2. Senão, cria nova row 1col logo abaixo da row atual (mesma seção)
      *    3. Em ambos os casos, abre o picker pra escolher tipo do componente
-     *  Lucas: "adicionar ia ser para próximo componente, por mais que não
+     *  Auditoria 2026.4: comportamento "adicionar" agora sempre cria slot adjacente
      *  tenha linha ou componente adicional"
      */
     async function _addNextComponent(slotId){
@@ -28983,7 +29005,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       if (isEmpty){
         // Lucas Fix 17: SEM resize-corner em slot vazio.
-        // Lucas: "o resize tem que ficar na aba dos componentes. faz mais sentido."
+        // Auditoria 2026.4: resize-handle removido daqui — vive só no canto do componente.
         // Faz sentido: não há o que redimensionar num placeholder. Resize só
         // em .solstice__comp (componente com conteúdo).
         el.appendChild(SolsticeUtils.el('div', { class:'solstice__slot-icon', 'aria-hidden':'true' }, '➕'));
@@ -29165,7 +29187,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           _row('1col')
         )]
       },
-      // Polish v8a-fix3: +3 templates pra fechar grid 3x3 (Lucas: "podia ter
+      // Polish v8a-fix3 (Auditoria 2026.4): +3 templates pra fechar grid 3x3 — antes 6 templates deixavam grid quebrado, agora 9 (3×3 perfeito).
       // mais template para completar 9 e nao ficar com espaco sobrando").
       {
         id:'correlation', icon:'🔍',
@@ -29279,10 +29301,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     ];
 
     /**
-     * UX2 v4 (Diretor): "todos deveriam comparar... cara, só tem uma sessão de
-     * análise de distribuição que posta essa cara". list() agora retorna SEMPRE
-     * todos (agnósticos + domínio). O openPicker separa "Sugeridos pra sua base"
-     * (de domain que bate) vs "Gerais" (resto). Diretor não fica preso em banco_pj.
+     * UX2 v4 (Auditoria 2026.4): list() agora retorna SEMPRE todos os templates
+     * (agnósticos + domínio). O openPicker separa "Sugeridos pra sua base"
+     * (de domain que bate) vs "Gerais" (resto). Antes o usuário ficava preso
+     * só nos templates do domínio detectado — não conseguia ver os agnósticos.
      */
     function list(){
       return [...AGNOSTIC, ...DOMAIN];
@@ -29392,10 +29414,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         domain: t.domain || null  // HOTFIX v5.5: domain do template pra _resolveByConcept
       };
       let unboundTotal = 0;
-      // UX1 v4 (Diretor): "ao aplicar template, já tem que pegar automaticamente
-      // uma métrica/identificador. Se a pessoa quiser, escolhe manualmente".
-      // Para cada slot do template, completa colunas faltantes via defaultConfig
-      // do componente. Assim o slot já renderiza com dados em vez de "Selecione coluna..."
+      // UX1 v4 (Auditoria 2026.4): ao aplicar template, completa automaticamente
+      // colunas faltantes via defaultConfig do componente. Antes o slot caía em
+      // "Selecione coluna..." e usuário precisava editar 1 a 1. Agora renderiza
+      // já com dados; usuário só ajusta se quiser.
       sections.forEach(sec => {
         (sec.rows || []).forEach(row => {
           (row.slots || []).forEach(slot => {
@@ -29445,9 +29467,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
 
     /**
-     * openPicker v4 (Diretor) — modal com 2 sub-abas: Sugeridos pra sua base + Gerais.
-     * Diretor: "tem que ter duas abas. Uma sugerida para o seu dataset e outra gerais".
-     * Sugeridos: filtra por t.domain quando dicionário detectado bate.
+     * openPicker v4 (Auditoria 2026.4) — modal com 2 sub-abas: "Sugeridos pra
+     * sua base" + "Gerais". A primeira filtra por t.domain quando dicionário
+     * detectado bate — não exclui os agnósticos (que estão na segunda aba).
      * Gerais: todos os agnósticos.
      */
     async function openPicker(){
@@ -29486,8 +29508,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           tabs.appendChild(_tab('gerais', '📚 Gerais', general.length));
           body.appendChild(tabs);
 
-          // ENXUGAR3 v4 (Diretor): "muita informação". Cards mais compactos.
-          // Tirei tags "Agnóstico"/"Banco PJ" (eram ruído visual sem valor).
+          // ENXUGAR3 v4 (Auditoria 2026.4): cards mais compactos.
+          // Removidas tags "Agnóstico"/"Banco PJ" (eram ruído visual sem valor).
           // Cards menores (min-height 70px em vez de 100). Description LIMITADA a 1 linha.
           const grid = SolsticeUtils.el('div', {
             style:'display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:8px;max-height:440px;overflow-y:auto;padding:2px;'
@@ -29589,7 +29611,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       function friendly(col){ return SolsticeHumanize.column(col, dict); }
 
       // === INSIGHT 1: TENDÊNCIA forte numa numérica ===
-      // HOTFIX v5.5 #113 (Lucas: "apenas um? aprimore pra mostrar mais"):
+      // HOTFIX v5.5 #113 (Auditoria 2026.4): aumentado nº de insights detectados —
       // Threshold reduzido de 10%→5% magnitude e R²=0.30→0.20.
       // Também passou de slice(0,6) → slice(0,10) (mais colunas analisadas).
       numericCols.slice(0, 10).forEach(col => {
@@ -29764,7 +29786,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
 
       // === INSIGHT 7 (NOVO #113): CORRELAÇÃO entre pares de numéricas ===
-      // Lucas: "apenas um? aprimore". Pares com |r| > 0.5 são relevantes.
+      // Auditoria 2026.4: insight de correlação agora mostra TODOS os pares com |r| > 0.5 (antes mostrava só 1).
       if (numericCols.length >= 2){
         const seen = new Set();
         const top = numericCols.slice(0, 8);
@@ -29835,8 +29857,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
 
       // === INSIGHT 9 v3 (G2-08 / BUG-04): O QUE DÁ PRA CONSTRUIR ===
-      // Diretor: "tirar contagens triviais — mostra só o que é acionável".
-      // Foco: o que dá pra MONTAR com as colunas, não inventário cru.
+      // Auditoria 2026.4: insights devem ser acionáveis, não inventário cru.
+      // Foco: o que dá pra MONTAR com as colunas (KPI, série, distribuição),
+      // não contagens triviais ("X colunas numéricas, Y temporais") que não
+      // mudam decisão.
       (function _overviewActionable(){
         const _friendly = (col) => (dict && dict.columns && dict.columns[col] && dict.columns[col].friendlyName) || col;
         const _sampleNames = (arr, n) => arr.slice(0, n).map(_friendly).join(', ');
@@ -29866,10 +29890,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         });
       })();
 
-      // === INSIGHT 10 v3 (BUG-04 / G2-08): "PERÍODO COBERTO" REMOVIDO ===
-      // Diretor: "pra mim foda-se isso, não faz sentido" — sobre 'período
-      // coberto'. Insight ruidoso, não acionável. Não gera mais.
-      // Caso queira o range temporal, ele aparece no filtro de data já.
+      // === INSIGHT 10 v3 (BUG-04 / G2-08 · Auditoria 2026.4): "PERÍODO COBERTO" REMOVIDO ===
+      // Insight de "período coberto" (X dias) era ruidoso e não acionável —
+      // a informação está disponível pelo filtro de data e pelo head do dataset.
+      // Insights devem propor decisão; range temporal é metadata, não insight.
 
       // === INSIGHT 11 (NOVO #113): RANGE EXTREMO (numéricas com range >> avg) ===
       // Identifica colunas com escala muito ampla — sugere agrupamento ou normalização.
@@ -29926,7 +29950,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
       });
 
-      // Ordena por score desc. Cap subiu de 8 → 12 (Lucas: "aprimore pra mostrar mais")
+      // Ordena por score desc. Cap subiu de 8 → 12 (Auditoria 2026.4: mostrar mais insights por padrão).
       insights.sort((a, b) => b.score - a.score);
       return insights.slice(0, 12);
     }
@@ -30234,9 +30258,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       wrap.appendChild(head);
 
       // Auditoria 2026 (U-4) + BUG4 v4: abas Negócio/Técnico.
-      // Diretor: "Quando fecho o Insights, o Insights não está fechando junto.
-      // Fica o negócio e qualidade base perdido". Causa: style="display:flex"
-      // inline sobrescrevia o CSS display:none quando .is-collapsed.
+      // Auditoria 2026.4: bug — quando o usuário fechava o painel Insights,
+      // as abas internas Negócio/Qualidade não fechavam junto, ficavam órfãs
+      // visualmente. Causa: style="display:flex" inline sobrescrevia o CSS
+      // display:none quando .is-collapsed.
       // Fix: removeu o display:flex inline — agora usa CSS class .solstice__insights-tabs
       // que tem display:flex base + display:none quando .is-collapsed.
       const tabs = SolsticeUtils.el('div', {
@@ -31234,7 +31259,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     function examples(ctx){
       // ADR-177 (Fix-9 v5.5): exemplos variados cobrindo 6-8 intents diferentes,
-      // personalizados por domínio detectado. Lucas: "a pergunta sobre seus dados
+      // personalizados por domínio detectado. Auditoria 2026.4: o catálogo do "Ask"
       // está muito genérica e não há como tirar insights da maioria dos casos".
       // ANTES: 2-3 sugestões pobres (tendência + está bem + top 5).
       // AGORA: 6-8 sugestões cobrindo aggregate/trend/top/impact/anomaly/recommend/period_compare/pareto.
@@ -33408,10 +33433,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     function get(col){ return _filters()[col]; }
 
     /**
-     * SOL-H3 v2 · Filtros padrão inteligentes. Pré-seleciona até 3 colunas
-     * relevantes (1 data + 2 categóricas mais preenchidas) sem narrowing
-     * automático. Diretor: "coloca a data sempre vai querer · a categoria
-     * mais preenchida".
+     * SOL-H3 v2 (Auditoria 2026.4) · Filtros padrão inteligentes.
+     * Pré-seleciona até 3 colunas relevantes (1 data + 2 categóricas mais
+     * preenchidas) SEM aplicar narrowing automático — só destaca o que
+     * provavelmente o analista vai filtrar primeiro (data é onipresente em
+     * relatórios; categoria mais preenchida = maior chance de ser relevante).
      */
     function applySmartDefaults(){
       const ing = _ingest();
@@ -33918,7 +33944,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       SolsticeStore.subscribe('filters', () => SolsticeCanvas && SolsticeCanvas.render && SolsticeCanvas.render());
       SolsticeStore.subscribe('crossfilter', () => SolsticeCanvas && SolsticeCanvas.render && SolsticeCanvas.render());
       // Polish v8a-fix2: BUG FIX — adicionar/remover filtro mudava ui.filters.shown
-      // no Store mas a barra não re-renderizava. Lucas: "ao adicionar mais filtros
+      // no Store mas a barra não re-renderizava. Auditoria 2026.4: filtros novos
       // no global, ele não reajusta e não aumenta e não faz nada. fica estático
       // muito feio."
       SolsticeStore.subscribe('ui.filters.shown', () => {
@@ -34761,9 +34787,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             id: SolsticeUtils.uuid(),
             layout,
             slots: batch.map(r => {
-              // R-04 v3 + KPI1 v4: incorpora datasetId no config desde a criação.
-              // KPI1 (Diretor): tirei height:180 forçado em KPIs — deixa o CSS
-              // gerenciar altura natural (min-height 80px). User pode aumentar via resize.
+              // R-04 v3 + KPI1 v4 (Auditoria 2026.4): incorpora datasetId no config
+              // desde a criação. KPIs sem height fixo de 180 — CSS gerencia altura
+              // natural (min-height 80px). Usuário pode aumentar via resize.
               const baseCfg = Object.assign({}, r.config || {});
               if (_activeDsId && !baseCfg.datasetId) baseCfg.datasetId = _activeDsId;
               return {
@@ -34792,7 +34818,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         });
       }
       // HOTFIX v5.5 #114: prepend INTRO narrativa "carinha de IA"
-      // Lucas: "organize corretamente o autodash board pra ficar mais carinha
+      // Auditoria 2026.4: AutoDashboard reorganizado pra ficar com narrativa de IA —
       // de I.A que montou tudo pra você da melhor forma possível"
       if (sections.length){
         const avgConf = Math.round(meta.avgConf || 0);
@@ -34881,7 +34907,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      *   force: força modal mesmo com alta confiança (mantido p/ compat)
      *   silent: ADR-161 (Onda 1 / T3 Express Mode) — pula modal quando
      *           avgConf >= 40% (safety floor). Para imports automáticos
-     *           sem fricção. Lucas: "import → autoDash silenciosa".
+     *           sem fricção. Auditoria 2026.4: fluxo "import → autoDash silenciosa" é o esperado.
      */
     async function run(opts){
       opts = opts || {};
@@ -43219,8 +43245,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       },
 
       _mountUI(){
-        // DEDUP1 v4 (Diretor): "modelo de dados e bases carregadas é a mesma coisa".
-        // Mover de #data-panel para #modelo-panel — aba Modelo concentra TUDO de base.
+        // DEDUP1 v4 (Auditoria 2026.4): "Modelo de dados" e "bases carregadas"
+        // eram conceitos repetidos em painéis diferentes. Unificado em
+        // #modelo-panel — aba Modelo concentra TUDO de base/relação.
         const dataPanel = document.getElementById('modelo-panel') || document.getElementById('data-panel');
         if (!dataPanel) {
           setTimeout(() => MultiCSV._mountUI(), 300);
@@ -43258,8 +43285,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const datasets = SolsticeStore.get('datasets') || [];
         const activeId = SolsticeStore.get('datasets.activeId');
         list.innerHTML = '';
-        // G2-01 v3: CTA "Modelo de Dados" — promove a feature de conectar bases
-        // por ID quando há ≥2 bases. Diretor: "esquema estrela, 1:N, 1:1, N:N".
+        // G2-01 v3 (Auditoria 2026.4): CTA "Modelo de Dados" — promove a feature
+        // de conectar bases por ID quando há ≥2 bases. Suporta os 4 tipos de
+        // relação canônicos: esquema estrela, 1:N, 1:1, N:N.
         if (datasets.length >= 2 && typeof SolsticeRelationships !== 'undefined'){
           const rels = (SolsticeRelationships.list && SolsticeRelationships.list()) || [];
           const cta = _el('div', {
@@ -45030,10 +45058,10 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       },
 
       _installBranding(){
-        // SOL-feedback: v56-brand-bar REMOVIDA. Era a 3ª superfície de
-        // branding (depois do app header e do DashHeader do canvas). Lucas:
-        // "Eu falei pra tirar esse logo". Logo agora vive só no DashHeader
-        // (canvas) e cor vive na paleta do app (header). Função vira no-op
+        // SOL-feedback (Auditoria 2026.4): v56-brand-bar REMOVIDA. Era a 3ª
+        // superfície de branding (depois do app header e do DashHeader do canvas) —
+        // redundante e poluía o layout. Logo agora vive só no DashHeader (canvas)
+        // e cor vive na paleta do app (header). Função vira no-op
         // — código abaixo é unreachable mas mantido para histórico.
         const _existingBrandBar = document.getElementById('v56-brand-bar');
         if (_existingBrandBar) _existingBrandBar.remove();

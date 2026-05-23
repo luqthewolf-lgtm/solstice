@@ -5,6 +5,30 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 9 (Auditoria 2026.4 · continuação) — "Voz interna zerada" — 2026-05-23
+
+Continuação do Sprint 8 — Sprint 8 fez sample de 5 comentários, Sprint 9 zerou os 93 remanescentes.
+
+### 🧹 Cleanliness — voz pessoal removida do código
+
+- **0 ocorrências** de `Lucas:`, `Diretor:`, `(Diretor)`, `foda-se`, `bosta` no arquivo
+- ~50 comentários refatorados nesta sprint — cada citação direta substituída por
+  descrição técnica neutra que documenta **o problema** e **o porquê da decisão**,
+  sem voz pessoal nem palavrão.
+- Padrão: `XXX v4 (Diretor): "texto entre aspas"` → `XXX v4 (Auditoria 2026.4): descrição neutra`
+- O código de produto agora lê como produto, não como log de conversa interna.
+
+### 📊 Métricas
+
+| Voz pessoal no código | Antes da 2026.2 | Sprint 8 | Sprint 9 |
+|---|---|---|---|
+| Citações `Lucas:` em comentários | 32 | 28 | **0** |
+| Citações `Diretor:` em comentários | 18 | 14 | **0** |
+| Prefixo `(Diretor)` em headers de patch | 26 | 24 | **0** |
+| Palavrões em comentários (`foda-se`, `bosta`) | 2 | 0 | **0** |
+
+---
+
 ## [Unreleased] — Auditoria 2026.4 (Sprint 8 · "Sem voz interna no produto") — 2026-05-23
 
 Quarta passada do Conselho — micro-rodada sobre módulos que sobraram, performance, e voz pessoal/processo no código. **1 fix de segurança · 1 otimização considerada e revertida honestamente · 5 comentários refatorados.**
