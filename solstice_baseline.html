@@ -1045,15 +1045,24 @@
   }
   .solstice__accord-head:hover { background: var(--c-surface-3); }
   .solstice__accord-head-label {
+    /* Sprint 24 / F-21: antes este container tinha overflow:hidden + ellipsis,
+     * o que cortava o count "(3)" e o ícone em títulos longos como
+     * "Diferenciais & Operacional". Agora overflow só no filho de texto
+     * (o span com o título), preservando ícone e badge à direita.
+     */
     display: flex; align-items: center; gap: var(--sp-2);
     flex: 1; min-width: 0;
+  }
+  .solstice__accord-head-label > span:not(.solstice__accord-head-count) {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0;
   }
   .solstice__accord-head-count {
     font-size: 10px; color: var(--c-muted);
     font-family: var(--font-mono);
     margin-left: 6px;
     flex-shrink: 0;
+    white-space: nowrap;  /* Sprint 24 / F-21: badge "(3)" nunca quebra linha */
   }
   .solstice__accord-chevron {
     font-size: 10px; color: var(--c-muted);
@@ -3801,7 +3810,24 @@
   .solstice__gauge-arc-fill { fill: none; transition: stroke-dasharray var(--t-slow) var(--ease-out); }
   .solstice__gauge-needle   { stroke: var(--c-text); stroke-width: 2; stroke-linecap: round;
                               transition: transform var(--t-slow) var(--ease-out); }
-  
+  /* Sprint 24 / F-19: gauge é semicírculo (180°). Antes o SVG herdava o
+   * max-height genérico do chart-svg (380px) e ficava esticado num slot
+   * vertical, com metade do espaço sem nada (porque só desenha metade
+   * superior). Agora gauge tem max-height próprio menor e o body o
+   * centraliza verticalmente — fica visualmente mais denso. */
+  .solstice__comp-body--gauge {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 0;
+  }
+  .solstice__chart-svg.solstice__chart-svg--gauge {
+    max-height: 220px;
+  }
+  .solstice__chart-svg.solstice__chart-svg--gauge.solstice__chart-svg--compact {
+    max-height: 160px;
+  }
+  .solstice__chart-svg.solstice__chart-svg--gauge.solstice__chart-svg--large {
+    max-height: 280px;
+  }
   .solstice__gauge-value-label {
     text-anchor: middle;
     font-family: var(--font-display); font-size: 28px; font-weight: var(--fw-bold);
@@ -19555,13 +19581,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     register({
       id:'kpi', name:'KPI Card', icon:'📊',
       description: 'Número importante com comparação e tendência',
-      defaultConfig: (ctx) => ({
-        column: _firstColOfGroup(ctx, 'numeric'),
-        agg:'sum',
-        showSparkline: false,
-        comparison: { type: 'previous-period', targetValue: null, targetLabel: '', periodSize: 'auto' },
-        target: null  // Patch 2 (ADR-132): { value, label, mode: 'progress'|'tolerance' }
-      }),
+      // Sprint 24 / F-20: Antes target = null forçava o usuário a abrir
+      // ⚙️ Configurar pra preencher Meta/Média manualmente. Agora auto-infere
+      // baseado em estatísticas do dataset: meta = p75 (se higherIsBetter) ou
+      // p25 (se lowerIsBetter, ex. tempo de atendimento) ou média histórica.
+      defaultConfig: (ctx) => {
+        const col = _firstColOfGroup(ctx, 'numeric');
+        let autoTarget = null;
+        if (col){
+          try {
+            const values = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+            if (values.length >= 10){
+              const dictCol = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[col];
+              const higherIsBetter = !dictCol || dictCol.higherIsBetter !== false;
+              // p75 se higherIsBetter (meta ambiciosa) · p25 se lowerIsBetter
+              const sorted = values.slice().sort((a, b) => a - b);
+              const targetPct = higherIsBetter ? 0.75 : 0.25;
+              const idx = (sorted.length - 1) * targetPct;
+              const lo = Math.floor(idx), hi = Math.ceil(idx);
+              const targetValue = sorted[lo] + (idx - lo) * (sorted[hi] - sorted[lo]);
+              autoTarget = {
+                value: Math.round(targetValue * 100) / 100,
+                label: higherIsBetter ? 'Meta (p75 histórico)' : 'Meta (p25 histórico)',
+                mode: 'progress',
+                _auto: true  // marca que foi auto-inferido (pra UI poder mostrar isso)
+              };
+            }
+          } catch(_){}
+        }
+        return {
+          column: col,
+          agg:'sum',
+          showSparkline: false,
+          comparison: { type: 'previous-period', targetValue: null, targetLabel: '', periodSize: 'auto' },
+          target: autoTarget  // ADR-132 + Sprint 24 / F-20: auto-inferido
+        };
+      },
       // Patch B5-r4 / ADR-045: título dinâmico — usa nome amigável da coluna em uppercase
       getTitle(slot, ctx){
         const col = slot.config && slot.config.column;
@@ -21122,9 +21177,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
         const NS = 'http://www.w3.org/2000/svg';
         const svg = document.createElementNS(NS, 'svg');
-        svg.setAttribute('class','solstice__chart-svg solstice__chart-svg--' + tier.tier);
+        // Sprint 24 / F-19: marca como gauge — CSS aplica max-height menor
+        // e o pai (.solstice__comp-body--gauge) centraliza verticalmente.
+        svg.setAttribute('class','solstice__chart-svg solstice__chart-svg--gauge solstice__chart-svg--' + tier.tier);
         svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        // Marca o host pra CSS centralizar verticalmente
+        try { if (host && host.classList) host.classList.add('solstice__comp-body--gauge'); } catch(_){}
 
         // Background arc
         const bg = document.createElementNS(NS, 'path');
@@ -26565,9 +26624,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         onclick: () => overlay.remove()
       }, '← Voltar');
       header.appendChild(closeBtn);
-      header.appendChild(SolsticeUtils.el('div', {
-        style:'flex:1;font-size:16px;font-weight:600;'
+      // Sprint 24 / F-22: título agora explica que é interativo (drag).
+      const titleWrap = SolsticeUtils.el('div', {
+        style:'flex:1;display:flex;flex-direction:column;gap:2px;'
+      });
+      titleWrap.appendChild(SolsticeUtils.el('div', {
+        style:'font-size:16px;font-weight:600;'
       }, '🗂️ Modelo de Dados — Visão Geral'));
+      titleWrap.appendChild(SolsticeUtils.el('div', {
+        style:'font-size:11px;color:var(--c-muted);'
+      }, '💡 Arraste as bases pra reorganizar. As posições são salvas automaticamente.'));
+      header.appendChild(titleWrap);
+      // Botão Reset posições (Sprint 24 / F-22)
+      header.appendChild(SolsticeUtils.el('button', {
+        class:'solstice__btn solstice__btn--ghost',
+        style:'font-size:12px;',
+        title:'Volta cards pro layout em grade',
+        onclick: () => {
+          SolsticeStore.set('ui.modelo.positions', {});
+          overlay.remove();
+          _openModeloFullscreen();
+        }
+      }, '↺ Reset layout'));
       header.appendChild(SolsticeUtils.el('button', {
         class:'solstice__btn',
         style:'font-size:12px;',
@@ -26593,22 +26671,84 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         return;
       }
 
-      // Layout em grade — cards posicionados absolute pra permitir linhas SVG
+      // Layout em grade — cards posicionados absolute pra permitir linhas SVG.
+      // Sprint 24 / F-22 + F-04: agora com drag-and-drop pra reposicionar cards
+      // (estilo Power BI Model View). Posições persistem em Store via
+      // ui.modelo.positions[baseId] = { x, y }. Default = layout em grid se
+      // não houver posição salva.
       const CARD_W = 240, CARD_H = 180, GAP = 60;
       const cols = Math.min(3, datasets.length);
       const positions = {};
+      const savedPositions = SolsticeStore.get('ui.modelo.positions') || {};
       const cardsWrap = SolsticeUtils.el('div', {
-        style:'position:relative;width:' + (cols * (CARD_W + GAP)) + 'px;'
+        class: 'solstice__modelo-canvas',
+        style:'position:relative;width:' + Math.max(900, cols * (CARD_W + GAP)) + 'px;min-height:600px;'
       });
       datasets.forEach((d, i) => {
         const col = i % cols;
         const row = Math.floor(i / cols);
-        const x = col * (CARD_W + GAP);
-        const y = row * (CARD_H + GAP);
+        // Usa posição salva se houver, caso contrário cai no grid default.
+        const saved = savedPositions[d.id];
+        const x = (saved && typeof saved.x === 'number') ? saved.x : col * (CARD_W + GAP);
+        const y = (saved && typeof saved.y === 'number') ? saved.y : row * (CARD_H + GAP);
         positions[d.id] = { x: x + CARD_W/2, y: y + CARD_H/2, w: CARD_W, h: CARD_H };
         const card = SolsticeUtils.el('div', {
           'data-base-id': d.id,
-          style:'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + CARD_W + 'px;min-height:' + CARD_H + 'px;background:var(--c-surface);border:2px solid var(--c-border);border-radius:8px;padding:12px;box-shadow:var(--sh-2);z-index:2;'
+          class: 'solstice__modelo-card',
+          style:'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + CARD_W + 'px;min-height:' + CARD_H + 'px;background:var(--c-surface);border:2px solid var(--c-border);border-radius:8px;padding:12px;box-shadow:var(--sh-2);z-index:2;cursor:grab;user-select:none;'
+        });
+        // F-04 / Sprint 24: drag pra reposicionar. mousedown captura posição
+        // inicial, mousemove atualiza style.left/top, mouseup persiste e
+        // re-renderiza linhas SVG.
+        card.addEventListener('mousedown', (ev) => {
+          // Ignora drag em scroll interno (colsList)
+          if (ev.target.closest('[data-no-drag]')) return;
+          ev.preventDefault();
+          card.style.cursor = 'grabbing';
+          card.style.zIndex = '5';
+          const startX = ev.clientX, startY = ev.clientY;
+          const origX = parseInt(card.style.left, 10) || 0;
+          const origY = parseInt(card.style.top, 10) || 0;
+          const onMove = (mv) => {
+            const nx = Math.max(0, origX + (mv.clientX - startX));
+            const ny = Math.max(0, origY + (mv.clientY - startY));
+            card.style.left = nx + 'px';
+            card.style.top = ny + 'px';
+            positions[d.id].x = nx + CARD_W/2;
+            positions[d.id].y = ny + CARD_H/2;
+            // Atualiza linhas SVG em tempo real
+            const svgEl = cardsWrap.querySelector('svg');
+            if (svgEl){
+              svgEl.querySelectorAll('line[data-rel-from][data-rel-to]').forEach(lineEl => {
+                const from = positions[lineEl.getAttribute('data-rel-from')];
+                const to   = positions[lineEl.getAttribute('data-rel-to')];
+                if (from && to){
+                  lineEl.setAttribute('x1', from.x); lineEl.setAttribute('y1', from.y);
+                  lineEl.setAttribute('x2', to.x);   lineEl.setAttribute('y2', to.y);
+                }
+              });
+              svgEl.querySelectorAll('text[data-rel-from][data-rel-to]').forEach(textEl => {
+                const from = positions[textEl.getAttribute('data-rel-from')];
+                const to   = positions[textEl.getAttribute('data-rel-to')];
+                if (from && to){
+                  textEl.setAttribute('x', (from.x + to.x) / 2);
+                  textEl.setAttribute('y', (from.y + to.y) / 2 - 8);
+                }
+              });
+            }
+          };
+          const onUp = () => {
+            card.style.cursor = 'grab';
+            card.style.zIndex = '2';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            // Persiste posição
+            const newPositions = { ...(SolsticeStore.get('ui.modelo.positions') || {}) };
+            newPositions[d.id] = { x: parseInt(card.style.left, 10), y: parseInt(card.style.top, 10) };
+            SolsticeStore.set('ui.modelo.positions', newPositions);
+          };
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
         });
         card.appendChild(SolsticeUtils.el('div', {
           style:'font-weight:600;font-size:13px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'
@@ -26616,7 +26756,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         card.appendChild(SolsticeUtils.el('div', {
           style:'font-family:var(--font-mono);font-size:10px;color:var(--c-muted);margin-bottom:8px;'
         }, (d.rows||[]).length.toLocaleString('pt-BR') + ' linhas · ' + (d.columns||[]).length + ' colunas'));
-        const colsList = SolsticeUtils.el('div', { style:'font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--c-text-2);max-height:96px;overflow-y:auto;' });
+        // 'data-no-drag' impede o handler de drag do card de capturar
+        // mousedown no scroll interno (caso o usuário queira scrollar a lista
+        // de colunas sem mover o card).
+        const colsList = SolsticeUtils.el('div', { 'data-no-drag': '1', style:'font-family:var(--font-mono);font-size:10px;line-height:1.5;color:var(--c-text-2);max-height:96px;overflow-y:auto;' });
         (d.columns || []).slice(0, 8).forEach(c => {
           const t = (d.types && d.types[c] && d.types[c].type) || '?';
           const icon = (typeof SolsticeTypes !== 'undefined' && SolsticeTypes.icon) ? (SolsticeTypes.icon(t) || '·') : '·';
@@ -26652,6 +26795,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         line.setAttribute('stroke', 'var(--c-accent)');
         line.setAttribute('stroke-width', '2');
         line.setAttribute('opacity', '0.7');
+        // Sprint 24 / F-04: tag from/to pra drag handler atualizar em tempo real.
+        line.setAttribute('data-rel-from', rel.fromDatasetId);
+        line.setAttribute('data-rel-to', rel.toDatasetId);
         svg.appendChild(line);
         // Label cardinalidade no meio
         const mid = document.createElementNS(svgNS, 'text');
@@ -26661,6 +26807,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         mid.setAttribute('fill', 'var(--c-accent)');
         mid.setAttribute('font-size', '11');
         mid.setAttribute('font-weight', 'bold');
+        mid.setAttribute('data-rel-from', rel.fromDatasetId);
+        mid.setAttribute('data-rel-to', rel.toDatasetId);
         mid.textContent = rel.cardinality || '1:N';
         svg.appendChild(mid);
       });
