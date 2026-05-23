@@ -3889,11 +3889,34 @@
     background: rgba(239,68,68,0.1);
   }
   .solstice__comp-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  /* B2-02 (v6-autonomous / UX-02 — Pedro Nubank): empty state mais convidativo.
+     Antes: 1 linha cinza centralizada. Agora: ícone grande, msg em 2 níveis
+     (título + dica). Visualmente parece "espera-se que apareça algo aqui"
+     em vez de "nada aqui, vai embora". */
   .solstice__comp-empty {
-    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
     color: var(--c-muted); font-size: var(--fs-sm); text-align: center;
-    padding: var(--sp-4);
+    padding: var(--sp-4); gap: var(--sp-2);
+    line-height: 1.5;
+    background:
+      repeating-linear-gradient(
+        45deg,
+        transparent, transparent 8px,
+        color-mix(in srgb, var(--c-muted) 4%, transparent) 8px,
+        color-mix(in srgb, var(--c-muted) 4%, transparent) 9px
+      );
+    border-radius: var(--rad-sm);
+    opacity: 0.85;
   }
+  .solstice__comp-empty::before {
+    content: '✨';
+    font-size: 24px;
+    line-height: 1;
+    opacity: 0.4;
+    margin-bottom: 4px;
+  }
+  .solstice__comp-empty:hover { opacity: 1; }
 
   /* KPI Card */
   /* KPI Card — layout redesenhado (Patch B5-r2)
@@ -6648,6 +6671,131 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   };
 
   /* ============================================================
+     B2-05 (v6-autonomous / MNT-03 — Renata/Spotify) — SolsticeConfig
+     Constantes globais documentadas. Antes esses valores ficavam espalhados
+     como magic numbers (`if (score >= 40)`, `setTimeout(_, 350)`,
+     `if (rows > 50000)`). Centralizar facilita ajuste fino + entendimento.
+
+     Cada chave tem unidade no comment + faixa razoável.
+     ============================================================ */
+  const SolsticeConfig = (function(){
+    return Object.freeze({
+      // Performance thresholds
+      LARGE_CSV_BYTES:        5 * 1024 * 1024, // 5MB — acima usa streaming parser
+      LARGE_DATASET_ROWS:     50000,           // acima ativa virtualização da tabela
+      MAX_DOM_NODES_WARNING:  5000,            // sinal de "talvez virtualize"
+      // Debounce/throttle (ms)
+      INPUT_DEBOUNCE_MS:      300,             // input → search/filter
+      RESIZE_THROTTLE_MS:     150,             // window resize → redraw
+      AUTOSAVE_INTERVAL_MS:   5000,            // estado → localStorage
+      // Confidences
+      DICT_DETECT_MIN_CONF:   0.40,            // detect domain só ativa se >=40%
+      QUERY_MIN_CONFIDENCE:   0.40,            // pergunta NL aceita se confiança >=
+      QUALITY_INVALID_ERROR:  0.25,            // >25% inválidos → vermelho
+      // Insights
+      INSIGHTS_MAX_SHOW:      8,
+      INSIGHTS_OVERVIEW_SCORE: 20,             // score baixo do overview ("o que dá pra construir")
+      TREND_R2_MIN:           0.20,            // R² mínimo pra reportar tendência
+      TREND_MAGNITUDE_MIN:    0.05,            // 5% de variação mínima
+      // Cache
+      CACHE_TTL_MS:           5 * 60 * 1000,   // 5 min — slot-level cache
+      CACHE_MAX_ENTRIES:      120,
+      // Tour / hints
+      TOUR_AUTOSTART_DELAY_MS: 1500,
+      HINT_DEFAULT_DELAY_MS:   1500,
+      // Storage
+      LZ_MIN_SIZE_TO_COMPRESS: 2048,           // só comprime se >2KB
+      SNAPSHOT_MAX_SIZE_BYTES: 4 * 1024 * 1024 // 4MB — limite de URL share
+    });
+  })();
+
+  /* ============================================================
+     B2-01 (v6-autonomous / RES-01 — Sofia/Auth0) — SolsticeErrorBoundary
+     Handler global de erros JS não-capturados.
+
+     Antes: erros silenciosos só apareciam no DevTools. Usuário via comportamento
+     errado (botão não faz nada, dado some) sem entender o que aconteceu.
+
+     Agora:
+       • window.addEventListener('error') → loga + toast "Algo deu errado"
+       • window.addEventListener('unhandledrejection') → loga promises rejeitadas
+       • Mantém últimos 50 erros em SolsticeStore('errors.log') pra debug
+       • Em modo debug (?debug=true), mostra stack trace inline
+
+     Princípios:
+       • Errar é humano — silenciar é negligente
+       • Toast suave (não modal) — não bloqueia uso
+       • Log estruturado: { ts, type, message, stack, source, line, col }
+     ============================================================ */
+  const SolsticeErrorBoundary = (function(){
+    const MAX_LOG = 50;
+    const _log = [];
+    let _toastDebounceTs = 0;
+    const TOAST_DEBOUNCE_MS = 5000; // 1 toast por 5s no máximo
+    let _initialized = false;
+
+    function _record(entry){
+      entry.ts = Date.now();
+      _log.push(entry);
+      if (_log.length > MAX_LOG) _log.shift();
+      try { if (typeof SolsticeStore !== 'undefined') SolsticeStore.set('errors.log', _log.slice()); } catch(_){}
+    }
+
+    function _maybeToast(humanMsg){
+      const now = Date.now();
+      if (now - _toastDebounceTs < TOAST_DEBOUNCE_MS) return;
+      _toastDebounceTs = now;
+      try {
+        if (typeof SolsticeToast !== 'undefined' && SolsticeToast.warn){
+          SolsticeToast.warn('Algo deu errado', humanMsg + ' · Veja Console (F12) pra detalhes.');
+        }
+      } catch(_){}
+    }
+
+    function init(){
+      if (_initialized) return;
+      _initialized = true;
+      // Erros JS síncronos
+      window.addEventListener('error', (e) => {
+        // Filtra erros de recurso (CSS/img/script que falhou ao carregar) — esses já
+        // aparecem na Network tab, não vale toast.
+        if (e && e.target && e.target !== window && e.target.tagName) return;
+        _record({
+          type: 'error',
+          message: (e && e.message) || 'Erro desconhecido',
+          stack: (e && e.error && e.error.stack) || null,
+          source: e && e.filename,
+          line: e && e.lineno,
+          col: e && e.colno
+        });
+        console.error('[SolsticeError]', e && e.message, e && e.error);
+        _maybeToast('Erro JS: ' + ((e && e.message) || 'desconhecido').slice(0, 80));
+      });
+      // Promises rejeitadas sem .catch
+      window.addEventListener('unhandledrejection', (e) => {
+        const reason = e && e.reason;
+        const msg = (reason && (reason.message || reason.toString())) || 'Promise rejeitada';
+        _record({
+          type: 'unhandled-rejection',
+          message: msg,
+          stack: (reason && reason.stack) || null
+        });
+        console.error('[SolsticeError] Unhandled rejection:', reason);
+        _maybeToast('Operação assíncrona falhou: ' + msg.slice(0, 80));
+      });
+      // Loga no console que está ativo
+      try { console.info('[SolsticeErrorBoundary] handler global ativo'); } catch(_){}
+    }
+
+    function getLog(){ return _log.slice(); }
+    function clear(){ _log.length = 0; try { SolsticeStore.set('errors.log', []); } catch(_){} }
+
+    return { init, getLog, clear };
+  })();
+  // Inicializa IMEDIATAMENTE (antes de outros módulos) pra capturar erros do próprio boot
+  try { SolsticeErrorBoundary.init(); } catch(e){ console.warn('[ErrorBoundary] init falhou', e); }
+
+  /* ============================================================
      SolsticeUtils — helpers gerais
      Por que existe: evitar reimplementar uuid/debounce/el em todo módulo.
      ============================================================ */
@@ -8203,7 +8351,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__modal-header' },
         SolsticeUtils.el('div', { class: 'solstice__modal-title' }, '🧠 ' + SolsticeLocale.t('dict.title')),
-        SolsticeUtils.el('button', { class: 'solstice__modal-close', onclick: () => overlay.remove() }, '✕')
+        SolsticeUtils.el('button', { class: 'solstice__modal-close', 'aria-label':'Fechar', title:'Fechar (Esc)', onclick: () => overlay.remove() }, '✕')
       ));
 
       const body = SolsticeUtils.el('div', { class: 'solstice__modal-body' });
@@ -18554,7 +18702,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const agg = cfg.agg || 'sum';
 
         // Container raiz com layout próprio (substitui o padding/flex padrão da casca)
-        const card = SolsticeUtils.el('div', { class:'solstice__kpi-card' });
+        // B2-04 (v6-autonomous / AC-01 — Marina/NVDA): KPI card ganha role + aria-label
+        // descritivo. Antes NVDA lia só o número solto "R$ 1.2M" sem contexto.
+        // Agora lê "Região, KPI: Soma de Receita Mensal = R$ 1.2M"
+        const friendlyForLabel = SolsticeHumanize.column(col || '?', ctx.dictionary);
+        const card = SolsticeUtils.el('div', {
+          class:'solstice__kpi-card',
+          role: 'region',
+          'aria-label': 'KPI · ' + (cfg.title || friendlyForLabel)
+        });
         host.appendChild(card);
 
         if (!col){
@@ -27671,7 +27827,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             class:'solstice__slot-inserter',
             'data-position': pos,
             title:'Adicionar componente nesta posição (modo expert)'
-          }, SolsticeUtils.el('button', { class:'solstice__inserter-btn', tabindex:'-1' }, '+'));
+          }, SolsticeUtils.el('button', { class:'solstice__inserter-btn', tabindex:'-1', 'aria-label':'Inserir componente aqui', title:'Inserir componente' }, '+'));
           inserter.onclick = (e) => {
             e.stopPropagation();
             inserter.classList.add('is-pulsing');
@@ -32843,6 +32999,62 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       SolsticeStore.subscribe('ui.filters.shown', () => {
         if (SolsticeCanvas && SolsticeCanvas.render) SolsticeCanvas.render();
       });
+
+      // B2-03 (v6-autonomous / PW-02 — Augusto power user): persiste filtros
+      // entre sessões em localStorage. Sai dali um analista que vive 5h/dia
+      // no produto e não precisa reconfigurar tudo toda manhã.
+      // Key vinculada ao sourceName do dataset (cada dataset tem seus filtros).
+      const STORAGE_PREFIX = 'solstice.filters.';
+
+      function _storageKey(){
+        const ingest = SolsticeStore.get('ingest') || {};
+        return STORAGE_PREFIX + (ingest.sourceName || '_default_');
+      }
+
+      function _persist(){
+        try {
+          const f = SolsticeStore.get('filters');
+          if (!f || !Object.keys(f).length){
+            // limpa se ficou vazio (não polui localStorage)
+            if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeRemove){
+              SolsticeStorage.safeRemove(_storageKey());
+            }
+            return;
+          }
+          if (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeSet){
+            SolsticeStorage.safeSet(_storageKey(), JSON.stringify(f), { silent: true });
+          }
+        } catch(_){}
+      }
+
+      function _restore(){
+        try {
+          const raw = (typeof SolsticeStorage !== 'undefined' && SolsticeStorage.safeGet)
+            ? SolsticeStorage.safeGet(_storageKey())
+            : localStorage.getItem(_storageKey());
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object'){
+            // Só restaura se NÃO há filtro ativo (não sobrescreve estado vindo de snapshot)
+            const cur = SolsticeStore.get('filters');
+            if (!cur || !Object.keys(cur).length){
+              SolsticeStore.set('filters', parsed);
+            }
+          }
+        } catch(_){}
+      }
+
+      // Persiste em mudanças (debounced — evita spammar localStorage)
+      let _persistTimer = null;
+      SolsticeStore.subscribe('filters', () => {
+        clearTimeout(_persistTimer);
+        _persistTimer = setTimeout(_persist, 500);
+      });
+
+      // Restaura quando dataset estiver pronto
+      SolsticeStore.subscribe('dataset.ready', (ready) => { if (ready) _restore(); });
+      // E imediatamente se já estiver pronto (re-init pós-load)
+      if (SolsticeStore.get('dataset.ready')) _restore();
     }
 
     // Auditoria 2026 (RT-03): adapter pra cumprir SolsticeStoreContract.
@@ -36033,9 +36245,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // Barra inferior
       const bar = SolsticeUtils.el('div', { class:'solstice__slides-bar' });
       const nav = SolsticeUtils.el('div', { class:'solstice__slides-nav' });
-      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: prev, disabled: currentIndex === 0 ? '' : null }, '←'));
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', 'aria-label':'Slide anterior', title:'Anterior (←)', onclick: prev, disabled: currentIndex === 0 ? '' : null }, '←'));
       nav.appendChild(SolsticeUtils.el('span', { class:'solstice__slides-counter' }, (currentIndex + 1) + ' / ' + secs.length));
-      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', onclick: next, disabled: currentIndex === secs.length - 1 ? '' : null }, '→'));
+      nav.appendChild(SolsticeUtils.el('button', { class:'solstice__btn', 'aria-label':'Próximo slide', title:'Próximo (→)', onclick: next, disabled: currentIndex === secs.length - 1 ? '' : null }, '→'));
       bar.appendChild(nav);
 
       const progress = SolsticeUtils.el('div', { class:'solstice__slides-progress' });
