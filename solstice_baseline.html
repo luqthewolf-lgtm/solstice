@@ -19662,8 +19662,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const dy = e.clientY - d.startY;
 
       // Vertical → altura
+      // Sprint 41 / feedback do usuário: "tem teto que impede ir até o final…
+      // independente se quiser colocar um inteiro na página ela pode". Antes
+      // o resize era limitado em 800px. Agora: floor 200 (mantém clicável)
+      // e teto = altura disponível da viewport menos margem mínima de 80px
+      // (header + breathing room). Em monitores 4K (~2160px) chega a ~2080px
+      // de altura útil — efetivamente "inteira a página" como pedido.
       let newHeight = d.startHeight + dy;
-      newHeight = Math.max(200, Math.min(800, newHeight));
+      const _maxH = Math.max(800, window.innerHeight - 80);
+      newHeight = Math.max(200, Math.min(_maxH, newHeight));
       d.wrap.style.height = newHeight + 'px';
       d.currentHeight = newHeight;
 
@@ -20735,6 +20742,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             svg.appendChild(t);
           }
           // Barras
+          // Sprint 41 / feedback do usuário ("paleta de gráfico só 1 cor"):
+          // histograma agora pinta cada barra com cor da paleta — antes era
+          // accentColor único em TODAS as barras (palette[0]). Agora os bins
+          // ciclam pelas cores da paleta selecionada, dando visual de paleta
+          // multi-cor escolhida. Quando palette === 'auto', mantém comportamento
+          // anterior (1 cor) pra não quebrar quem já estava usando.
+          const histMulti = palette && (style.palette && style.palette !== 'auto');
           bins.forEach((c, i) => {
             const h = (c / maxC) * innerH;
             const rect = document.createElementNS(NS, 'rect');
@@ -20742,7 +20756,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             rect.setAttribute('y', (padT + innerH - h).toFixed(1));
             rect.setAttribute('width', Math.max(1, bw - 2).toFixed(1));
             rect.setAttribute('height', h.toFixed(1));
-            rect.setAttribute('fill', accentColor);
+            rect.setAttribute('fill', histMulti ? palette[i % palette.length] : accentColor);
             rect.style.opacity = '0.85';
             const title = document.createElementNS(NS, 'title');
             title.textContent = ctx.L.decimal(min + i*step, 1) + '–' + ctx.L.decimal(min + (i+1)*step, 1) + ' · ' + c + ' obs.';
@@ -24312,11 +24326,20 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'Usada em borda hover, glow, indicadores de seleção.'
       ));
 
-      // Paleta — só pra componentes de chart
-      const usesPalette = ['time-series','distribution','scatter','sankey','funnel','heatmap-cal','pivot','boxplot','distrib-time','metric-graph'].includes(def.id);
+      // Paleta — pra componentes que usam múltiplas séries/categorias.
+      // Sprint 41 / feedback do usuário ("paleta de gráfico só 1 cor"): incluímos
+      // mais tipos que se beneficiam de paleta multi-cor (forecast com bandas,
+      // distrib-time empilhada, treemap, radar, polar, segments). Também
+      // promovemos a paleta para CIMA do Accent — usuário pediu visibilidade.
+      const usesPalette = [
+        'time-series','distribution','scatter','sankey','funnel','heatmap-cal',
+        'pivot','boxplot','distrib-time','metric-graph','forecast','segments',
+        'treemap','radar','polar','timeline','bubble','combo','area','bar','pie',
+        'donut','stacked-bar'
+      ].includes(def.id);
       if (usesPalette){
         coresBody.appendChild(_divider());
-        coresBody.appendChild(_subHeading('Paleta do gráfico', 'sequência aplicada nas séries'));
+        coresBody.appendChild(_subHeading('Paleta do gráfico', '🎨 11 paletas prontas — escolha o conjunto de cores das séries'));
         coresBody.appendChild((function(){
           const wrap = SolsticeUtils.el('div', { class:'solstice__style-palettes' });
           SolsticeStyle.listPalettes().forEach(p => {
@@ -25259,7 +25282,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       dateFixed: null,
       dateColumn: null,
       dateFunction: 'max',
-      gradient: { from: '#003D7A', to: '#FF6B00', direction: 'to right' },
+      // Sprint 41 / feedback do usuário: default era azul Itaú → laranja Itaú
+      // (mistura institucional). Usuário pediu "gradiente laranja Itaú" puro
+      // — duas tonalidades de laranja em vez de mistura azul+laranja.
+      // #EC7000 é o laranja primário Itaú; #B85800 é o tom escuro pra contraste.
+      gradient: { from: '#EC7000', to: '#B85800', direction: 'to right' },
       textColor: 'auto-white',
       height: 'compact'
     };
@@ -25753,7 +25780,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         size: 'lg',
         body: _build,
         defaultClose: 'cancel',
-        dismissOnBackdrop: false,   // Patch B6-r1 / ADR-052: inputs longos não fecham por click no backdrop
+        // Sprint 41 / feedback do usuário: backdrop fechava só com botão
+        // Cancelar — padrão diferente de outros modais (relatório/inspector).
+        // Volta pro default true. A proteção contra "dragStartedInside" no
+        // SolsticeModal.show já evita fechar ao selecionar texto dentro do
+        // form, então o motivo original (Patch B6-r1) está coberto.
+        dismissOnBackdrop: true,
         footer: (close) => [
           SolsticeUtils.el('button', { class:'solstice__btn', onclick: () => close('cancel') }, 'Cancelar'),
           SolsticeUtils.el('button', { class:'solstice__btn solstice__btn--primary',
@@ -29607,27 +29639,76 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         onclick: () => { if (!isLast) moveRow(secId, row.id, +1); }
       }, '↓');
 
-      // SOL-E2: ciclo de espaçamento entre blocos (8 → 16 → 24 → 0 → 8…).
-      // Persiste em row.gap → canvas.sections, sobrevive save/reload.
+      // Sprint 41 / feedback do usuário: era cycle-button (8 → 16 → 24 → 0 → 8…),
+      // exigia múltiplos cliques pra chegar no valor desejado. Agora abre dropdown
+      // com 4 presets nomeados (Compacto/Padrão/Confortável/Aerado) visíveis de uma
+      // vez. Clique aplica direto. Persiste em row.gap → canvas.sections.
+      // SOL-E2 (legado): persistência mantida.
+      const GAP_PRESETS = [
+        { v: 0,  label: '🟦 Compacto',    sub: '0px — sem espaço' },
+        { v: 8,  label: '🟦 Padrão',      sub: '8px — discreto' },
+        { v: 16, label: '🟦 Confortável', sub: '16px — respiração' },
+        { v: 24, label: '🟦 Aerado',      sub: '24px — máximo' }
+      ];
+      function _openGapMenu(anchor){
+        // Fecha qualquer menu aberto antes
+        document.querySelectorAll('.solstice__row-gap-menu').forEach(m => m.remove());
+        const menu = SolsticeUtils.el('div', {
+          class: 'solstice__row-gap-menu',
+          role: 'menu',
+          style: 'position:fixed;background:var(--c-surface);border:1px solid var(--c-border);' +
+                 'border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.18);' +
+                 'min-width:180px;z-index:99999;padding:4px;font-size:12px;'
+        });
+        const cur = (() => {
+          const secs = SolsticeStore.get('canvas.sections') || [];
+          const s = secs.find(sx => sx.id === secId);
+          const r2 = s && s.rows.find(rw => rw.id === row.id);
+          return r2 && typeof r2.gap === 'number' ? r2.gap : 12;
+        })();
+        GAP_PRESETS.forEach(p => {
+          const isActive = p.v === cur;
+          const opt = SolsticeUtils.el('button', {
+            role: 'menuitem',
+            class: 'solstice__row-gap-opt',
+            style: 'display:flex;justify-content:space-between;align-items:center;' +
+                   'width:100%;padding:6px 10px;background:' + (isActive ? 'var(--c-accent-soft,rgba(236,112,0,.12))' : 'transparent') + ';' +
+                   'border:none;border-radius:4px;cursor:pointer;text-align:left;color:var(--c-text);',
+            onclick: () => {
+              const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
+              const sec2 = sections.find(s => s.id === secId);
+              const r2 = sec2 && sec2.rows.find(rw => rw.id === row.id);
+              if (!r2){ menu.remove(); return; }
+              r2.gap = p.v;
+              SolsticeStore.set('canvas.sections', sections);
+              try { SolsticeAudit.record({ action:'row_gap', target: row.id, details:{ gap: p.v } }); } catch(_){}
+              menu.remove();
+            }
+          });
+          opt.appendChild(SolsticeUtils.el('span', null, p.label + (isActive ? ' ✓' : '')));
+          opt.appendChild(SolsticeUtils.el('span', { style: 'opacity:.6;font-size:10px;' }, p.sub));
+          menu.appendChild(opt);
+        });
+        document.body.appendChild(menu);
+        // Posiciona abaixo do botão
+        const rect = anchor.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - 200, rect.left)) + 'px';
+        // Clique fora fecha
+        const closeOnOutside = (e) => {
+          if (!menu.contains(e.target) && e.target !== anchor){
+            menu.remove();
+            document.removeEventListener('click', closeOnOutside, true);
+          }
+        };
+        setTimeout(() => document.addEventListener('click', closeOnOutside, true), 0);
+      }
       const gapBtn = SolsticeUtils.el('button', {
         class:'solstice__row-btn',
-        title:'Espaçamento entre blocos (clique para alternar: 0 / 8 / 16 / 24 px)',
-        'aria-label':'Alternar espaçamento entre blocos',
-        onclick: () => {
-          const PRESETS = [0, 8, 16, 24];
-          const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
-          const sec = sections.find(s => s.id === secId);
-          const r = sec && sec.rows.find(rw => rw.id === row.id);
-          if (!r) return;
-          const cur = typeof r.gap === 'number' ? r.gap : 12;
-          let idx = PRESETS.indexOf(cur);
-          idx = (idx + 1) % PRESETS.length;
-          if (idx < 0) idx = 0;
-          r.gap = PRESETS[idx];
-          SolsticeStore.set('canvas.sections', sections);
-          SolsticeToast.info('Espaçamento atualizado', r.gap + 'px entre blocos desta linha');
-          try { SolsticeAudit.record({ action:'row_gap', target: row.id, details:{ gap: r.gap } }); } catch(_){}
-        }
+        title:'Espaçamento entre blocos (escolher preset)',
+        'aria-label':'Escolher espaçamento entre blocos',
+        'aria-haspopup':'menu',
+        onclick: (e) => _openGapMenu(e.currentTarget)
       }, '↔️');
 
       // SOL-E1: botão dedicado "Distribuir igualmente" — 1 clique zera widths
