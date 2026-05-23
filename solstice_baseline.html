@@ -22449,6 +22449,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     register({
       id:'pivot', name:'Matriz', icon:'🔢',
       description: 'Tabela cruzada (linhas × colunas × medida agregada)',
+      // Sprint 36 / EV-COMP-05: defaultConfig agora prioriza dimensões com
+      // BAIXA CARDINALIDADE pra não cair em "matriz com 90% zeros" (era o caso
+      // com regiao(5) × uf(27) = 135 células ~ todas zero). Estratégia: ordena
+      // categóricas por cardinalidade crescente e pega as 2 menores com >= 2
+      // valores distintos. Considera no máximo 12 valores por dimensão pra
+      // matriz caber visualmente.
       defaultConfig: (ctx) => {
         const cats = (ctx.columns || []).filter(c => {
           const tg = SolsticeTypes.group((ctx.types[c] || {}).type);
@@ -22458,9 +22464,18 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const tg = SolsticeTypes.group((ctx.types[c] || {}).type);
           return tg === 'numeric';
         });
+        // Conta cardinalidade de cada categórica (no sample de 500 linhas pra perf)
+        const sample = (ctx.rows || []).slice(0, 500);
+        const cardOf = c => new Set(sample.map(r => String(r[c]))).size;
+        const sortedByCard = cats
+          .map(c => ({ col: c, card: cardOf(c) }))
+          .filter(o => o.card >= 2 && o.card <= 12)
+          .sort((a, b) => a.card - b.card);
+        const row = sortedByCard[0] && sortedByCard[0].col;
+        const col = sortedByCard[1] && sortedByCard[1].col;
         return {
-          rowDimension: cats[0] || null,
-          colDimension: cats[1] || cats[0] || null,
+          rowDimension: row || cats[0] || null,
+          colDimension: col || cats[1] || cats[0] || null,
           valueColumn: nums[0] || null,
           aggregation: 'sum',
           showTotals: true,
@@ -22666,16 +22681,38 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     register({
       id:'funnel', name:'Funil de Conversão', icon:'🔻',
       description: 'Trapézios decrescentes representando etapas de conversão',
+      // Sprint 36 / EV-COMP-04: defaultConfig agora prioriza coluna que pareça
+      // ETAPA (nome contém "etapa/stage/funil/status/estagio") sobre primeira
+      // categórica genérica. Evita Funnel ser auto-configurado com REGIÃO
+      // (categoria paralela, semanticamente errado).
       defaultConfig: (ctx) => {
         const dims = (ctx.columns || []).filter(c => SolsticeTypes.group((ctx.types[c] || {}).type) === 'categorical');
         const nums = (ctx.columns || []).filter(c => SolsticeTypes.group((ctx.types[c] || {}).type) === 'numeric');
-        return { stageColumn: dims[0] || null, valueColumn: nums[0] || null, mode: 'absolute' };
+        // Prefere coluna com nome funil-like
+        const funnelLike = dims.find(c => /etapa|stage|funil|status|estagio|fase|step/i.test(c));
+        return { stageColumn: funnelLike || dims[0] || null, valueColumn: nums[0] || null, mode: 'absolute' };
       },
       render(slot, host, ctx){
         const cfg = slot.config || {};
         if (!cfg.stageColumn || !cfg.valueColumn){
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Selecione etapas + medida em ⚙️.'));
           return;
+        }
+        // Sprint 36 / EV-COMP-04: warning quando stageColumn parece categoria
+        // paralela (regiao/canal/categoria/uf), não etapa de funil real.
+        const stageColLower = String(cfg.stageColumn).toLowerCase();
+        const isFunnelLike = /etapa|stage|funil|status|estagio|fase|step/i.test(stageColLower);
+        const isParallelLike = /regiao|região|uf|estado|canal|categoria|tipo|segmento/i.test(stageColLower);
+        if (isParallelLike && !isFunnelLike){
+          const warn = SolsticeUtils.el('div', {
+            style: 'padding:8px 12px;margin-bottom:10px;background:color-mix(in srgb,var(--c-warn) 12%, transparent);border-left:3px solid var(--c-warn);border-radius:var(--rad-sm);font-size:11px;color:var(--c-text-2);line-height:1.4;'
+          });
+          warn.appendChild(SolsticeUtils.el('strong', { style:'color:var(--c-warn);' }, '⚠️ '));
+          warn.appendChild(document.createTextNode(
+            'Funil clássico mostra ESTÁGIOS SEQUENCIAIS (ex: lead → qualificação → proposta → fechamento), não categorias paralelas como "' + cfg.stageColumn + '". ' +
+            'Considere usar uma coluna de etapas ou trocar pra Comparação de Categorias.'
+          ));
+          host.appendChild(warn);
         }
         // Agrega por etapa (mantém ordem de aparição)
         const stageOrder = [];
