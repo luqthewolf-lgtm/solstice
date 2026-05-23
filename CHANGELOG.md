@@ -5,6 +5,40 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Auditoria 2026.4 (Sprint 8 · "Sem voz interna no produto") — 2026-05-23
+
+Quarta passada do Conselho — micro-rodada sobre módulos que sobraram, performance, e voz pessoal/processo no código. **1 fix de segurança · 1 otimização considerada e revertida honestamente · 5 comentários refatorados.**
+
+### 🛡️ Segurança
+
+- **MC-08 / AP-06: XSS controlado em `SolsticeExportSVG` `<title>`** — `slot.config.title` (vem do usuário) entrava direto na string XML do SVG exportado. Caracteres `<`, `>`, `&` quebravam o SVG (XML inválido) ou podiam injetar markup. Política HV-01 (DOM seguro) agora aplicada ao SVG também: usa `SolsticeUtils.escapeHtml`.
+
+### 📊 Performance — RT-08 considerado e REVERTIDO (transparência)
+
+- Tentei rAF throttle no subscriber principal de `canvas.sections` para coalescer múltiplas mudanças por frame. Teste no preview mostrou que `requestAnimationFrame` pode pausar em aba inativa — subscribers disparados em background (multi-tab sync, snapshot load) ficariam sem render. **Risco > ganho marginal.** Comentário no código documenta o motivo e aponta para o caminho certo (detecção de diff slot-a-slot, não throttle global) — roadmap.
+
+### 🧹 Cleanliness — JM-07: voz pessoal no código
+
+- **5 comentários refatorados** (sample do padrão). Antes carregavam citações pessoais incluindo palavrões em código de produção:
+  - `KPI1 v4 (Diretor): "não consigo diminuir o kpi e fica uma bosta"` → motivação técnica neutra
+  - `SOL-H1 v2: O Diretor: "pra mim foda-se isso, não faz sentido"` → motivação técnica neutra
+  - `UX3 v4 (Diretor): "a cor por exemplo dos ícones..."` → descrição do problema/fix
+  - `CUSTOM1 v4 (Diretor): "não consigo escolher o tema, tenho que ficar saindo"` → descrição UX
+  - `PASTAS v5 (Diretor): "por que não aparece a pasta do segundo csv?"` → contexto do bug
+- **Restam ~93 ocorrências de "Lucas/Diretor"** — roadmap próxima sprint. Padrão estabelecido: manter contexto/decisão, remover citação direta + palavrão.
+
+### 📊 Métricas
+
+| Sinal | 2026.3 | 2026.4 |
+|---|---|---|
+| `document.write` | 0 | **0** |
+| `eval()` | 0 | **0** |
+| XSS controlado em SVG export | aberto (MC-08) | **fechado** |
+| Comentários "Diretor/Lucas" em prod | 98 | 93 |
+| Palavrões em comentários ("bosta", "foda-se") | 2 | **0** |
+
+---
+
 ## [Unreleased] — Auditoria 2026.3 (Sprint 7 · "Disciplina e Estado Coerente") — 2026-05-23
 
 Terceira passada do Conselho de Evolução do Solstice, focada nos módulos novos do `v6-autonomous` que a Auditoria 2026.2 não cobriu a fundo. **7 patches + 3 ADRs aplicados.**

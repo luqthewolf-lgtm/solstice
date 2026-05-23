@@ -4105,10 +4105,12 @@
   .solstice__comp-empty:hover { opacity: 1; }
 
   /* KPI Card */
-  /* KPI Card — layout redesenhado (Patch B5-r2)
-     KPI1 v4 (Diretor): "não consigo diminuir o kpi e fica uma bosta. olha o tanto
-     de espaço que eu estou perdendo". Reduzi min-height de 140px → 80px e padding
-     pra var(--sp-3). Permite KPI compacto em 1 linha de altura. */
+  /* KPI Card — layout redesenhado (Patch B5-r2 · KPI1 v4)
+     Auditoria 2026.4 (JM-07): comentário reformulado pra remover voz pessoal.
+     Motivação técnica: min-height 140px era excessivo pra dashboards densos —
+     KPI desperdiçava espaço vertical em layouts compactos. Reduzido para 80px
+     + padding var(--sp-3). Resultado: KPI cabe em 1 linha de altura, layouts
+     densos com 4+ KPIs por row ficam viáveis. */
   .solstice__kpi-card {
     position: relative;
     display: flex; flex-direction: column; justify-content: center;
@@ -5716,10 +5718,10 @@
   }
 
   /* Header rico de coluna no Editor (3 linhas) — densidade controlada */
-  /* UX3 v4 (Diretor): "a cor por exemplo dos ícones aqui que tinha antes,
-     que você tirou do líder, mas a cor mudava tanto ao gráfico aqui... eu
-     posso usar um Itaú com uma cor vermelha que os ícones vão ficar vermelhos".
-     Ícones agora seguem --c-accent (que muda com a paleta global). */
+  /* UX3 v4 · Auditoria 2026.4 (JM-07): ícones do editor seguem --c-accent
+     para acompanhar a paleta global. Antes usavam cor fixa que não casava
+     com paletas custom (ex: Itaú vermelha gera ícones azuis dissonantes).
+     Aplicado também a sidebar tabs ativas + section icons IA. */
   .solstice__editor-col-icon {
     width: var(--ed-action-size); height: var(--ed-action-size);
     display: inline-flex; align-items: center; justify-content: center;
@@ -6572,13 +6574,14 @@
             <option value="coffee">Coffee</option>
             <option value="slate">Slate</option>
             <option value="itau">Itaú</option>
-            <!-- TEMA1 v4 (Diretor): paleta custom — usuário define cor base; sistema gera variações dark/light. -->
+            <!-- TEMA1 v4 · Auditoria 2026.4 (JM-07): paleta custom — usuário define cor base; sistema gera variações dark/light. -->
             <option value="custom">✦ Custom...</option>
           </select>
         </label>
-        <!-- CUSTOM1 v4 (Diretor): "não consigo escolher o tema, tenho que ficar saindo
-             de um pra outro". Color picker SEMPRE visível ao lado do dropdown — escolher
-             cor aplica como "Custom" automaticamente. Sem precisar trocar dropdown. -->
+        <!-- CUSTOM1 v4 · Auditoria 2026.4 (JM-07): color picker SEMPRE visível ao
+             lado do dropdown. Antes, escolher cor custom exigia 2 steps (abrir
+             dropdown, escolher "Custom", abrir picker). Agora: escolher cor já
+             aplica como "Custom" automaticamente — 1 step. -->
         <label class="solstice__pill" id="palette-custom-wrap" title="Cor custom — escolhe e aplica direto">
           <input type="color" id="palette-custom-input" aria-label="Cor base do tema" value="#FF6C00"
                  style="width:24px;height:18px;border:none;background:transparent;cursor:pointer;padding:0;">
@@ -13200,8 +13203,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       const dict = SolsticeStore.get('dictionary');
 
-      // PASTAS v5 (Diretor): "por que não aparece a pasta do segundo csv?".
-      // Itera TODAS as bases carregadas. Ativa = aberta, outras = fechadas
+      // PASTAS v5 · Auditoria 2026.4 (JM-07): com multi-CSV, segunda base
+      // importada ficava invisível na sidebar (só a ativa aparecia). Fix:
+      // itera TODAS as bases carregadas — ativa = aberta, outras = fechadas
       // com lista compacta. Clique em outra base = ativa via MultiCSV.
       const activeId = SolsticeStore.get('datasets.activeId');
       const datasets = SolsticeStore.get('datasets') || [];
@@ -14618,10 +14622,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       host.classList.remove('solstice__hidden');
       host.innerHTML = '';
 
-      // SOL-H1 v2: resumo enxuto. O Diretor: "pra mim foda-se isso, não faz
-      // sentido" (sobre "200 linhas, 11 colunas, 6 numéricas, período coberto").
-      // Tiramos o big text de "X linhas" daqui. O título passa a ser direto.
-      // A contagem de linhas continua disponível discreta via tooltip do head.
+      // SOL-H1 v2 · Auditoria 2026.4 (JM-07): resumo enxuto. Estatísticas cruas
+      // de tamanho ("200 linhas, 11 colunas, 6 numéricas, período coberto") não
+      // são acionáveis no resumo do dataset — usuário não decide nada com elas.
+      // Removemos o big text de "X linhas" e o título passa a ser direto.
+      // A contagem continua disponível discreta via tooltip do head.
       const head = SolsticeUtils.el('div', {
         class:'solstice__dataset-summary-head',
         title: SolsticeLocale.integer(sum.totalRows) + (sum.totalRows === 1 ? ' linha' : ' linhas')
@@ -29046,6 +29051,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function init(){
       // Render inicial + re-render reativo
       render();
+      // Auditoria 2026.4 (RT-08 considerado e REVERTIDO): tentei rAF throttle
+      // aqui pra coalescer múltiplas mudanças em canvas.sections numa frame.
+      // Problema: requestAnimationFrame pausa em aba inativa — subscribers
+      // disparados em background (multi-tab sync, auto-save restore) ficariam
+      // sem render até o usuário voltar à aba. Risco > ganho marginal.
+      // Roadmap: detecção de diff (mudou só 1 slot? só re-renderiza ele).
       SolsticeStore.subscribe(PATH, render);
       // Também re-renderiza ao carregar dataset (libera empty state para mostrar templates)
       SolsticeStore.subscribe('dataset.ready', render);
@@ -39571,6 +39582,14 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const h = Math.max(120, Math.round(rect.height));
 
       // Tenta achar canvas de Chart.js dentro do slot
+      // Auditoria 2026.4 (MC-08 / AP-06): título do slot vem do usuário —
+      // precisa ser escapado antes de entrar em <title> ou <desc> do SVG.
+      // Antes: `slot.config.title` direto na string concatenada — se o usuário
+      // colocasse um '<' no título do componente, o SVG gerado quebrava
+      // (XML inválido) ou abria vetor com markup injetado. Política HV-01
+      // ("dado dinâmico SEMPRE via escapeHtml") se aplica aqui também.
+      const safeTitle = SolsticeUtils.escapeHtml(slot.config && slot.config.title || slot.type);
+
       const canvas = el.querySelector('canvas');
       if (canvas){
         try {
@@ -39578,7 +39597,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           return [
             '<?xml version="1.0" encoding="UTF-8"?>',
             '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">',
-            '  <title>' + (slot.config && slot.config.title || slot.type) + '</title>',
+            '  <title>' + safeTitle + '</title>',
             '  <desc>Exportado de Solstice — ' + new Date().toISOString() + '</desc>',
             '  <image x="0" y="0" width="' + w + '" height="' + h + '" xlink:href="' + dataUrl + '"/>',
             '</svg>'
@@ -39588,11 +39607,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
       // Sem canvas: gera SVG com texto (KPI/BigNum/Tabela)
       const text = (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 500);
-      const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safe = SolsticeUtils.escapeHtml(text);
       return [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">',
-        '  <title>' + (slot.config && slot.config.title || slot.type) + '</title>',
+        '  <title>' + safeTitle + '</title>',
         '  <rect x="0" y="0" width="' + w + '" height="' + h + '" fill="#fff" stroke="#ccc"/>',
         '  <foreignObject x="8" y="8" width="' + (w-16) + '" height="' + (h-16) + '">',
         '    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:system-ui,sans-serif;font-size:13px;color:#333;">',
