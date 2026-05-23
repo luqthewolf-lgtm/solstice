@@ -34935,8 +34935,9 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
   })();
 
   /* ============================================================
-     B4-01 (v6-autonomous / PW-03 — Augusto power user) — SolsticeViews
-     Views salvas LEVES (vs SolsticeSnapshots que captura estado COMPLETO).
+     B4-01 (v6-autonomous / PW-03 — Augusto power user) — SolsticeSavedViews
+     Views salvas LEVES (vs SolsticeSnapshots que captura estado COMPLETO
+     e vs SolsticeViews que persiste por workspace em ingest.savedViews).
      Uma View memoriza só preferências de visualização:
        • filtros globais
        • cross-filter ativo
@@ -34947,14 +34948,18 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      visões "Mensal", "Por região Sul", "Top 10 clientes". Cada uma é
      1 click pra restaurar.
 
+     IMPORTANTE: renomeado de SolsticeViews → SolsticeSavedViews para
+     evitar conflito com módulo existente (Patch Final ADR-141) que
+     também se chama SolsticeViews mas persiste em ingest.savedViews.
+
      API:
-       SolsticeViews.list()                   → array<{id, name, savedAt, payload}>
-       SolsticeViews.save(name)               → cria view nova com estado atual
-       SolsticeViews.apply(id)                → restaura filtros/página
-       SolsticeViews.remove(id)               → deleta
-       SolsticeViews.rename(id, newName)      → renomeia
+       SolsticeSavedViews.list()                   → array<{id, name, savedAt}>
+       SolsticeSavedViews.save(name)               → cria view nova
+       SolsticeSavedViews.apply(id)                → restaura filtros/página
+       SolsticeSavedViews.remove(id)               → deleta
+       SolsticeSavedViews.rename(id, newName)      → renomeia
      ============================================================ */
-  const SolsticeViews = (function(){
+  const SolsticeSavedViews = (function(){
     const STORAGE_KEY = 'solstice.views.v1';
 
     function _read(){
