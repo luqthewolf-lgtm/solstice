@@ -4254,23 +4254,33 @@
   
   .solstice__props-tab.is-active { background: var(--c-surface-3); color: var(--c-text); font-weight: var(--fw-semibold); }
   
+  /* S5-04 (Sprint 5 / Sofia Figma · SM-04): legibilidade do inspector.
+     ANTES: label uppercase font-size:11px (xs) — difícil ler em scan visual.
+     AGORA: label sem uppercase, font-size:12px, mais contraste cor.
+     Spacing dobrado entre campos. */
   .solstice__props-field {
-    margin-bottom: var(--sp-4);
+    margin-bottom: var(--sp-5);
   }
   .solstice__props-label {
-    display: block; font-size: var(--fs-xs); color: var(--c-text-2);
-    text-transform: uppercase; letter-spacing: 0.05em;
+    display: block; font-size: var(--fs-sm); color: var(--c-text);
+    letter-spacing: 0; text-transform: none;
     margin-bottom: 6px; font-weight: var(--fw-semibold);
+    line-height: 1.4;
   }
   .solstice__props-select, .solstice__props-input {
-    width: 100%; padding: 8px 10px;
+    width: 100%; padding: 9px 12px;
     background: var(--c-surface); border: 1px solid var(--c-border);
     border-radius: var(--rad-sm); color: var(--c-text);
-    font-size: var(--fs-sm); height: 36px;
+    font-size: var(--fs-sm); height: 38px;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
   }
   .solstice__props-input[type="number"], textarea.solstice__props-input { height: auto; }
+  .solstice__props-select:hover, .solstice__props-input:hover {
+    border-color: color-mix(in srgb, var(--c-accent) 40%, var(--c-border));
+  }
   .solstice__props-select:focus, .solstice__props-input:focus {
     border-color: var(--c-accent); outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 22%, transparent);
   }
 
   /* Bloco 7 — Aba "📈 Análise" no Props */
@@ -17568,28 +17578,62 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         host.appendChild(suggBox);
       }
 
-      const listEl = SolsticeUtils.el('div', { class:'v56-datasets__list', style:'max-height:180px;overflow-y:auto;' });
+      const listEl = SolsticeUtils.el('div', { class:'v56-datasets__list', style:'max-height:220px;overflow-y:auto;' });
       if (!arr.length){
         listEl.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);padding:6px;text-align:center;line-height:1.4;' },
           sugg.length
             ? 'Aplique uma das sugestões acima ou crie manualmente.'
             : 'Sem relacionamentos. Defina vínculos entre 2 bases por ID comum pra usar colunas cruzadas em componentes.'));
       } else {
-        arr.forEach(rel => {
-          const fromDs = datasets.find(d => d.id === rel.fromDatasetId);
-          const toDs   = datasets.find(d => d.id === rel.toDatasetId);
-          const item = SolsticeUtils.el('div', { class:'v56-dataset-item' });
-          const main = SolsticeUtils.el('div', { style:'flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;gap:1px;' });
-          main.appendChild(SolsticeUtils.el('div', { style:'font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' },
-            (fromDs ? fromDs.name : '?') + ' → ' + (toDs ? toDs.name : '?')));
-          main.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);font-family:var(--font-mono);' },
-            rel.fromColumn + ' ↔ ' + rel.toColumn + ' · ' + rel.cardinality));
-          item.appendChild(main);
-          item.appendChild(SolsticeUtils.el('button', {
-            class:'v56-dataset-item__rm', title:'Remover relacionamento',
-            onclick: (e) => { e.stopPropagation(); remove(rel.id); _renderPanel(); SolsticeToast.info('Relacionamento removido'); }
-          }, '×'));
-          listEl.appendChild(item);
+        // S5-03 (Sprint 5 / Marcos PowerBI · MA-01, MA-02): visual de vínculos
+        // agrupado POR dataset de origem. Antes era lista plana de "A → B".
+        // Agora: "📁 vendas" header com filhos "↳ produtos (1:N) · id ↔ id" abaixo.
+        // Cardinalidade ganha cor visual: 1:1 (azul), 1:N (verde), N:N (laranja).
+        const CARD_COLORS = { '1:1': 'var(--c-accent)', '1:N': 'var(--c-success)', 'N:1': 'var(--c-success)', 'N:N': 'var(--c-warn)' };
+        const byFrom = new Map();
+        arr.forEach(r => {
+          if (!byFrom.has(r.fromDatasetId)) byFrom.set(r.fromDatasetId, []);
+          byFrom.get(r.fromDatasetId).push(r);
+        });
+        byFrom.forEach((rels, fromId) => {
+          const fromDs = datasets.find(d => d.id === fromId);
+          // Header da pasta-origem
+          const grpHead = SolsticeUtils.el('div', {
+            style:'font-size:11px;font-weight:600;color:var(--c-text);padding:6px 4px 2px;display:flex;align-items:center;gap:6px;'
+          });
+          grpHead.appendChild(SolsticeUtils.el('span', { 'aria-hidden':'true' }, '📁'));
+          grpHead.appendChild(SolsticeUtils.el('span', { style:'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;' },
+            (fromDs ? fromDs.name : '?')));
+          grpHead.appendChild(SolsticeUtils.el('span', { style:'font-size:10px;color:var(--c-muted);font-weight:400;' },
+            rels.length + ' vínculo' + (rels.length > 1 ? 's' : '')));
+          listEl.appendChild(grpHead);
+          // Filhos (vínculos saindo dessa origem)
+          rels.forEach(rel => {
+            const toDs   = datasets.find(d => d.id === rel.toDatasetId);
+            const item = SolsticeUtils.el('div', {
+              class:'v56-dataset-item',
+              style:'margin-left:14px;border-left:2px solid ' + (CARD_COLORS[rel.cardinality] || 'var(--c-border)') + ';padding-left:8px;'
+            });
+            const main = SolsticeUtils.el('div', { style:'flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;gap:1px;' });
+            // Linha 1: "↳ destinoDataset" + badge cardinalidade
+            const line1 = SolsticeUtils.el('div', { style:'display:flex;align-items:center;gap:6px;font-size:11px;' });
+            line1.appendChild(SolsticeUtils.el('span', { style:'color:var(--c-muted);' }, '↳'));
+            line1.appendChild(SolsticeUtils.el('span', { style:'font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' },
+              (toDs ? toDs.name : '?')));
+            line1.appendChild(SolsticeUtils.el('span', {
+              style:'font-family:var(--font-mono);font-size:9px;padding:1px 6px;border-radius:8px;background:color-mix(in srgb, ' + (CARD_COLORS[rel.cardinality] || 'var(--c-border)') + ' 18%, transparent);color:' + (CARD_COLORS[rel.cardinality] || 'var(--c-text)') + ';font-weight:600;'
+            }, rel.cardinality || '1:N'));
+            main.appendChild(line1);
+            // Linha 2: colunas vinculadas
+            main.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);font-family:var(--font-mono);' },
+              rel.fromColumn + ' ↔ ' + rel.toColumn));
+            item.appendChild(main);
+            item.appendChild(SolsticeUtils.el('button', {
+              class:'v56-dataset-item__rm', title:'Remover relacionamento',
+              onclick: (e) => { e.stopPropagation(); remove(rel.id); _renderPanel(); SolsticeToast.info('Relacionamento removido'); }
+            }, '×'));
+            listEl.appendChild(item);
+          });
         });
       }
       host.appendChild(listEl);
@@ -21710,11 +21754,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           }
         }
       }));
-      // 🎨 Estilo — fechada por padrão (ADR-173)
+      // S5-01 (Sprint 5 / Sofia Figma · SM-02): estilo dividido em 2 accordions
+      // distintos pra resolver confusão "card vs componente". Antes era 1 só
+      // "Estilo" misturando tudo.
+      //   🎴 Card     = casca do componente (fundo, borda, sombra, padding, título do card)
+      //   📊 Visual   = conteúdo (paleta de séries, cor do número, agressividade, eixos)
       host.appendChild(createAccordion({
-        icon: '🎨', title: 'Estilo', key: 'inspector.estilo',
+        icon: '🎴', title: 'Card (casca)', key: 'inspector.card',
         openByDefault: false,
-        build: (body) => _renderVisualTab(body, slot, def)
+        build: (body) => {
+          body.appendChild(SolsticeUtils.el('div', {
+            style:'font-size:10px;color:var(--c-muted);margin-bottom:10px;line-height:1.5;padding:6px 8px;background:var(--c-surface-2);border-radius:4px;'
+          }, '💡 Aparência da CASCA: fundo, borda, sombra, padding. Para cores do gráfico em si, use o painel "Visual" abaixo.'));
+          _renderVisualTab(body, slot, def, { scope: 'card' });
+        }
+      }));
+      host.appendChild(createAccordion({
+        icon: '📊', title: 'Visual (componente)', key: 'inspector.visual',
+        openByDefault: false,
+        build: (body) => {
+          body.appendChild(SolsticeUtils.el('div', {
+            style:'font-size:10px;color:var(--c-muted);margin-bottom:10px;line-height:1.5;padding:6px 8px;background:var(--c-surface-2);border-radius:4px;'
+          }, '💡 Aparência do CONTEÚDO: paleta de cores, agressividade, eixos, fonte do número. Para borda/fundo da casca, use "Card" acima.'));
+          _renderVisualTab(body, slot, def, { scope: 'component' });
+        }
       }));
       // 📈 Análise — aba leve com link pro drawer expandido (ADR-162)
       if (slot.type !== 'markdown'){
@@ -22144,9 +22207,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      */
     /** Camada Style — aba Estilo reescrita em 6 seções colapsáveis.
         Presets · Aparência · Tipografia · Cores · Específico · Visibilidade. */
-    function _renderVisualTab(host, slot, def){
+    function _renderVisualTab(host, slot, def, opts){
       const cfg = slot.config || {};
       const style = cfg.style || {};
+      // S5-01 (Sprint 5): scope='card'|'component'|undefined (tudo)
+      //   card: Aparência (fundo/borda/sombra/padding) + Visibilidade
+      //   component: Cores · Texto · Específico · Presets
+      const _scope = (opts && opts.scope) || 'all';
+      // _shouldRenderSection casa por prefixo pra suportar "Específico — KPI" etc.
+      function _shouldRenderSection(title){
+        if (_scope === 'all') return true;
+        const t = String(title || '');
+        const cardSections = ['Aparência', 'Visibilidade'];
+        const componentSections = ['Cores', 'Texto', 'Tipografia', 'Específico', 'Presets'];
+        const isCard = cardSections.some(p => t.indexOf(p) === 0);
+        const isComp = componentSections.some(p => t.indexOf(p) === 0);
+        if (isCard) return _scope === 'card';
+        if (isComp) return _scope === 'component';
+        return true; // sem mapeamento → renderiza em ambos
+      }
 
       // Polish v7: flag transient pra evitar re-render total do Inspector
       // quando a mudança é apenas de style. O subscribe em canvas.sections
@@ -22382,6 +22461,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // (global por nome de seção, não por slot — Lucas mantém o mesmo "padrão de uso"
       // entre componentes).
       function _section(icon, title, openByDefault){
+        // S5-01: respeita scope (card vs component) — retorna body órfão se
+        // a seção não pertence ao escopo (appendChild fora do host vira no-op visual)
+        if (!_shouldRenderSection(title)){
+          return SolsticeUtils.el('div'); // body órfão, fora do host
+        }
         const sectionKey = String(title).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         const storedKey = 'ui.style.section.' + sectionKey;
         const stored = SolsticeStore.get(storedKey);
@@ -29085,12 +29169,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     function renderInto(parentEl){
       if (!parentEl) return;
-      const insights = compute();
+      // S5-02 (Sprint 5 / Yuki Notion · YT-03): toggle global pra esconder TUDO.
+      // Setting persiste em localStorage; usuário pode reabilitar pela settings.
+      if (SolsticeStore.get('ui.insights.hidden') === true) return;
+      let insights = compute();
+      // S5-02 (Lucas / YT-04): "O que dá pra construir" especificamente
+      // removível. Filtra se setting tá ativo.
+      if (SolsticeStore.get('ui.insights.hideOverview') === true){
+        insights = insights.filter(i => i.id !== 'overview' && i.kind !== 'overview');
+      }
       insightsCache = insights;
       if (!insights.length) return; // não renderiza painel quando vazio
 
       const business = insights.filter(i => _audienceOf(i) === 'business');
       const technical = insights.filter(i => _audienceOf(i) === 'technical');
+      // S5-02: default expandido se nunca configurado (antes era expandido também)
+      // mas agora respeita o setting persistente
       const isCollapsed = !!SolsticeStore.get('ui.insights.collapsed');
       // Tab ativa (persistido): default Negócio.
       let activeTab = SolsticeStore.get('ui.insights.tab') || 'business';
@@ -29112,6 +29206,24 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       titleEl.appendChild(SolsticeUtils.el('span', { class:'solstice__insights-count' }, String(insights.length)));
       head.appendChild(titleEl);
       const actions = SolsticeUtils.el('div', { class:'solstice__insights-actions' });
+      // S5-02 (Sprint 5): botão "esconder esta seção" no header.
+      // Click no X interno (não no collapse) → salva ui.insights.hidden=true.
+      const hideBtn = SolsticeUtils.el('button', {
+        type: 'button',
+        title: 'Esconder painel de insights · reabilita em Configurações',
+        'aria-label': 'Esconder insights',
+        style: 'background:transparent;border:none;color:var(--c-muted);font-size:14px;cursor:pointer;padding:2px 6px;margin-right:4px;border-radius:3px;',
+        onclick: (e) => {
+          e.stopPropagation();
+          SolsticeStore.set('ui.insights.hidden', true);
+          // Re-renderiza o canvas (removerá esse painel)
+          if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render();
+          SolsticeToast.info('Insights ocultos', 'Reabilite em Configurações → Insights.');
+        }
+      }, '✕');
+      hideBtn.addEventListener('mouseenter', () => { hideBtn.style.color = 'var(--c-text)'; hideBtn.style.background = 'var(--c-surface-2)'; });
+      hideBtn.addEventListener('mouseleave', () => { hideBtn.style.color = 'var(--c-muted)'; hideBtn.style.background = 'transparent'; });
+      actions.appendChild(hideBtn);
       actions.appendChild(SolsticeUtils.el('span', { class:'solstice__insights-toggle' }, '▼'));
       head.appendChild(actions);
       wrap.appendChild(head);
