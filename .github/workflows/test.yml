@@ -152,3 +152,52 @@ jobs:
             echo "::warning::Mais de 2 innerHTML dinâmicos sem escape próximo — audit manual"
           fi
           echo "✓ B5-01 audit innerHTML OK"
+
+      - name: ADR-186 — Invariante de SolsticeLog (Auditoria 2026.3)
+        # Garante que console.warn direto NÃO regride em módulos fallback.
+        # Whitelist: locais onde console.warn direto é proposital
+        # (SolsticeStorage fallback, SolsticeErrors.show, Parse warnings,
+        # Stats selftest, Components.register, Calc circular, definição
+        # do SolsticeLog em si, ErrorBoundary init pré-SolsticeLog,
+        # rafThrottle pré-SolsticeLog, v5.6 patches históricos).
+        run: |
+          # Conta console.warn fora da whitelist
+          FORBIDDEN=$(grep -nE "console\.warn\(" solstice_baseline.html | \
+            grep -vE "\[SolsticeStorage\]|\[Solstice\] Parse warnings|\[Solstice\]', code|\[SolsticeStats selftest\]|\[SolsticeComponents\.register\]|\[Calc\] (falha em medida|dependência circular)|function warn\(\.\.\.args\)|\[SolsticeTheme\] Tema salvo|\[ErrorBoundary\] init falhou|\[rafThrottle\]|\[v5\.6 |\[Solstice v5\.6 patched\]|\[FormulaRow\]" || true)
+          COUNT=$(echo -n "$FORBIDDEN" | grep -c . || true)
+          echo "console.warn fora da whitelist ADR-186: $COUNT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::ADR-186 (Auditoria 2026.3) violado — use SolsticeLog.warn/debug em fallbacks."
+            echo "Sites detectados:"
+            echo "$FORBIDDEN"
+            exit 1
+          fi
+          echo "✓ ADR-186 OK — todos console.warn restantes estão na whitelist"
+
+      - name: ADR-185 — Hierarquia de persistência documentada (Auditoria 2026.3)
+        run: |
+          # Garante que o cabeçalho ADR-185 não foi removido do topo do arquivo.
+          if ! head -100 solstice_baseline.html | grep -q "ADR-185"; then
+            echo "::error::ADR-185 (hierarquia de persistência) removido do cabeçalho do arquivo"
+            exit 1
+          fi
+          if ! head -100 solstice_baseline.html | grep -q "ADR-186"; then
+            echo "::error::ADR-186 (canal de fallback) removido do cabeçalho do arquivo"
+            exit 1
+          fi
+          echo "✓ ADR-185/186 declarados no cabeçalho"
+
+      - name: Voz pessoal removida do código (Sprint 9)
+        run: |
+          # Garante que voz interna não regride: 0 ocorrências de citações pessoais.
+          LUCAS=$(grep -c 'Lucas:' solstice_baseline.html || true)
+          DIR=$(grep -c 'Diretor:' solstice_baseline.html || true)
+          PAREN=$(grep -c '(Diretor)' solstice_baseline.html || true)
+          PROFANE=$(grep -cE 'foda-se|bosta' solstice_baseline.html || true)
+          TOTAL=$((LUCAS + DIR + PAREN + PROFANE))
+          echo "Citações Lucas: / Diretor: / (Diretor) / palavrões = $TOTAL"
+          if [ "$TOTAL" -gt 0 ]; then
+            echo "::error::Voz pessoal regrediu no código de produto. Sprint 9 (Auditoria 2026.4) violado."
+            exit 1
+          fi
+          echo "✓ Sprint 9 OK — voz interna zerada"

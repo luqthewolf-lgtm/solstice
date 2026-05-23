@@ -5,6 +5,30 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 14 — "Invariantes garantidas em CI" — 2026-05-23
+
+Sprint 14 transforma 3 decisões da Auditoria 2026.3/2026.4 em **invariantes garantidas em CI**. Se alguém regredir, o pipeline falha.
+
+### 🛡️ Lint CI novos (3 checks em `.github/workflows/test.yml`)
+
+1. **ADR-186 — Invariante `SolsticeLog`** — `console.warn` direto bloqueado fora da whitelist documentada (SolsticeStorage fallback, parse warnings, Stats selftest, Components.register inválido, Calc circular dep, ErrorBoundary init pré-SolsticeLog, rafThrottle pré-SolsticeLog, v5.6 patches). Qualquer novo `console.warn` em fallback de produção falha o CI.
+
+2. **ADR-185/186 — Cabeçalhos preservados** — verifica que os comentários ADR-185 (hierarquia de persistência) e ADR-186 (canal de fallback) **permanecem no topo do arquivo** (primeiras 100 linhas). Remoção acidental falha o CI.
+
+3. **Sprint 9 — Voz interna zerada** — bloqueia regressão de `Lucas:`, `Diretor:`, `(Diretor)`, `foda-se`, `bosta`. Se alguém adicionar citação pessoal ou palavrão em comentário de produção, CI falha.
+
+### Validação local
+
+Todos os 3 checks passam no estado atual do arquivo (CI rodará em verde no push).
+
+```bash
+# ADR-186: 0 console.warn fora da whitelist
+# Sprint 9: 0 voz pessoal
+# ADR-185/186: presentes no cabeçalho
+```
+
+---
+
 ## [Unreleased] — Sprint 13 — "A11y de modais completa" — 2026-05-23
 
 ### ♿ Acessibilidade (Sprint 13a — A11y-02)
