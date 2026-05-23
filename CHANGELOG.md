@@ -5,6 +5,41 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 19+20 — "Test regressivo CI + dataset/ingest API docs" — 2026-05-23
+
+### 🛡️ Sprint 19 — 4 lint checks novos no CI
+
+`.github/workflows/test.yml` ganhou 4 checks regressivos garantindo que features de a11y e funcionalidade não são removidas acidentalmente:
+
+| Check | Verifica |
+|---|---|
+| Sprint 13a | ≥4 `role: 'dialog'` (4 modais) |
+| Sprint 12 | `role: 'grid'` + `aria-rowcount` na Vtable |
+| Sprint 18 | `kind: 'anomaly'` + `rolling-median-mad` presentes |
+
+Total de checks regressivos em CI agora: **7** (ADR-185, ADR-186, Sprint 9 voz pessoal, Sprint 13a modais, Sprint 12 vtable, Sprint 18 anomaly, mais os já existentes XSS/SRI/CSP/SyntaxError).
+
+### 📝 Sprint 19 — README atualizado
+
+- Anomaly detection inline (Sprint 18)
+- 13 tipos de insights (era 12, +anomaly)
+- Ask catalog ~22 perguntas em 6 categorias
+- Auto-save banner de confirmação (BR-A5)
+- Status saved persistente "Salvo há Xs" (CA-03)
+- Export SVG vetorial
+- Multi-tab sync via BroadcastChannel
+- Seção Acessibilidade nova
+
+### 🧹 Sprint 20 — `SolsticeIngest.run` vs `_runIngestFile` documentados (RT-09)
+
+Descoberto durante a validação do Sprint 18: o produto tem dois caminhos com nome confuso:
+- `SolsticeIngest.run(file)` — só PARSE (retorna `{rows, columns, types}` sem efeitos colaterais).
+- `window.Solstice._runIngestFile(file)` — pipeline COMPLETA (parse + filter modal + dict detection + popula `Store.set('ingest')` + `dataset.ready=true` + abre Editor).
+
+Não unificados porque têm escopos legítimos (parse isolado é útil em multi-CSV preview e em testes). Mas a confusão histórica era que **ambos se chamavam "ingest"**. Comentário de cabeçalho expandido em `function run(file, opts)` deixa explícito quem usa o quê, com warning ⚠️.
+
+---
+
 ## [Unreleased] — Sprint 18 — "Anomaly detection inline (rolling median + MAD)" — 2026-05-23
 
 Atende ao item CA-07 do roadmap da Auditoria 2026.3 (e benchmark Carlos): Tableau Pulse / Power BI Quick Insights destacam pontos que destoam **do contexto local**, não só outliers globais via IQR.

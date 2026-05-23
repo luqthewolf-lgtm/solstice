@@ -12768,7 +12768,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
     }
 
-    /** Pipeline completo.
+    /** Pipeline de PARSE de CSV (Auditoria 2026.4 / RT-09).
+     *
+     *  ⚠️ ATENÇÃO: `SolsticeIngest.run` ≠ `window.Solstice._runIngestFile`.
+     *
+     *   • `SolsticeIngest.run(file)` — só faz PARSE (PapaParse + encoding +
+     *     dialect detection + inferência de tipos + validação). Retorna
+     *     { rows, columns, types, ... } mas NÃO popula `Store.set('ingest')`.
+     *     Use quando precisar do resultado bruto sem efeitos colaterais (ex.:
+     *     testes, multi-CSV preview).
+     *
+     *   • `window.Solstice._runIngestFile(file)` — pipeline COMPLETA: parse
+     *     + filter modal + dictionary detection + populates `Store.set('ingest')`
+     *     + `dataset.ready=true` + abre Editor. Use quando o usuário faz "Importar
+     *     CSV" pela UI (welcome state, sidebar "Importar", drag-drop no canvas).
+     *
+     *  Não unificamos os dois porque têm escopos legítimos diferentes — o parse
+     *  isolado é útil em testes e em fluxos multi-CSV onde se faz preview antes
+     *  de commitar pro Store. A confusão histórica era que ambos se chamavam
+     *  "ingest"; agora o comentário deixa explícito.
+     *
      *  Prompt 2 v5.4: agora lê o arquivo como ArrayBuffer e detecta encoding.
      *  opts.encoding (string opcional) permite override manual ('utf-8'|'windows-1252'|'utf-16le'|'utf-16be'). */
     async function run(file, opts){
