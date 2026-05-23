@@ -6680,7 +6680,10 @@
       <div class="solstice__toolbar-group">
         <button class="solstice__btn solstice__btn--ghost" id="profile-btn" title="Perfil e configurações" aria-label="Perfil e configurações">
           <span id="profile-avatar" style="width:20px;height:20px;border-radius:50%;background:var(--c-accent);display:inline-block;" aria-hidden="true"></span>
-          <span id="profile-name">Lucas</span>
+          <!-- Sprint 33 / BUG-EV-04: placeholder antes era "Lucas" hardcoded.
+               Novo user via direto. Substituído por "Visitante" — perfil real
+               é populado pelo SolsticeProfiles.current() no boot. -->
+          <span id="profile-name">Visitante</span>
         </button>
 
         <!-- Auditoria 2026.2 (BR-B): tooltip mais claro indicando atalho global Ctrl+/ -->
@@ -7706,7 +7709,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'canvas.action.dummy': '📊 Carregar CSV dummy de vendas BR',
         'canvas.action.import': '📁 Importar CSV (Bloco 2)',
         'onb.1.title': 'Olá! Eu sou o Solstice',
-        'onb.1.text': 'Sua ferramenta de BI single-file. Construído com Lucas para ser agnóstico, portável e auditável.',
+        'onb.1.text': 'Sua ferramenta de BI single-file: agnóstico, portável, auditável. Tudo roda local — sem servidor, sem upload.',
         'onb.2.title': 'Dicionário Semântico',
         'onb.2.text': 'Reconheço automaticamente colunas de Banco PJ, Vendas, RH, Marketing, Operacional e Pesquisa Científica. Você ajusta o que quiser.',
         'onb.3.title': '4 diferenciais únicos',
@@ -7737,7 +7740,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'canvas.action.dummy': '📊 Load sample sales CSV',
         'canvas.action.import': '📁 Import CSV (Block 2)',
         'onb.1.title': 'Hi! I\'m Solstice',
-        'onb.1.text': 'Your single-file BI tool. Built with Lucas to be agnostic, portable and auditable.',
+        'onb.1.text': 'Your single-file BI tool: agnostic, portable, auditable. Everything runs locally — no server, no uploads.',
         'onb.2.title': 'Semantic Dictionary',
         'onb.2.text': 'I automatically recognize columns from Corporate Banking, Sales, HR, Marketing, Operations and Scientific Research.',
         'onb.3.title': '4 unique differentials',
@@ -7759,7 +7762,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'canvas.action.dummy': '📊 Cargar CSV de ejemplo',
         'canvas.action.import': '📁 Importar CSV (Bloque 2)',
         'onb.1.title': '¡Hola! Soy Solstice',
-        'onb.1.text': 'Tu herramienta de BI en un solo archivo. Construida con Lucas para ser agnóstica, portable y auditable.',
+        'onb.1.text': 'Tu herramienta de BI en un solo archivo: agnóstica, portable, auditable. Todo corre local — sin servidor, sin subir nada.',
         'onb.2.title': 'Diccionario Semántico',
         'onb.2.text': 'Reconozco automáticamente columnas de Banca, Ventas, RRHH, Marketing, Operaciones y Ciencia.',
         'onb.3.title': '4 diferenciales únicos',
@@ -7781,7 +7784,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'canvas.action.dummy': '📊 Load sample sales CSV',
         'canvas.action.import': '📁 Import CSV (Block 2)',
         'onb.1.title': 'Hi! I\'m Solstice',
-        'onb.1.text': 'Your single-file BI tool. Built with Lucas to be agnostic, portable and auditable.',
+        'onb.1.text': 'Your single-file BI tool: agnostic, portable, auditable. Everything runs locally — no server, no uploads.',
         'onb.2.title': 'Semantic Dictionary',
         'onb.2.text': 'I automatically recognise columns from Corporate Banking, Sales, HR, Marketing, Operations and Scientific Research.',
         'onb.3.title': '4 unique differentials',
@@ -8131,7 +8134,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'PROFILE_NAME_DUPLICATE': {
         sev: 'warn', icon: '👥',
         message: 'Já existe um perfil com esse nome.',
-        suggestion: 'Adicione um sufixo (ex: "Lucas BR") ou exclua o perfil anterior.'
+        suggestion: 'Adicione um sufixo (ex: "Maria 2") ou exclua o perfil anterior.'
       },
       'LOCALSTORAGE_UNAVAILABLE': {
         sev: 'error', icon: '🔒',
@@ -30240,6 +30243,38 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Pra cada slot, computa defaults via defaultConfig
       slots.forEach(s => { s.config = _suggestForSlot(s.type) || {}; });
 
+      // Sprint 33 / BUG-EV-01: rotação de colunas entre slots do mesmo tipo.
+      // Quando o template tem 4 KPIs, defaultConfig retorna a MESMA primeira
+      // coluna numérica pra cada — usuário vê 4 cards idênticos. Aqui detectamos
+      // grupos de slots de mesmo type+key e rotacionamos por colunas distintas
+      // do mesmo grupo (numéricas, temporais, categóricas).
+      try {
+        const numericCols = allCols.filter(c => SolsticeTypes.group((types[c] || {}).type) === 'numeric');
+        const temporalCols = allCols.filter(c => SolsticeTypes.group((types[c] || {}).type) === 'temporal');
+        const catCols = allCols.filter(c => SolsticeTypes.group((types[c] || {}).type) === 'categorical');
+        const poolOf = (group) => group === 'numeric' ? numericCols
+                              : group === 'temporal' ? temporalCols
+                              : group === 'categorical' ? catCols : [];
+        // Conta uso por (tipo, key) pra rotacionar a partir do índice 0
+        const usageCounter = {};
+        slots.forEach(s => {
+          if (!s.config) return;
+          const COL_KEYS = ['column','xColumn','yColumn','valueColumn','sizeColumn'];
+          COL_KEYS.forEach(key => {
+            const currentVal = s.config[key];
+            if (!currentVal) return;
+            const group = SolsticeTypes.group((types[currentVal] || {}).type);
+            const pool = poolOf(group);
+            if (pool.length < 2) return; // só 1 coluna do tipo — não tem como rotacionar
+            const counterKey = s.type + '::' + key;
+            const idx = usageCounter[counterKey] = (usageCounter[counterKey] || 0);
+            // Atribui a idx-ésima coluna do pool (módulo pra wrap se idx > pool.length)
+            s.config[key] = pool[idx % pool.length];
+            usageCounter[counterKey] = idx + 1;
+          });
+        });
+      } catch(e){ SolsticeLog.warn && SolsticeLog.warn('[Wizard] rotação de colunas falhou', e); }
+
       // Render
       const wrap = SolsticeUtils.el('div', { style:'min-width:560px;max-width:760px;' });
       // Cabeçalho com descrição + categoria
@@ -34381,6 +34416,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         const v = f[k];
         if (v == null) continue;
         if (Array.isArray(v) && v.length === 0) continue;
+        if (typeof v === 'string' && v === '') continue;  // Sprint 33 / BUG-EV-02: string vazia não conta
         if (v && typeof v === 'object' && v.min == null && v.max == null && v.from == null && v.to == null) continue;
         n++;
       }
@@ -34403,6 +34439,12 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
         if (Array.isArray(fv) && fv.length){
           out = out.filter(r => fv.includes(String(r[col])));
+        } else if (typeof fv === 'string' && fv){
+          // Sprint 33 / BUG-EV-02: API era silenciosa quando recebia string.
+          // Filters.set('regiao', 'SP') aceitava mas apply ignorava (só Array).
+          // Agora trata string como filtro de igualdade — comportamento esperado
+          // por integradores e scripts que não normalizam pra Array.
+          out = out.filter(r => String(r[col]) === fv);
         } else if (group === 'numeric' && fv && (fv.min != null || fv.max != null)){
           out = out.filter(r => {
             const v = parseFloat(r[col]); if (isNaN(v)) return false;
