@@ -16259,10 +16259,29 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       for (let i = 0; i < values.length; i++){
         const v = values[i];
         if (v == null) continue;
-        const n = typeof v === 'number' ? v : parseFloat(v);
+        const n = typeof v === 'number' ? v : parseNum(v);
         if (!isNaN(n) && isFinite(n)) out.push(n);
       }
       return out;
+    }
+
+    /**
+     * Sprint 34 / J-1 (Júlia/QA): wrapper unificado pra parsear célula de CSV
+     * com awareness de formato pt-BR vs US.
+     *
+     * Antes: 80+ chamadas `parseFloat(r[col])` espalhadas pelos componentes.
+     * Problema: parseFloat("1.234,56") = 1.234 (trunca após o ponto).
+     * Solução: detecção automática via SolsticeBR.toNumber se disponível;
+     * fallback pra parseFloat se SolsticeBR não estiver carregado ainda
+     * (early boot). Idempotente em números já-parseados.
+     */
+    function parseNum(v){
+      if (v == null || v === '') return NaN;
+      if (typeof v === 'number') return v;
+      if (typeof SolsticeBR !== 'undefined' && SolsticeBR.toNumber){
+        return SolsticeBR.toNumber(v);
+      }
+      return parseFloat(v);
     }
 
     /** Versão ordenada (asc) de clean. Útil para percentis e mediana. */
@@ -17880,6 +17899,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       linearRegression, polynomialRegression,
       // correlação
       correlation, correlationSpearman, correlationMatrix,
+      // BR-aware (Sprint 34 / J-1): wrapper unificado pra parsear célula de CSV.
+      // Detecta automaticamente formato pt-BR ("1.234,56") vs US ("1,234.56").
+      // SUBSTITUI `parseFloat(r[col])` direto em todos os componentes.
+      parseNum,
       // séries
       movingAverage, exponentialSmoothing, linearForecast, holtWinters, diff, autocorrelation,
       // clustering
@@ -19772,7 +19795,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const higherIsBetter = dictCol && dictCol.higherIsBetter;
         const unit = (dictCol && dictCol.unit) || '';
 
-        const values = ctx.rows.map(r => parseFloat(r[col])).filter(v => !isNaN(v));
+        // Sprint 34 / J-1: SolsticeStats.parseNum entende pt-BR "1.234,56"
+        const values = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
         if (!values.length){
           card.appendChild(SolsticeUtils.el('div', { class:'solstice__kpi-card-empty' },
             'Sem valores válidos em "' + friendlyName + '"'));
@@ -20288,7 +20312,8 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
         const buckets = {};
         for (const r of ctx.rows){
-          const v = parseFloat(r[cfg.yColumn]);
+          // Sprint 34 / J-1: SolsticeStats.parseNum entende pt-BR "1.234,56"
+          const v = SolsticeStats.parseNum(r[cfg.yColumn]);
           if (isNaN(v)) continue;
           const d = new Date(r[cfg.xColumn]);
           if (isNaN(d)) continue;
@@ -21196,12 +21221,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const ptsAll = [];
         const sizeValsAll = [];
         for (const r of ctx.rows){
-          const x = parseFloat(r[cfg.xColumn]);
-          const y = parseFloat(r[cfg.yColumn]);
+          // Sprint 34 / J-1: parseNum BR-aware
+          const x = SolsticeStats.parseNum(r[cfg.xColumn]);
+          const y = SolsticeStats.parseNum(r[cfg.yColumn]);
           if (isNaN(x) || isNaN(y)) continue;
           ptsAll.push([x, y]);
           if (cfg.sizeColumn){
-            const s = parseFloat(r[cfg.sizeColumn]);
+            const s = SolsticeStats.parseNum(r[cfg.sizeColumn]);
             sizeValsAll.push(isNaN(s) ? 0 : s);
           }
         }
