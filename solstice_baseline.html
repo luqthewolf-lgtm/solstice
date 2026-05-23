@@ -20243,6 +20243,217 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
     });
 
+    /* ===== FORECAST (Sprint 31 / BH-02) =====
+       Projeção temporal com banda de confiança ±1.96σ (95% IC).
+       Histórico em linha cheia, projeção tracejada, banda sombreada.
+       Persona Carlos (Comercial) pediu explicitamente no walkthrough.
+       Usa SolsticeStats.linearForecast ou holtWinters dependendo do
+       tamanho da série (>= 14 pts + sazonalidade ≈ ativa holt-winters). */
+    register({
+      id:'forecast', name:'Forecast', icon:'🔮',
+      description: 'Projeta os próximos períodos com intervalo de confiança',
+      defaultConfig: (ctx) => ({
+        xColumn: _firstColOfGroup(ctx, 'temporal'),
+        yColumn: _firstColOfGroup(ctx, 'numeric'),
+        bin: 'month',
+        periods: 6,           // quantos períodos projetar
+        method: 'auto',       // 'auto' | 'linear' | 'holtWinters'
+        showBand: true        // banda de confiança ±1.96σ
+      }),
+      getTitle(slot, ctx){
+        const col = slot.config && slot.config.yColumn;
+        if (!col) return 'Forecast';
+        return 'PREVISÃO · ' + SolsticeHumanize.column(col, ctx.dictionary).toUpperCase();
+      },
+      render(slot, host, ctx){
+        const cfg = slot.config || {};
+        if (!cfg.xColumn || !cfg.yColumn){
+          host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' },
+            'Forecast precisa de uma coluna temporal e uma numérica. Configure em ⚙️.'));
+          return;
+        }
+        // 1) Agrega rows por bin temporal
+        function binKey(d){
+          if (cfg.bin === 'day') return d.toISOString().slice(0,10);
+          if (cfg.bin === 'week'){
+            const onejan = new Date(d.getFullYear(), 0, 1);
+            const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+            return d.getFullYear() + '-W' + String(week).padStart(2,'0');
+          }
+          if (cfg.bin === 'year') return String(d.getFullYear());
+          return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        }
+        const buckets = {};
+        for (const r of ctx.rows){
+          const v = parseFloat(r[cfg.yColumn]);
+          if (isNaN(v)) continue;
+          const d = new Date(r[cfg.xColumn]);
+          if (isNaN(d)) continue;
+          const k = binKey(d);
+          (buckets[k] = buckets[k] || []).push(v);
+        }
+        const keys = Object.keys(buckets).sort();
+        if (keys.length < 3){
+          host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' },
+            'Forecast precisa de pelo menos 3 períodos de dados — encontrei ' + keys.length + '.'));
+          return;
+        }
+        const histY = keys.map(k => buckets[k].reduce((a,b)=>a+b, 0) / buckets[k].length);
+        const N = histY.length;
+        const periods = Math.max(1, Math.min(24, parseInt(cfg.periods, 10) || 6));
+        // 2) Escolhe método: auto → holtWinters se N >= 14, senão linear
+        let projY = [];
+        let methodUsed = cfg.method || 'auto';
+        if (methodUsed === 'auto') methodUsed = (N >= 14) ? 'holtWinters' : 'linear';
+        try {
+          if (methodUsed === 'holtWinters' && typeof SolsticeStats.holtWinters === 'function'){
+            // Sazonalidade: usa 12 pra month, 7 pra day, 4 pra week, 1 pra year
+            const season = cfg.bin === 'day' ? 7 : cfg.bin === 'week' ? 4 : cfg.bin === 'year' ? 1 : 12;
+            projY = SolsticeStats.holtWinters(histY, periods, season);
+          } else {
+            projY = SolsticeStats.linearForecast(histY, periods);
+          }
+        } catch(e){
+          projY = SolsticeStats.linearForecast(histY, periods);
+          methodUsed = 'linear';
+        }
+        if (!projY || !projY.length){
+          host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Falha ao projetar — dados insuficientes.'));
+          return;
+        }
+        // 3) σ dos resíduos do histórico (predicted vs actual via linear fit)
+        const pts = histY.map((y,i) => [i, y]);
+        const reg = SolsticeStats.linearRegression ? SolsticeStats.linearRegression(pts) : null;
+        let sigma = 0;
+        if (reg){
+          const residuals = histY.map((y,i) => y - (reg.slope * i + reg.intercept));
+          const mean = residuals.reduce((a,b)=>a+b, 0) / residuals.length;
+          const variance = residuals.reduce((a,b)=>a+(b-mean)*(b-mean), 0) / Math.max(1, residuals.length - 1);
+          sigma = Math.sqrt(variance);
+        }
+        // 4) SVG
+        const tier = _tierFor(host);
+        const W = tier.isCompact ? 360 : tier.isStandard ? 560 : 800;
+        const H = tier.isCompact ? 220 : tier.isStandard ? 280 : 340;
+        const padL = 50, padR = 16, padT = 14, padB = 28;
+        const innerW = W - padL - padR;
+        const innerH = H - padT - padB;
+        const totalN = N + periods;
+        const allY = histY.concat(projY);
+        const yMin = Math.min.apply(null, allY.concat(projY.map(v => v - 1.96 * sigma)));
+        const yMax = Math.max.apply(null, allY.concat(projY.map(v => v + 1.96 * sigma)));
+        const yRange = (yMax - yMin) || 1;
+        const xAt = (i) => padL + (innerW * i / Math.max(1, totalN - 1));
+        const yAt = (v) => padT + innerH * (1 - (v - yMin) / yRange);
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('class','solstice__chart-svg solstice__chart-svg--' + tier.tier);
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        // Banda de confiança (sombreada) — sobre projeção
+        if (cfg.showBand !== false && sigma > 0){
+          let pathD = '';
+          // Boundary superior (left → right)
+          for (let i = 0; i < periods; i++){
+            const x = xAt(N - 1 + i);
+            const y = yAt(projY[i] + 1.96 * sigma);
+            pathD += (i === 0 ? 'M' : 'L') + ' ' + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+          }
+          // Boundary inferior (right → left)
+          for (let i = periods - 1; i >= 0; i--){
+            const x = xAt(N - 1 + i);
+            const y = yAt(projY[i] - 1.96 * sigma);
+            pathD += 'L ' + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+          }
+          pathD += 'Z';
+          const band = document.createElementNS(NS, 'path');
+          band.setAttribute('d', pathD);
+          band.setAttribute('fill', 'var(--c-accent)');
+          band.setAttribute('opacity', '0.15');
+          svg.appendChild(band);
+        }
+        // Linha histórico
+        let histPath = '';
+        for (let i = 0; i < N; i++){
+          histPath += (i === 0 ? 'M' : 'L') + ' ' + xAt(i).toFixed(1) + ',' + yAt(histY[i]).toFixed(1) + ' ';
+        }
+        const histLine = document.createElementNS(NS, 'path');
+        histLine.setAttribute('d', histPath);
+        histLine.setAttribute('fill', 'none');
+        histLine.setAttribute('stroke', 'var(--c-accent)');
+        histLine.setAttribute('stroke-width', '2');
+        svg.appendChild(histLine);
+        // Linha projeção (tracejada)
+        let projPath = 'M ' + xAt(N - 1).toFixed(1) + ',' + yAt(histY[N - 1]).toFixed(1) + ' ';
+        for (let i = 0; i < periods; i++){
+          projPath += 'L ' + xAt(N - 1 + i).toFixed(1) + ',' + yAt(projY[i]).toFixed(1) + ' ';
+        }
+        // Pequena correção: linha começa no último ponto histórico, então segundo ponto é offset 1
+        projPath = 'M ' + xAt(N - 1).toFixed(1) + ',' + yAt(histY[N - 1]).toFixed(1) + ' ';
+        for (let i = 0; i < periods; i++){
+          projPath += 'L ' + xAt(N + i).toFixed(1) + ',' + yAt(projY[i]).toFixed(1) + ' ';
+        }
+        const projLine = document.createElementNS(NS, 'path');
+        projLine.setAttribute('d', projPath);
+        projLine.setAttribute('fill', 'none');
+        projLine.setAttribute('stroke', 'var(--c-warn)');
+        projLine.setAttribute('stroke-width', '2');
+        projLine.setAttribute('stroke-dasharray', '6,4');
+        svg.appendChild(projLine);
+        // Eixos Y (mín, máx, mediana)
+        [yMin, (yMin+yMax)/2, yMax].forEach((v, i) => {
+          const txt = document.createElementNS(NS, 'text');
+          txt.setAttribute('x', '6');
+          txt.setAttribute('y', (yAt(v) + 4).toFixed(1));
+          txt.setAttribute('font-family', 'var(--font-mono)');
+          txt.setAttribute('font-size', '10');
+          txt.setAttribute('fill', 'var(--c-muted)');
+          txt.textContent = ctx.L.decimal(v, 0);
+          svg.appendChild(txt);
+        });
+        // Eixo X — labels primeiro e último período (histórico) + último projetado
+        const xLabels = [keys[0], keys[keys.length - 1], '+' + periods + ' projetado'];
+        const xPositions = [0, N - 1, N + periods - 1];
+        xLabels.forEach((label, i) => {
+          const txt = document.createElementNS(NS, 'text');
+          txt.setAttribute('x', xAt(xPositions[i]).toFixed(1));
+          txt.setAttribute('y', (H - 6).toFixed(1));
+          txt.setAttribute('font-family', 'var(--font-mono)');
+          txt.setAttribute('font-size', '10');
+          txt.setAttribute('fill', 'var(--c-muted)');
+          txt.setAttribute('text-anchor', i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle');
+          txt.textContent = label;
+          svg.appendChild(txt);
+        });
+        // Legenda inline (top-right)
+        const legend = document.createElementNS(NS, 'text');
+        legend.setAttribute('x', (W - padR).toFixed(1));
+        legend.setAttribute('y', (padT + 4).toFixed(1));
+        legend.setAttribute('font-family', 'var(--font-mono)');
+        legend.setAttribute('font-size', '10');
+        legend.setAttribute('fill', 'var(--c-muted)');
+        legend.setAttribute('text-anchor', 'end');
+        legend.textContent = methodUsed + ' · ' + periods + 'p · IC 95%';
+        svg.appendChild(legend);
+        host.appendChild(svg);
+
+        // Resumo textual abaixo do SVG
+        const lastHist = histY[N - 1];
+        const lastProj = projY[periods - 1];
+        const deltaPct = lastHist === 0 ? 0 : ((lastProj - lastHist) / Math.abs(lastHist)) * 100;
+        const direction = deltaPct >= 0 ? '▲' : '▼';
+        const color = deltaPct >= 0 ? 'var(--c-success)' : 'var(--c-error)';
+        const summary = SolsticeUtils.el('div', {
+          style: 'font-size:11px;color:var(--c-text-2);margin-top:8px;display:flex;justify-content:space-between;align-items:center;'
+        });
+        summary.appendChild(SolsticeUtils.el('span', null,
+          'Projeta ' + ctx.L.decimal(lastProj, 1) + ' em ' + periods + ' ' + (cfg.bin || 'mês') + (periods === 1 ? '' : 'es')));
+        summary.appendChild(SolsticeUtils.el('span', { style: 'color:' + color + ';font-weight:600;' },
+          direction + ' ' + Math.abs(deltaPct).toFixed(1) + '% vs último período histórico'));
+        host.appendChild(summary);
+      }
+    });
+
     /* ===== DISTRIBUIÇÃO (histograma SVG) ===== */
     register({
       id:'distribution', name:'Distribuição', icon:'📉',
