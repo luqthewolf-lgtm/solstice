@@ -201,3 +201,40 @@ jobs:
             exit 1
           fi
           echo "✓ Sprint 9 OK — voz interna zerada"
+
+      - name: A11y — role=dialog nos 4 modais (Sprint 13a)
+        run: |
+          # Garante que os 4 modais mantêm role="dialog"
+          DIALOGS=$(grep -c 'role:..dialog.' solstice_baseline.html || true)
+          if [ "$DIALOGS" -lt 4 ]; then
+            echo "::error::Sprint 13a violado — esperado ≥4 role=dialog, encontrado $DIALOGS"
+            exit 1
+          fi
+          echo "✓ Sprint 13a OK — $DIALOGS role=dialog presentes"
+
+      - name: A11y — role=grid na Vtable (Sprint 12)
+        run: |
+          # Garante que Vtable virtualizada mantém role=grid + aria-rowcount
+          if ! grep -q "role: .grid." solstice_baseline.html; then
+            echo "::error::Sprint 12 violado — role=grid removido da Vtable"
+            exit 1
+          fi
+          if ! grep -q "aria-rowcount" solstice_baseline.html; then
+            echo "::error::Sprint 12 violado — aria-rowcount removido"
+            exit 1
+          fi
+          echo "✓ Sprint 12 OK — Vtable a11y semântica preservada"
+
+      - name: Anomaly detection inline (Sprint 18)
+        run: |
+          # Garante que o kind=anomaly não foi removido
+          if ! grep -q "kind: .anomaly." solstice_baseline.html; then
+            echo "::error::Sprint 18 violado — anomaly detection removido do SolsticeInsights"
+            exit 1
+          fi
+          # Verifica que o algoritmo (rolling median + MAD) está intacto
+          if ! grep -q "rolling-median-mad" solstice_baseline.html; then
+            echo "::error::Sprint 18 violado — algoritmo rolling median + MAD ausente"
+            exit 1
+          fi
+          echo "✓ Sprint 18 OK — anomaly detection presente"

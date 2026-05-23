@@ -35,18 +35,29 @@ Ferramentas de BI tradicionais (Power BI, Tableau, Metabase, Hex…) são podero
 ### Análise
 - Estatística descritiva completa (média, mediana, quartis, IQR, skewness, kurtosis, correlação Pearson/Spearman)
 - Detecção de outliers (Tukey, MAD, z-score)
+- **Anomaly detection inline** — rolling median + MAD (Iglewicz/Hoaglin) em janela de 7 pontos, captura anomalias **contextuais** que outliers globais perdem (Sprint 18 da Auditoria 2026.4)
 - Forecast / regressão linear
 - Comparação de períodos (mês anterior, ano anterior, meta fixa)
-- **Insights automáticos** (variações relevantes, anomalias)
-- **Ask** (linguagem natural via SolsticeQuery — sem servidor)
+- **Insights automáticos** (13 tipos: trend, outliers, pareto, sazonalidade, mudança recente, top categoria, correlação, completeness, range, cardinalidade, overview, recency-change, **anomaly**)
+- **Ask** (linguagem natural via SolsticeQuery — sem servidor) com catálogo de ~22 perguntas em 6 categorias (estatística, comparação, tendência, qualidade, negócio, sobre o dataset)
 - **LLM opcional** (OpenAI / Anthropic / Groq / Ollama local)
 
 ### Colaboração
 - Comentários em thread por componente
 - Snapshots versionados (LZ-compressed, em localStorage)
-- Export PNG / PDF / Excel
+- **Auto-save** com banner de confirmação no boot (não restaura silenciosamente — usuário decide "↶ Restaurar / Começar do zero")
+- **Status saved persistente** estilo Notion/Google Docs (`● Salvo há 5s` / `Salvo há 1min` atualizando a cada 15s)
+- Export PNG / PDF / Excel / SVG vetorial editável
 - Share por URL (estado embedded)
 - Apresentador dual-window (slides + speaker notes)
+- **Multi-tab sync** via BroadcastChannel (tema sincroniza entre abas)
+
+### Acessibilidade
+- **Modais** com `role="dialog"` + `aria-modal` + `aria-labelledby` (WCAG 4.1.2)
+- **Vtable** virtualizada com semântica de grid completa: `role="grid"`, `aria-rowcount` dinâmico, `aria-sort` nos columnheaders, `role="row"`/`gridcell` com `aria-rowindex`/`aria-colindex`
+- **Toasts** com `role="status"` + `aria-live` dinâmico (assertive para erros, polite para resto)
+- **Foco visível** global com outline + halo do background (47+ regras `:focus-visible`)
+- **Skip link** "Pular para conteúdo principal" para usuários de teclado (WCAG 2.4.1)
 
 ---
 
