@@ -26696,10 +26696,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const groups = [
         { key: 'essenciais',  title: 'Essenciais',        icon: '⭐',
           openByDefault: true,
-          ids: ['kpi', 'bignum', 'time-series', 'table', 'bar', 'donut', 'distribution', 'area'] },
+          // Sprint 42 / feedback do usuário: distrib-time promovido pra
+          // Essenciais. User: "é o que mais é usado aqui na área. Está escondida".
+          // Antes vivia em 'analise' com openByDefault:false → invisível na 1ª tela.
+          ids: ['kpi', 'bignum', 'time-series', 'table', 'bar', 'donut', 'distribution', 'distrib-time', 'area'] },
         { key: 'analise',     title: 'Análise & Comparação', icon: '🔬',
           openByDefault: false,
-          ids: ['scatter', 'boxplot', 'gauge', 'heatmap-cal', 'heatmap', 'distrib-time', 'radar'] },
+          ids: ['scatter', 'boxplot', 'gauge', 'heatmap-cal', 'heatmap', 'radar'] },
         { key: 'fluxo',       title: 'Fluxo & Estrutura', icon: '🌊',
           openByDefault: false,
           ids: ['sankey', 'funnel', 'waterfall', 'pivot', 'treemap'] },
@@ -47770,9 +47773,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // Nova taxonomia
       GROUPS: [
         { key: 'essenciais',  title: 'Essenciais',        icon: '⭐', openByDefault: true,
-          ids: ['kpi', 'bignum', 'time-series', 'table', 'bar', 'donut', 'distribution', 'area'] },
+          // Sprint 42: distrib-time promovido pra essenciais — espelha a
+          // mesma reorganização feita no catálogo principal (linha ~26696).
+          ids: ['kpi', 'bignum', 'time-series', 'table', 'bar', 'donut', 'distribution', 'distrib-time', 'area'] },
         { key: 'analise',     title: 'Análise & Comparação', icon: '🔬', openByDefault: false,
-          ids: ['scatter', 'boxplot', 'gauge', 'heatmap-cal', 'heatmap', 'distrib-time', 'radar'] },
+          ids: ['scatter', 'boxplot', 'gauge', 'heatmap-cal', 'heatmap', 'radar'] },
         { key: 'fluxo',       title: 'Fluxo & Estrutura', icon: '🌊', openByDefault: false,
           ids: ['sankey', 'funnel', 'waterfall', 'pivot', 'treemap'] },
         { key: 'mapas',       title: 'Mapas & Geo',       icon: '🗺️', openByDefault: false,
