@@ -39769,6 +39769,28 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       tip.style.position = 'fixed';
       tip.style.top = top + 'px';
       tip.style.left = left + 'px';
+      // Sprint 36c / EV-DOM-02: clamp pro viewport DEPOIS de inserir no DOM
+      // Antes: transform translate(-50%) podia empurrar tooltip pra esquerda
+      // do viewport quando anchor estava perto da borda esquerda. Texto
+      // ficava cortado tipo "ara gerar um camente." (Sprint 35 evidência).
+      // Agora: setTimeout(0) pra medir bounding após render, e se ultrapassa
+      // viewport, troca transform por posição absoluta clamped.
+      setTimeout(() => {
+        try {
+          const tr = tip.getBoundingClientRect();
+          const vw = window.innerWidth;
+          const margin = 8;
+          if (tr.left < margin){
+            // tooltip extravasou pela esquerda — reposiciona pra dentro
+            tip.style.transform = 'translate(0, ' + (position === 'top' ? '-100%' : '0') + ')';
+            tip.style.left = margin + 'px';
+          } else if (tr.right > vw - margin){
+            // extravasou pela direita
+            tip.style.transform = 'translate(-100%, ' + (position === 'top' ? '-100%' : '0') + ')';
+            tip.style.left = (vw - margin) + 'px';
+          }
+        } catch(_){}
+      }, 0);
       return { tip, closeBtn: close };
     }
 
