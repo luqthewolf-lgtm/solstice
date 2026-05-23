@@ -19107,11 +19107,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         _slotDsId = _recovered;
       }
       const ctx = _ctx(_slotDsId);
-      // Critério final: só mostra empty-state se REALMENTE não há dados.
-      // Confiamos no _ctx (que já faz fallback pro ingest global).
-      const _noData = !Array.isArray(ctx.rows) || ctx.rows.length === 0 ||
-                      !Array.isArray(ctx.columns) || ctx.columns.length === 0;
-      if (_noData){
+      // Sprint 44 / feedback do usuário (screenshot bug ainda aparece com 1 filtro
+      // ativo): distinguir 2 estados que antes eram a MESMA mensagem confusa:
+      //   1) "Sem dataset"       → ingest vazio (columns/rowsAll vazios)
+      //   2) "Sem resultados nos filtros" → tem ingest mas filtros zeraram tudo
+      // Antes os 2 mostravam "Sem dataset carregado · Importe CSV". Agora o caso 2
+      // mostra "0 linhas após filtros" + botão "Limpar filtros" — UX correto.
+      const _hasIngest = Array.isArray(ctx.columns) && ctx.columns.length > 0 &&
+                         Array.isArray(ctx.rowsAll) && ctx.rowsAll.length > 0;
+      const _emptyRows = !Array.isArray(ctx.rows) || ctx.rows.length === 0;
+      const _noData = !Array.isArray(ctx.columns) || ctx.columns.length === 0 ||
+                      (!_hasIngest && _emptyRows);
+      const _filteredOut = _hasIngest && _emptyRows; // tem dataset mas filtros zeraram
+      if (_noData || _filteredOut){
         // markdown / narrative-auto não precisam de dataset; deixa passar.
         const _selfSufficient = (slot.type === 'markdown' || slot.type === 'narrative-auto');
         if (!_selfSufficient){
@@ -19121,7 +19129,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             'data-comp-id': slot.id,
             'data-comp-type': slot.type,
             role: 'region',
-            'aria-label': (def.name || 'Componente') + ' aguardando dataset'
+            'aria-label': (def.name || 'Componente') + (_filteredOut ? ' filtrado' : ' aguardando dataset')
           });
           const head = SolsticeUtils.el('div', { class:'solstice__comp-head' });
           head.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-title' },
@@ -19130,19 +19138,45 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const body = SolsticeUtils.el('div', { class:'solstice__comp-body solstice__comp-empty' });
           body.style.padding = '16px';
           body.style.textAlign = 'center';
-          body.appendChild(SolsticeUtils.el('div', { style:'font-size:32px;margin-bottom:8px;opacity:.5;' }, '📭'));
-          body.appendChild(SolsticeUtils.el('div', { style:'font-weight:600;color:var(--c-muted);margin-bottom:4px;' },
-            'Sem dataset carregado'));
-          body.appendChild(SolsticeUtils.el('div', { style:'font-size:12px;color:var(--c-muted);margin-bottom:12px;line-height:1.4;' },
-            'Este componente precisa de dados para renderizar. Importe um CSV para vê-lo em ação.'));
-          const btn = SolsticeUtils.el('button', {
-            class:'solstice__btn solstice__btn--primary',
-            onclick: () => {
-              const fi = document.getElementById('file-input');
-              if (fi) fi.click();
-            }
-          }, '📁 Importar CSV');
-          body.appendChild(btn);
+          if (_filteredOut){
+            // Sprint 44: contagem de filtros ativos pra orientar.
+            const activeFilters = SolsticeStore.get('filters') || {};
+            const activeCount = Object.keys(activeFilters).filter(k => activeFilters[k] != null).length;
+            const cross = SolsticeStore.get('crossfilter');
+            const totalActive = activeCount + (cross ? 1 : 0);
+            body.appendChild(SolsticeUtils.el('div', { style:'font-size:32px;margin-bottom:8px;opacity:.6;' }, '🔍'));
+            body.appendChild(SolsticeUtils.el('div', { style:'font-weight:600;color:var(--c-text);margin-bottom:4px;' },
+              '0 linhas após os filtros'));
+            body.appendChild(SolsticeUtils.el('div', { style:'font-size:12px;color:var(--c-muted);margin-bottom:12px;line-height:1.4;' },
+              'Base tem ' + (ctx.rowsAll.length).toLocaleString('pt-BR') + ' linhas, mas ' +
+              totalActive + ' filtro(s) ativo(s) excluíram tudo. Tente alargar o filtro ou limpar.'));
+            const btnRow = SolsticeUtils.el('div', { style:'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;' });
+            const clearBtn = SolsticeUtils.el('button', {
+              class:'solstice__btn solstice__btn--primary',
+              onclick: () => {
+                if (typeof SolsticeFilters !== 'undefined' && SolsticeFilters.clear){
+                  SolsticeFilters.clear();
+                  SolsticeToast.success('Filtros limpos', 'Todos os filtros foram removidos.');
+                }
+              }
+            }, '🧹 Limpar todos os filtros');
+            btnRow.appendChild(clearBtn);
+            body.appendChild(btnRow);
+          } else {
+            body.appendChild(SolsticeUtils.el('div', { style:'font-size:32px;margin-bottom:8px;opacity:.5;' }, '📭'));
+            body.appendChild(SolsticeUtils.el('div', { style:'font-weight:600;color:var(--c-muted);margin-bottom:4px;' },
+              'Sem dataset carregado'));
+            body.appendChild(SolsticeUtils.el('div', { style:'font-size:12px;color:var(--c-muted);margin-bottom:12px;line-height:1.4;' },
+              'Este componente precisa de dados para renderizar. Importe um CSV para vê-lo em ação.'));
+            const btn = SolsticeUtils.el('button', {
+              class:'solstice__btn solstice__btn--primary',
+              onclick: () => {
+                const fi = document.getElementById('file-input');
+                if (fi) fi.click();
+              }
+            }, '📁 Importar CSV');
+            body.appendChild(btn);
+          }
           wrap.appendChild(body);
           host.appendChild(wrap);
           return;
@@ -35162,6 +35196,11 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     /** Conta filtros ativos (não vazios). */
     function activeCount(){
       const f = _filters();
+      // Sprint 44 / fix UX: conta SÓ filtros que estão em colunas que existem
+      // na base ativa. Antes contava também "fantasmas" — filtros em colunas
+      // que sumiram (ex: trocou de CSV). Resultado era counter mostrando
+      // "1 ATIVOS" enquanto apply() já ignorava → confundia usuário.
+      const validCols = new Set((_ingest().columns || []));
       let n = 0;
       for (const k of Object.keys(f)){
         const v = f[k];
@@ -35169,6 +35208,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         if (Array.isArray(v) && v.length === 0) continue;
         if (typeof v === 'string' && v === '') continue;  // Sprint 33 / BUG-EV-02: string vazia não conta
         if (v && typeof v === 'object' && v.min == null && v.max == null && v.from == null && v.to == null) continue;
+        if (!validCols.has(k)) continue; // Sprint 44: filtro órfão (coluna sumiu) não conta
         n++;
       }
       return n;
@@ -35280,6 +35320,42 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
     }
 
     function clear(){ SolsticeStore.set('filters', {}); SolsticeStore.set('crossfilter', null); }
+
+    /**
+     * Sprint 44: limpa filtros + smartDefaults + shown que apontam pra colunas
+     * que não existem na base ativa. Retorna o número de itens descartados.
+     * Idempotente — chamar várias vezes não faz mal.
+     */
+    function cleanStale(){
+      const ingest = _ingest();
+      const validCols = new Set((ingest.columns || []));
+      let dropped = 0;
+      const cur = _filters();
+      const cleaned = {};
+      Object.keys(cur).forEach(k => {
+        if (validCols.has(k)){ cleaned[k] = cur[k]; }
+        else { dropped++; }
+      });
+      if (dropped > 0) SolsticeStore.set('filters', cleaned);
+      // Crossfilter
+      const cross = SolsticeStore.get('crossfilter');
+      if (cross && cross.column && !validCols.has(cross.column)){
+        SolsticeStore.set('crossfilter', null);
+        dropped++;
+      }
+      // smartDefaults / shown
+      const sd = SolsticeStore.get('ui.filters.smartDefaults');
+      if (Array.isArray(sd)){
+        const sdc = sd.filter(s => s && validCols.has(s.column));
+        if (sdc.length !== sd.length) SolsticeStore.set('ui.filters.smartDefaults', sdc);
+      }
+      const sh = SolsticeStore.get('ui.filters.shown');
+      if (Array.isArray(sh)){
+        const shc = sh.filter(c => validCols.has(c));
+        if (shc.length !== sh.length) SolsticeStore.set('ui.filters.shown', shc);
+      }
+      return dropped;
+    }
 
     function get(col){ return _filters()[col]; }
 
@@ -35840,7 +35916,23 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
             // Só restaura se NÃO há filtro ativo (não sobrescreve estado vindo de snapshot)
             const cur = SolsticeStore.get('filters');
             if (!cur || !Object.keys(cur).length){
-              SolsticeStore.set('filters', parsed);
+              // Sprint 44 / fix UX: ao restaurar filtros do localStorage, DESCARTA
+              // os que referenciam colunas que não existem na base atual. Antes:
+              // se localStorage tinha filtro stale de uma base anterior, o restore
+              // re-injetava → KPI/Série Temporal mostravam "Sem dataset" mesmo
+              // com base nova válida. Causa raiz do bug reportado no screenshot.
+              const ingest = _ingest();
+              const validCols = new Set((ingest.columns || []));
+              const cleaned = {};
+              let dropped = 0;
+              Object.keys(parsed).forEach(k => {
+                if (validCols.has(k)){ cleaned[k] = parsed[k]; }
+                else { dropped++; }
+              });
+              if (dropped > 0 && SolsticeLog && SolsticeLog.debug){
+                SolsticeLog.debug('[Filters._restore] ' + dropped + ' filtro(s) órfão(s) descartado(s) do localStorage');
+              }
+              SolsticeStore.set('filters', cleaned);
             }
           }
         } catch(_){}
@@ -35857,6 +35949,21 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       SolsticeStore.subscribe('dataset.ready', (ready) => { if (ready) _restore(); });
       // E imediatamente se já estiver pronto (re-init pós-load)
       if (SolsticeStore.get('dataset.ready')) _restore();
+
+      // Sprint 44: subscriber universal — sempre que columns muda (qualquer
+      // caminho: import, snapshot restore, multi-dataset switch, edit colunas),
+      // limpa filtros órfãos automaticamente. Defesa em profundidade: mesmo
+      // que algum caminho de set('ingest') esqueça de limpar, este cobre.
+      let _lastColsSig = null;
+      SolsticeStore.subscribe('ingest', () => {
+        try {
+          const cols = ((_ingest().columns) || []).slice().sort().join(',');
+          if (cols !== _lastColsSig){
+            _lastColsSig = cols;
+            cleanStale();
+          }
+        } catch(_){}
+      });
     }
 
     // Auditoria 2026 (RT-03): adapter pra cumprir SolsticeStoreContract.
@@ -35864,7 +35971,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const full = path ? 'filters.' + path : 'filters';
       return SolsticeStore.subscribe(full, cb);
     }
-    return { apply, applyList, getActiveRows, set, get, subscribe, clear, activeCount, suggested, applySmartDefaults, renderInto, init };
+    return { apply, applyList, getActiveRows, set, get, subscribe, clear, cleanStale, activeCount, suggested, applySmartDefaults, renderInto, init };
   })();
 
   /* ============================================================
