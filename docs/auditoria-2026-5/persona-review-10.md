@@ -30,6 +30,22 @@ críticos:
 | M-6 | 🟠 | Autosave `_tick` sem mutex (visibilitychange + interval) | 36980 |
 | M-7 | 🟡 | `SolsticeCanvas.render` sem coalescing global | 27 sites |
 
+### P2 Rafael (Arquiteto)
+
+| # | Sev | Achado | Linha/Evidência |
+|---|:--:|--------|------|
+| R-1 | 🔴 | Estado duplicado: `ingest` vs `dataset.*` (130 sets vs 92) | 10837+ |
+| R-2 | 🔴 | `SolsticeV56` monkey-patch sobre 18 módulos (3864 LoC) | 43459 |
+| R-3 | 🟠 | `Inspector` + `Props` split artificial com ciclo protegido por flag | 17985, 22992 |
+| R-4 | 🟠 | 10 verbos distintos pra "abrir UI" (open/show/openModal/openConfig/openPicker/etc.) | múltiplos |
+| R-5 | 🔴 | ADR-185 violada 55× (localStorage direto fora de SolsticeStorage) | múltiplos |
+| R-6 | 🔴 | ADR-186 violada 186× (`catch(_){}` silencioso apesar do lint CI) | múltiplos |
+| R-7 | 🟠 | 8 IIFEs megalíticas (Components 4153 LoC, V56 3864, Editor 1984...) | múltiplos |
+| R-8 | 🟡 | `Solstice.X` namespace ordem-dependente | 47787 |
+
+**Diagnóstico de Rafael:** "ADRs viraram poesia". Lint CI precisa de regras
+adicionais: `localStorage\.` fora de SolsticeStorage = falha; `catch\s*\(\s*_?\s*\)\s*\{\s*\}` = falha.
+
 ### P3 Júlia (QA) — Edge cases
 
 | # | Sev | Achado | Linha |
