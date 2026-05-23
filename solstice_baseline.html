@@ -11937,10 +11937,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const _askOnceAfterValue = () => {
         if (_asked) return;
         _asked = true;
-        // Delay curto pra deixar a tela do dashboard se assentar antes do modal.
-        setTimeout(() => {
+        // Sprint 30 / BH-01: delay aumentado de 1200ms → 3500ms + verifica
+        // se há outro modal aberto antes de promp-tar nome. Antes o modal
+        // "Bem-vindo, como podemos te chamar?" sobrepunha picker de
+        // templates / wizard / auto-dashboard sugerido. Agora espera a
+        // tela "assentar" e só abre se nada mais está aberto.
+        const _tryAsk = (retries) => {
+          retries = retries || 0;
+          if (retries > 5) return; // desiste após ~17s
+          const hasOpenModal = !!document.querySelector('[role=dialog]');
+          if (hasOpenModal){
+            // Outro modal está aberto — re-tenta em 3s
+            setTimeout(() => _tryAsk(retries + 1), 3000);
+            return;
+          }
           try { SolsticeProfiles.promptNameIfPlaceholder(); } catch(e){}
-        }, 1200);
+        };
+        setTimeout(() => _tryAsk(0), 3500);
       };
       const unsub = SolsticeStore.subscribe('dataset.ready', (val) => {
         if (val) { _askOnceAfterValue(); unsub && unsub(); }
@@ -30108,6 +30121,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
       wrap.appendChild(list);
 
+      // Sprint 30 / BH-03: checkbox "limpar antes de aplicar". User reportou
+      // que aplicar 2 templates seguidos anexa em vez de substituir.
+      // Default: false (anexa — preserva trabalho existente).
+      // Marcar = true: chama Canvas.clear() antes de applyTemplate.
+      const hasExisting = ((SolsticeStore.get('canvas.sections') || []).length > 0);
+      const replaceWrap = SolsticeUtils.el('label', {
+        style: 'display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;background:var(--c-surface-2);border-radius:6px;font-size:12px;color:var(--c-text);cursor:pointer;user-select:none;' +
+               (hasExisting ? '' : 'opacity:0.6;'),
+        title: hasExisting
+          ? 'Marque pra apagar todas as seções atuais antes de aplicar este template'
+          : 'Não há nada pra limpar — canvas está vazio'
+      });
+      const replaceCb = SolsticeUtils.el('input', {
+        type: 'checkbox',
+        style: 'margin:0;cursor:pointer;'
+      });
+      if (!hasExisting) replaceCb.setAttribute('disabled', 'disabled');
+      replaceWrap.appendChild(replaceCb);
+      replaceWrap.appendChild(SolsticeUtils.el('span', null,
+        hasExisting
+          ? '🗑️ Limpar dashboard atual antes de aplicar (substitui em vez de anexar)'
+          : '🗑️ Limpar dashboard atual antes de aplicar — nada pra limpar'));
+      wrap.appendChild(replaceWrap);
+
       SolsticeModal.show({
         title: '🪄 Configurar template — ' + t.name,
         size: 'lg',
@@ -30132,14 +30169,21 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                 sl.type = s.type;
                 sl.config = Object.assign({}, sl.config || {}, s.config || {});
               });
+              // Sprint 30 / BH-03: limpa dashboard atual se checkbox marcado.
+              const shouldReplace = replaceCb.checked;
+              if (shouldReplace && typeof SolsticeCanvas.clear === 'function'){
+                try { SolsticeCanvas.clear(); } catch(_){}
+              }
               SolsticeCanvas.applyTemplate(sections);
               try {
                 SolsticeAudit.record({
                   action: 'apply_template_wizard', target: id,
-                  details: { name: t.name, customSlots: slots.length }
+                  details: { name: t.name, customSlots: slots.length, replaced: shouldReplace }
                 });
               } catch(_){}
-              SolsticeToast.success('Template aplicado', t.name + ' · ' + slots.length + ' componente(s)');
+              SolsticeToast.success('Template aplicado',
+                t.name + ' · ' + slots.length + ' componente(s)' +
+                (shouldReplace ? ' · dashboard anterior limpo' : ''));
               close(null);
             }
           }, '✓ Aplicar template')
