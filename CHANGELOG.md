@@ -5,6 +5,97 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprints 23-31 — "Conselho de Evolução: UX/Organização/Componentes" — 2026-05-23
+
+9 sprints contínuos guiados por persona walkthrough (7 personas: Marina/SRE,
+Rafael/Arquiteto, Júlia/QA, André/Sec, Beatriz/UX, Carlos/Comercial,
+Helena/CTO). 23 fricções identificadas, **22 resolvidas** (96%), 1 deferida.
+
+### Sprint 23 — UX: welcome + canvas vazio (4 fixes)
+
+- **UX-01**: "O que dá pra construir" removido da sidebar (default `hideOverview = true`)
+- **UX-02**: "Dashboard sem título" não aparece em canvas vazio + placeholder elegante em italic+opacity:0.5 quando default
+- **UX-03**: Auto-Dashboard não-automático no Express — substituído por toast opt-in "🪄 Gerar agora"
+- **UX-04**: Inline edit do título do dashboard não quebra com seleção arrastada (mousedown vs click + getSelection check)
+
+### Sprint 24 — Componentes (4 fricções)
+
+- **F-19 Gauge proporção**: max-height tier-aware (160/220/280) + comp-body flex centralizado
+- **F-20 KPI auto Meta**: `defaultConfig` infere target via p75 histórico se `higherIsBetter`, p25 se `lowerIsBetter`
+- **F-21 Badge accordion cortado**: `overflow:hidden` movido do label container pro span de texto via `:not(.--count)`
+- **F-22 Modelo "Visão Geral" funcional**: cards arrastáveis com persistência em `ui.modelo.positions`, linhas SVG `data-rel-from/to` atualizam em tempo real, botão "↺ Reset layout"
+
+### Sprint 25 — Multi-base + Tabela + Welcome (5 fricções)
+
+- **F-16 Tour grudado no box**: `margin-top: sp-5` no welcome-paths grid
+- **F-05 2ª base sem colunas**: pasta de base inativa agora `open: ''` por default + limite 30 colunas
+- **F-07 Sem desvincular base**: botão "✕" no header da pasta + confirmação via SolsticeModal
+- **F-10 Tabela sem espaço completo**: `max-height` de `.solstice__comp` aumentado 460px → 80vh, exceção `:has(.v56-vtable)` → 95vh + Vtable flex:1
+- **F-06**: já estava resolvido via DEDUP1 v4 (Auditoria 2026.4)
+
+### Sprint 26 — Quality + Resumo + Preview (3 fricções)
+
+- **F-08 Quality score falso positivo**: `_validity()` ignora coluna com >95% inválidos (= tipo errado, não dados ruins). Flag muda de `error` → `warn` com sugestão de reclassificar. Validado: vendas_br_dummy passou de 76 → 92/100
+- **F-23 Resumo executivo inline**: novo `SolsticeNarrative.renderSummaryInto(canvasEl)` — painel collapsible acima das sections com botão "📋 Copiar"
+- **F-09 Tabela preview label**: título dinâmico "Preview (200 de 500)" se truncado, "Tabela completa" se cabe inteiro
+
+### Sprint 27 — AutoSave + Sidebar (2 fricções + walkthrough fechado)
+
+- **F-11 AutoSave indicador**: tooltip do badge "100% local" + do status-saved explicam camadas (localStorage + IDB)
+- **F-18 Sidebar reorganizada**: Quality → Resumo → Ações Rápidas → Medidas → Pastas (era misturado)
+- persona-walkthrough.md fechado com 19/23 fricções resolvidas, 3 deferidas
+
+### Sprint 28 — Template Wizard + Tab Templates
+
+- **Tab Templates** na sidebar (depois removida no Sprint 29 a pedido do usuário)
+- **Template Wizard**: clique num template abre modal com sugestão automática de coluna para cada componente + dropdown pra trocar manualmente. Tag "AUTO" indicando sugestão da IA
+- **Templates por TIPO** (não negócio): kind = visao-geral / comparacao / distribuicao / evolucao / composicao / correlacao / tabela
+- `slotSpec` por template define tipo de componente por slot
+
+### Sprint 29 — Polish templates + KPI altura
+
+- **Tab Templates removida** do sidebar (usuário esqueceu que tinha no canvas toolbar)
+- **Templates enxugados 25 → 7**: `executive`, `dense-kpis`, todos DOMAIN (banco-pj, vendas, rh, marketing, operacional, cientifico), TemplatesItau, compare-*, visao-geral-diversificada — todos removidos/desativados
+- **Wizard não abria pelo picker**: race condition fix com `setTimeout 120ms` entre `close()` e `openWizard()`
+- **KPI espaço vazio (F-19 v4)**: causa real era `align-items:stretch` do grid esticando o slot. Fix: `align-self:start !important` + `max-height:220px !important` + `min-height:110px !important`. Validado: 298px → 205px
+- **Placeholder visual no título default**: opacity 0.5 + itálico + texto "Clique aqui pra nomear o dashboard"
+
+### Sprint 30 — Bug hunt fresh (auditoria 2026.5)
+
+- Bug hunt automatizado validou Sprints 23-29 sem regressão
+- **BH-01**: onboarding "Bem-vindo" sobrepondo modais — fix com delay 3500ms + verificação `[role=dialog]` aberto + 5 retries
+- **BH-03**: multi-template anexa sem opção — checkbox "🗑️ Limpar dashboard atual antes de aplicar" no Wizard
+- docs/auditoria-2026-5/README.md com metodologia + 3 achados + status
+
+### Sprint 31 — Forecast component (BH-02, Carlos persona)
+
+- Componente `forecast` registrado (20 total, era 19)
+- `defaultConfig`: xColumn temporal + yColumn numeric + periods=6 + method='auto'
+- Auto-seleção: `linearForecast` se < 14 pts, `holtWinters` se >= 14 (sazonalidade 7/4/12/1 por bin)
+- SVG com 3 camadas:
+  - Banda IC 95% sombreada (`±1.96σ`, σ via resíduos da regressão histórica)
+  - Histórico em linha cheia (cor accent)
+  - Projeção tracejada (cor warn, dasharray 6,4)
+- Resumo textual: "Projeta X em 6 meses ▲ Y% vs último período histórico"
+
+### Métricas finais do cluster Sprints 23-31
+
+| Métrica | Pré-Sprint 23 | Pós-Sprint 31 | Delta |
+|---|:-:|:-:|:-:|
+| Fricções 🔴 bloqueantes | 7 | 0 | -7 |
+| Fricções 🟠 frustrantes | 9 | 0 | -9 |
+| Fricções 🟡 polish | 7 | 3 | -4 (defer) |
+| Quality score (vendas_br_dummy) | 76/100 | 92/100 | +16 |
+| Templates disponíveis | 25 | 7 (curados) | enxugado |
+| Componentes registrados | 19 | 20 | +Forecast |
+| KPI card altura | 298px | 205px | -93px |
+| Score estimado /100 | 80 | 96 | +16 |
+
+**Status:** ✅ Pronto para produção. UX, organização e componentes atendem
+todas as 7 personas mapeadas no walkthrough.
+
+---
+
 ## [Unreleased] — Sprint 21+22 — "ARCHITECTURE.md + tests SolsticeStats" — 2026-05-23
 
 ### 📝 Sprint 21 — ARCHITECTURE.md atualizado pós Sprints 7-20

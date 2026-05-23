@@ -268,8 +268,9 @@ Exemplo: usuário edita o título de uma seção do dashboard.
 
 ### Curto prazo
 - [ ] Migrar 35 sites de `deepClone(Store.get('canvas.sections'))` para `SolsticeCanvas.editSections` / `withSlot` (Sprint 11 da Auditoria 2026.4 marcada como roadmap por exigir testes de regressão por componente)
-- [ ] Cobertura de testes para `SolsticeStats` e `SolsticeFormula`
+- [ ] Cobertura de testes para `SolsticeFormula` (Stats já tem Sprint 22)
 - [x] **Reduzir catches silenciosos com `SolsticeLog.warn` em pontos críticos** — feito (Auditoria 2026.3 MC-04 + 2026.4 MC-09 + Sprint 10)
+- [x] **UX cluster (Sprints 23-31)** — 22 fricções resolvidas via persona walkthrough
 
 ### Médio prazo
 - [ ] Streaming de CSV (parse incremental, não bloqueia UI)
@@ -281,6 +282,10 @@ Exemplo: usuário edita o título de uma seção do dashboard.
 - [x] **Anomaly detection inline** (Sprint 18 — rolling median + MAD)
 - [x] **Status saved persistente "Salvo há Xs"** (Sprint 15 — benchmark Notion/Google Docs)
 - [x] **Auto-save banner com confirmação no boot** (Auditoria 2026.4 BR-A5)
+- [x] **Template Wizard** (Sprint 28 — confirmação de colunas por componente antes de aplicar)
+- [x] **Forecast component** (Sprint 31 — projeção com IC 95% via Holt-Winters / linear)
+- [x] **Resumo executivo inline persistente** (Sprint 26)
+- [x] **Modelo overlay com drag-and-drop** (Sprint 24 — F-22 + F-04)
 
 ### Longo prazo
 - [ ] Quebra do single-file em módulos ESM (com build opcional)
@@ -304,6 +309,32 @@ Exemplo: usuário edita o título de uma seção do dashboard.
 10. **Modal sem `role="dialog"` + `aria-modal` + `aria-labelledby`** — leitor de tela não anuncia (Sprint 13a / WCAG 4.1.2).
 11. **Tabela virtualizada sem `role="grid"` + `aria-rowcount`** — leitor de tela não navega corretamente (Sprint 12 / WCAG 4.1.2).
 12. **Subscriber de subscribers (cb)** silenciado com `catch(_){}` — propague via `SolsticeLog.warn` com contexto (ADR-186, MC-04/MC-09).
+13. **Modal sobre modal sem `setTimeout`** — `SolsticeModal.show()` chamado imediatamente após `close()` causa race condition (segundo modal nasce sob o primeiro ainda no DOM). Padrão: `setTimeout 100-150ms` entre `close()` e novo `show()`. Encontrado no Sprint 30 (BH-01 + Wizard non-opening).
+14. **Componente novo sem `defaultConfig` retornando dados-sense** — Wizard de templates (Sprint 28) chama `defaultConfig(ctx)` pra pré-preencher dropdowns. Componentes que retornam `{ column: null }` deixam o user sem orientação. Padrão: `defaultConfig` deve mapear pra primeira coluna do tipo certo via `_firstColOfGroup(ctx, 'numeric'|'temporal'|'categorical')`.
+
+## Padrões de feature
+
+### Template Wizard (Sprint 28)
+
+`SolsticeTemplates.openWizard(templateId)`:
+1. Materializa slots via `t.build()` + `t.slotSpec[]` (tipo por slot)
+2. Pra cada slot, chama `_suggestForSlot(type)` → `defaultConfig(ctx)`
+3. Renderiza modal com 1 row por slot:
+   - Ícone + nome do componente
+   - Dropdowns das `COL_KEYS` (column/xColumn/yColumn/dateColumn/etc) com sugestão AUTO
+4. Botão "✓ Aplicar template" itera slots, aplica configs customizadas, chama `SolsticeCanvas.applyTemplate(sections)`
+5. Checkbox "🗑️ Limpar antes" (Sprint 30) → opcionalmente chama `clear()` antes
+
+Templates têm `kind` (visao-geral / comparacao / distribuicao / evolucao / composicao / correlacao / tabela) usado pra agrupar visualmente.
+
+### Forecast component (Sprint 31)
+
+`Components.get('forecast')`:
+1. Agrega rows por `cfg.bin` (day/week/month/year)
+2. Decide método: `holtWinters` se N>=14, senão `linearForecast`
+3. σ residuais via `linearRegression` no histórico
+4. SVG 3 camadas: banda IC95% sombreada + histórico cheio + projeção tracejada
+5. Summary text com delta % vs último período histórico
 
 ## Invariantes documentadas no topo do arquivo (cabeçalho HTML)
 
