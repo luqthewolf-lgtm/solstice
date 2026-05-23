@@ -3532,11 +3532,23 @@
     max-height: 200px;
   }
 
-  /* ===== TOASTS ===== */
+  /* ===== TOASTS =====
+     B8-04 (v6-autonomous / PM-06 — Augusto power user): posição configurável
+     via data-toast-position no <html>. Padrão bottom-right.
+     Valores: 'bottom-right' (default) | 'top-right' | 'bottom-center' | 'top-center' */
   .solstice__toasts {
     position: fixed; bottom: var(--sp-5); right: var(--sp-5);
     display: flex; flex-direction: column; gap: var(--sp-2);
     z-index: var(--z-toast); max-width: 360px;
+  }
+  :root[data-toast-position="top-right"] .solstice__toasts {
+    top: var(--sp-5); bottom: auto; right: var(--sp-5);
+  }
+  :root[data-toast-position="bottom-center"] .solstice__toasts {
+    bottom: var(--sp-5); right: 50%; transform: translateX(50%);
+  }
+  :root[data-toast-position="top-center"] .solstice__toasts {
+    top: var(--sp-5); bottom: auto; right: 50%; transform: translateX(50%);
   }
   .solstice__toast {
     background: var(--c-surface); border: 1px solid var(--c-border);
@@ -7753,6 +7765,106 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   })();
 
   /* ============================================================
+     B8-01 (v6-autonomous / I18N-01 — Yuki/Mercado Pago) — SolsticeI18n
+     Wrapper minimalista pra strings centralizadas. Pre-existente
+     SolsticeLocale.t() cobre dicionário grande; SolsticeI18n cobre
+     micro-vocabulário usado em código novo (botões, labels, status).
+
+     Migração gradual: novo código deve usar SolsticeI18n.t('save')
+     em vez de hardcoded 'Salvar'. Strings sem chave caem no fallback
+     do default (= a própria string).
+
+     SolsticeI18n.t(key)              → string traduzida
+     SolsticeI18n.tn(key, n)          → pluralização simples (1: sg, *: pl)
+     SolsticeI18n.register(map)       → adicionar termos custom
+     SolsticeI18n.allKeys()           → debug
+     ============================================================ */
+  const SolsticeI18n = (function(){
+    const DICTS = {
+      'pt-BR': {
+        // Ações comuns (botões)
+        'save':       'Salvar',
+        'cancel':     'Cancelar',
+        'close':      'Fechar',
+        'export':     'Exportar',
+        'import':     'Importar',
+        'delete':     'Excluir',
+        'remove':     'Remover',
+        'edit':       'Editar',
+        'apply':      'Aplicar',
+        'confirm':    'Confirmar',
+        'undo':       'Desfazer',
+        'redo':       'Refazer',
+        'open':       'Abrir',
+        'new':        'Novo',
+        'refresh':    'Recarregar',
+        'copy':       'Copiar',
+        // Status
+        'loading':    'Carregando…',
+        'saved':      'Salvo',
+        'error':      'Erro',
+        'success':    'Sucesso',
+        'warning':    'Aviso',
+        // Quantitativos
+        'rows':       'linhas',
+        'row':        'linha',
+        'cols':       'colunas',
+        'col':        'coluna',
+        'records':    'registros',
+        'record':     'registro',
+        // Time
+        'today':      'hoje',
+        'yesterday':  'ontem',
+        'days_ago':   'dias atrás',
+        'min_ago':    'min atrás'
+      },
+      'en-US': {
+        'save':'Save','cancel':'Cancel','close':'Close','export':'Export','import':'Import',
+        'delete':'Delete','remove':'Remove','edit':'Edit','apply':'Apply','confirm':'Confirm',
+        'undo':'Undo','redo':'Redo','open':'Open','new':'New','refresh':'Refresh','copy':'Copy',
+        'loading':'Loading…','saved':'Saved','error':'Error','success':'Success','warning':'Warning',
+        'rows':'rows','row':'row','cols':'columns','col':'column','records':'records','record':'record',
+        'today':'today','yesterday':'yesterday','days_ago':'days ago','min_ago':'min ago'
+      }
+    };
+
+    function _currentLocale(){
+      try {
+        return (typeof SolsticeLocale !== 'undefined' && SolsticeLocale.get)
+          ? SolsticeLocale.get()
+          : 'pt-BR';
+      } catch(_){ return 'pt-BR'; }
+    }
+
+    function t(key){
+      const loc = _currentLocale();
+      const dict = DICTS[loc] || DICTS['pt-BR'];
+      return dict[key] || key; // fallback: retorna a chave (útil pra debug)
+    }
+
+    function tn(key, n){
+      // Pluralização ingênua: chave singular tem 'col', plural 'cols'
+      const singular = t(key);
+      const pluralKey = key + (key.endsWith('s') ? '' : 's');
+      const plural = DICTS[_currentLocale()] && DICTS[_currentLocale()][pluralKey] || singular;
+      return n === 1 ? singular : plural;
+    }
+
+    function register(map){
+      const loc = _currentLocale();
+      if (!DICTS[loc]) DICTS[loc] = {};
+      Object.assign(DICTS[loc], map || {});
+    }
+
+    function allKeys(){
+      const loc = _currentLocale();
+      return Object.keys(DICTS[loc] || {});
+    }
+
+    return { t, tn, register, allKeys };
+  })();
+
+  /* ============================================================
      B5-04 (v6-autonomous / I18N-02 — Yuki/Mercado Pago) — SolsticeFmt
      Helper único com nomes idiomáticos pra formatação. Wrappers + extras
      que SolsticeLocale não tinha:
@@ -9926,6 +10038,81 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return head + '\n' + body;
     }
 
+    /* ============================================================
+       B8-03 (v6-autonomous / PA-02 — Cláudia/Stone) — 2 dummies adicionais
+       Power user precisa exemplos pra explorar; vendas só não cobre RH/Ops.
+       ============================================================ */
+    const CARGOS = ['Analista', 'Coordenador', 'Gerente', 'Diretor', 'Estagiário', 'Especialista'];
+    const DEPARTAMENTOS = ['TI', 'Comercial', 'RH', 'Financeiro', 'Operações', 'Marketing', 'Jurídico'];
+    const SENIORIDADES = ['Júnior','Pleno','Sênior','Lead'];
+
+    function gerarRH(seed, n){
+      seed = seed || 99;
+      n = n || 150;
+      const rnd = SolsticeUtils.seededRandom(seed);
+      const startAdm = new Date(2018, 0, 1);
+      const ms = 1000*60*60*24;
+      const rows = [];
+      for (let i = 0; i < n; i++){
+        const dt = new Date(startAdm.getTime() + Math.floor(rnd()*2200)*ms);
+        const dep = DEPARTAMENTOS[Math.floor(rnd()*DEPARTAMENTOS.length)];
+        const cargo = CARGOS[Math.floor(rnd()*CARGOS.length)];
+        const sen = SENIORIDADES[Math.floor(rnd()*SENIORIDADES.length)];
+        const salario = 2500 + rnd()*22000;
+        const idade = 22 + Math.floor(rnd()*38);
+        const satisf = Math.round(60 + rnd()*40);
+        const horas_mes = 140 + rnd()*60;
+        const ativo = rnd() > 0.12 ? 'Sim' : 'Não';
+        rows.push({
+          colaborador_id: 'C' + (1000 + i),
+          data_admissao: dt.toISOString().slice(0,10),
+          departamento: dep,
+          cargo, senioridade: sen,
+          idade,
+          salario: Number(salario.toFixed(2)),
+          satisfacao_pct: satisf,
+          horas_mes: Number(horas_mes.toFixed(1)),
+          ativo
+        });
+      }
+      return rows;
+    }
+
+    function gerarOps(seed, n){
+      seed = seed || 77;
+      n = n || 180;
+      const rnd = SolsticeUtils.seededRandom(seed);
+      const CANAIS_OPS = ['WhatsApp','Telefone','Email','Chat','Presencial'];
+      const STATUS = ['Resolvido','Em andamento','Escalado','Pendente'];
+      const PRIORIDADES = ['Baixa','Média','Alta','Crítica'];
+      const startOp = new Date(2025, 0, 1);
+      const ms = 1000*60*60*24;
+      const rows = [];
+      for (let i = 0; i < n; i++){
+        const dt = new Date(startOp.getTime() + Math.floor(rnd()*120)*ms);
+        const ch = CANAIS_OPS[Math.floor(rnd()*CANAIS_OPS.length)];
+        const st = STATUS[Math.floor(rnd()*STATUS.length)];
+        const pri = PRIORIDADES[Math.floor(rnd()*PRIORIDADES.length)];
+        const tma_min = 2 + rnd()*120; // tempo médio atendimento
+        const sla_min = 30 + Math.floor(rnd()*60);
+        const dentro_sla = tma_min <= sla_min ? 'Sim' : 'Não';
+        const csat = Math.round(1 + rnd()*4); // 1-5
+        const tickets = 1 + Math.floor(rnd()*3);
+        rows.push({
+          data_atendimento: dt.toISOString().slice(0,10),
+          canal: ch,
+          prioridade: pri,
+          status: st,
+          tma_min: Number(tma_min.toFixed(1)),
+          sla_min,
+          dentro_sla,
+          csat_score: csat,
+          tickets_abertos: tickets
+        });
+      }
+      return rows;
+    }
+
     function load(opts){
       const rows = gerar(opts && opts.seed, opts && opts.n);
       const cols = Object.keys(rows[0]);
@@ -9940,7 +10127,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return { rows, cols };
     }
 
-    return { gerar, toCSV, load };
+    /**
+     * SolsticeDummy — geradores de CSV de exemplo.
+     * @returns {{
+     *   gerar(seed?:number, n?:number): Array,        // Vendas BR (200 linhas default)
+     *   gerarRH(seed?:number, n?:number): Array,      // People snapshot (150)
+     *   gerarOps(seed?:number, n?:number): Array,     // Operacional atendimento (180)
+     *   toCSV(rows:Array): string,
+     *   load(): Promise<{rows, cols}>                 // carrega vendas default no Store
+     * }}
+     */
+    return { gerar, gerarRH, gerarOps, toCSV, load };
   })();
 
   /* ============================================================
@@ -11177,6 +11374,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     if (SolsticeOnboarding.isFirstTime()){
       setTimeout(() => SolsticeOnboarding.show(), 400);
     }
+
+    // B8-04 (v6-autonomous / PM-06): aplica posição persistida dos toasts
+    try {
+      const tp = (typeof SolsticeStorage !== 'undefined')
+        ? SolsticeStorage.safeGet('solstice.toast.position')
+        : localStorage.getItem('solstice.toast.position');
+      if (tp && ['bottom-right','top-right','bottom-center','top-center'].includes(tp)){
+        document.documentElement.setAttribute('data-toast-position', tp);
+      }
+    } catch(_){}
 
     // B6-02 (v6-autonomous / PW-06): sync multi-tab via BroadcastChannel
     try { if (typeof SolsticeMultiTab !== 'undefined') SolsticeMultiTab.init(); }
@@ -34956,6 +35163,86 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      Estado salvo:
        canvas.sections + filters + params + canvas.header + dictionary
      ============================================================ */
+  /* ============================================================
+     B8-05 (v6-autonomous / JD-02 — Pedro Vasconcellos UX) — SolsticeAnnotations
+     Anotações editoriais (linha vertical "marco aqui" em time-series).
+     Comum em jornalismo de dados: "12/03 — anúncio do produto X" etc.
+
+     Modelo de dados:
+       annotation = { id, slotId, x: dateOrCategory, label, color?, kind? }
+       kinds: 'vertical' (default) | 'point' | 'range'
+
+     Persistido em SolsticeStore('canvas.annotations'), bound a slotId.
+     Render visual fica como TODO pro próximo bloco (precisa Chart.js
+     plugin); por enquanto exposição API + storage + helpers.
+
+     API:
+       SolsticeAnnotations.list(slotId?)            → todas, ou de 1 slot
+       SolsticeAnnotations.add({slotId, x, label})  → cria, retorna id
+       SolsticeAnnotations.remove(id)
+       SolsticeAnnotations.update(id, patch)
+     ============================================================ */
+  const SolsticeAnnotations = (function(){
+
+    function _all(){
+      return SolsticeStore.get('canvas.annotations') || [];
+    }
+
+    function _save(arr){
+      SolsticeStore.set('canvas.annotations', arr);
+    }
+
+    function list(slotId){
+      const arr = _all();
+      return slotId ? arr.filter(a => a.slotId === slotId) : arr.slice();
+    }
+
+    function add(opts){
+      opts = opts || {};
+      if (!opts.slotId || opts.x === undefined) return null;
+      const note = {
+        id: 'ann_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        slotId: opts.slotId,
+        x: opts.x,
+        label: String(opts.label || ''),
+        color: opts.color || null,
+        kind: opts.kind || 'vertical',
+        createdAt: new Date().toISOString()
+      };
+      const arr = _all();
+      arr.push(note);
+      _save(arr);
+      if (typeof SolsticeAudit !== 'undefined' && SolsticeAudit.record){
+        SolsticeAudit.record({ action:'annotation_add', target: opts.slotId, details:{ id: note.id, label: note.label } });
+      }
+      return note.id;
+    }
+
+    function remove(id){
+      const arr = _all().filter(a => a.id !== id);
+      _save(arr);
+    }
+
+    function update(id, patch){
+      const arr = _all();
+      const note = arr.find(a => a.id === id);
+      if (!note) return false;
+      Object.assign(note, patch, { id: note.id, slotId: note.slotId }); // não permite mudar id/slotId
+      _save(arr);
+      return true;
+    }
+
+    /**
+     * @returns {{
+     *   list(slotId?:string): Array,
+     *   add(opts:{slotId,x,label,color?,kind?}): string|null,
+     *   remove(id:string): void,
+     *   update(id:string, patch:Object): boolean
+     * }}
+     */
+    return { list, add, remove, update };
+  })();
+
   /* ============================================================
      B6-02 (v6-autonomous / PW-06 — Augusto power user) — SolsticeMultiTab
      Sincronização leve entre múltiplas abas via BroadcastChannel.
