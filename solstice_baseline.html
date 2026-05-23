@@ -208,7 +208,23 @@
     --font-display: 'Space Grotesk', var(--font-sans);
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-    /* Escala 1.25 */
+    /* Escala 1.25 — B3-04 (v6-autonomous / DS-04 — Helena/Vercel):
+       Escala documentada. Tokens semânticos pra evitar font-size hardcoded:
+
+         --fs-3xs:  9px   metadata super-discreta (timestamp, micro)
+         --fs-2xs: 11px   badges, chips, ícone-labels
+         --fs-xs:  ~10px  legendas de chart, footer
+         --fs-sm:  ~13px  body secundário, descrição
+         --fs-base: 16px  body principal
+         --fs-md:  ~20px  headings de seção
+         --fs-lg:  ~25px  títulos de página
+         --fs-xl:  ~31px  hero numbers (KPI value)
+         --fs-2xl: ~39px  big-num gigante
+         --fs-3xl: ~49px  splash welcome
+
+       Audit Sprint v6-autonomous achou 557 ocorrências de font-size
+       hardcoded em px vs 230 com token. Use os tokens em todo código novo. */
+    --fs-3xs: 0.5625rem; --fs-2xs: 0.6875rem;
     --fs-xs: 0.64rem; --fs-sm: 0.8rem; --fs-base: 1rem; --fs-md: 1.25rem;
     --fs-lg: 1.563rem; --fs-xl: 1.953rem; --fs-2xl: 2.441rem; --fs-3xl: 3.052rem;
 
@@ -587,6 +603,63 @@
   .solstice__btn--ghost { background: transparent; border-color: transparent; }
   .solstice__btn--ghost:hover { background: var(--c-surface-2); }
   .solstice__btn--icon { width: var(--row-h); padding: 0; }
+  /* B3-05 (v6-autonomous / OB-05): FAB Ajuda flutuante */
+  .solstice__help-fab {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--c-accent); color: #fff;
+    border: none;
+    font-size: 22px; font-weight: var(--fw-bold); line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18), 0 0 0 2px color-mix(in srgb, var(--c-accent) 30%, transparent);
+    z-index: 99;
+    transition: transform var(--t-fast), box-shadow var(--t-fast);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .solstice__help-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(0,0,0,.24), 0 0 0 3px color-mix(in srgb, var(--c-accent) 40%, transparent);
+  }
+  .solstice__help-fab:focus-visible {
+    outline: 3px solid var(--c-accent-hi);
+    outline-offset: 2px;
+  }
+  @media print { .solstice__help-fab { display: none; } }
+
+  /* Popover ancorado no FAB */
+  .solstice__help-popover {
+    position: fixed; bottom: 84px; right: 24px;
+    width: 280px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    box-shadow: var(--sh-3);
+    padding: 12px;
+    z-index: 100;
+    animation: solstice-fade-in var(--t-base) var(--ease-out);
+  }
+  .solstice__help-popover h4 {
+    margin: 0 0 8px 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+    color: var(--c-text);
+  }
+  .solstice__help-popover-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: transparent; border: none;
+    width: 100%; text-align: left;
+    border-radius: var(--rad-sm);
+    font-size: var(--fs-sm); color: var(--c-text);
+    cursor: pointer;
+  }
+  .solstice__help-popover-item:hover { background: var(--c-surface-2); }
+  .solstice__help-popover-item-icon { font-size: 16px; flex-shrink: 0; width: 24px; text-align: center; }
+  .solstice__help-popover-item-kbd {
+    margin-left: auto; font-family: var(--font-mono); font-size: 10px;
+    color: var(--c-muted); padding: 2px 6px; background: var(--c-surface-2);
+    border-radius: 3px; border: 1px solid var(--c-border);
+  }
+
   /* B1-02: estado ativo (ex: botão "📎 atrelar pasta" quando há pasta atrelada) */
   .solstice__btn.is-active {
     background: color-mix(in srgb, var(--c-success) 16%, var(--c-surface-2));
@@ -6639,6 +6712,12 @@
 <!-- ===== TOAST CONTAINER ===== -->
 <div class="solstice__toasts" id="toasts" aria-live="polite"></div>
 
+<!-- B3-05 (v6-autonomous / OB-05 — Cláudia/Stone): FAB Ajuda sempre visível -->
+<button id="solstice-help-fab" class="solstice__help-fab"
+        type="button"
+        title="Ajuda · atalhos · tour (?)"
+        aria-label="Abrir menu de ajuda">?</button>
+
 <!-- ===== SCRIPTS ===== -->
 <script>
 /* ============================================================
@@ -6830,6 +6909,31 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       };
     }
 
+    /**
+     * B3-01 (v6-autonomous / RT-03 — Roberto/perf): throttle baseado em rAF.
+     * Garante no máximo 1 chamada por frame (~16ms a 60fps), nunca empilha.
+     * Ideal para scroll/resize/mousemove handlers — substitui debounce/throttle
+     * por algo afinado ao tempo de paint do browser.
+     *
+     * Uso:
+     *   const onScroll = SolsticeUtils.rafThrottle(() => {...});
+     *   window.addEventListener('scroll', onScroll);
+     */
+    function rafThrottle(fn){
+      let scheduled = false;
+      let lastArgs = null, lastCtx = null;
+      return function(){
+        lastArgs = arguments;
+        lastCtx = this;
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(() => {
+          scheduled = false;
+          try { fn.apply(lastCtx, lastArgs); } catch(e){ console.warn('[rafThrottle]', e); }
+        });
+      };
+    }
+
     function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
     function deepClone(o){
@@ -6983,7 +7087,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     const fs  = (size) => 'var(--fs-' + size + ')';
     const fw  = (weight) => 'var(--fw-' + weight + ')';
 
-    return { uuid, debounce, throttle, clamp, deepClone, hash, seededRandom, qs, qsa, el, on, fire, escapeHtml, trackListener, cleanupListeners, primaryBtn, ghostBtn, destructiveBtn, baseBtn, sp, col, rad, fs, fw };
+    return { uuid, debounce, throttle, rafThrottle, clamp, deepClone, hash, seededRandom, qs, qsa, el, on, fire, escapeHtml, trackListener, cleanupListeners, primaryBtn, ghostBtn, destructiveBtn, baseBtn, sp, col, rad, fs, fw };
   })();
 
   /* ============================================================
@@ -7599,7 +7703,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       'CSV_EMPTY': {
         sev: 'warn', icon: '📭',
         message: 'O CSV não tem linhas de dados.',
-        suggestion: 'Verifique se o arquivo só tem o cabeçalho. Adicione pelo menos uma linha de dado para continuar.'
+        suggestion: 'Verifique se o arquivo só tem o cabeçalho. Adicione pelo menos uma linha de dado para continuar.',
+        // B3-02 (v6-autonomous / UX-01): action botão direto
+        action: {
+          label: '📊 Ver dataset exemplar',
+          fn: () => { try { if (typeof _loadDummyDataset === 'function') _loadDummyDataset(); } catch(_){} }
+        }
       },
       'CSV_NO_HEADER': {
         sev: 'warn', icon: '🏷️',
@@ -7631,7 +7740,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // Auditoria 2026 (R-04 / A-501): mensagem ao usuário não cita nome
         // interno ("Bloco 11") — usa o rótulo visível "Snapshots".
         message: 'Não há espaço para salvar suas configurações.',
-        suggestion: 'Você tem muitos snapshots/perfis salvos. Abra a aba Snapshots na barra lateral e remova alguns antigos.'
+        suggestion: 'Você tem muitos snapshots/perfis salvos. Abra a aba Snapshots na barra lateral e remova alguns antigos.',
+        action: {
+          label: '🗂️ Abrir Snapshots',
+          fn: () => { try { if (typeof SolsticeSnapshot !== 'undefined' && SolsticeSnapshot.openPanel) SolsticeSnapshot.openPanel(); } catch(_){} }
+        }
       },
       'DICTIONARY_NO_MATCH': {
         sev: 'info', icon: '🤔',
@@ -7699,9 +7812,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
       modal.appendChild(body);
 
-      modal.appendChild(SolsticeUtils.el('div', { class: 'solstice__modal-footer' },
-        SolsticeUtils.el('button', { class: 'solstice__btn solstice__btn--primary', onclick: close }, SolsticeLocale.t('err.close'))
-      ));
+      // B3-02 (v6-autonomous / UX-01): action button opcional.
+      // Se def.action = { label, fn }, adiciona botão primário que CLICKA fn (não só fecha).
+      const footer = SolsticeUtils.el('div', { class: 'solstice__modal-footer' });
+      if (def && def.action && typeof def.action.fn === 'function'){
+        footer.appendChild(SolsticeUtils.el('button', {
+          class: 'solstice__btn solstice__btn--primary',
+          onclick: () => { try { def.action.fn(); } catch(e){ console.warn('[err.action]', e); } close(); }
+        }, def.action.label || 'Resolver agora'));
+        footer.appendChild(SolsticeUtils.el('button', { class: 'solstice__btn', onclick: close }, 'Fechar'));
+      } else {
+        footer.appendChild(SolsticeUtils.el('button', { class: 'solstice__btn solstice__btn--primary', onclick: close }, SolsticeLocale.t('err.close')));
+      }
+      modal.appendChild(footer);
 
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
@@ -10719,6 +10842,68 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     // 5. Help button (reabre onboarding)
     document.getElementById('help-btn').addEventListener('click', () => SolsticeOnboarding.show());
+
+    // B3-05 (v6-autonomous / OB-05 — Cláudia/Stone): FAB Ajuda flutuante
+    // Botão "?" fixo bottom-right que abre menu rápido (atalhos · tour · sobre)
+    (function _initHelpFAB(){
+      const fab = document.getElementById('solstice-help-fab');
+      if (!fab) return;
+      let popover = null;
+
+      function _closePopover(){
+        if (popover) { popover.remove(); popover = null; }
+      }
+
+      function _openPopover(){
+        if (popover) { _closePopover(); return; }
+        popover = SolsticeUtils.el('div', { class:'solstice__help-popover', role:'menu' });
+        popover.appendChild(SolsticeUtils.el('h4', null, '💡 Ajuda rápida'));
+
+        const items = [
+          { icon:'🧭', label:'Tour interativo (9 passos)', kbd:'',
+            fn: () => { try { SolsticeTour.start(); } catch(_){} } },
+          { icon:'🔍', label:'Pergunte ao Solstice',     kbd:'Ctrl+P',
+            fn: () => { try { SolsticeAsk.open(); } catch(_){} } },
+          { icon:'⌨️', label:'Atalhos de teclado',        kbd:'?',
+            fn: () => { try { SolsticeOnboarding.show(); } catch(_){} } },
+          { icon:'📚', label:'Comando · todos atalhos',   kbd:'Ctrl+K',
+            fn: () => { try { SolsticeCommandPalette.open(); } catch(_){} } },
+          { icon:'🐛', label:'Reportar bug · GitHub',     kbd:'',
+            fn: () => { window.open('https://github.com/lucas/solstice/issues/new?template=bug.md', '_blank'); } }
+        ];
+        items.forEach(it => {
+          const btn = SolsticeUtils.el('button', {
+            type:'button', class:'solstice__help-popover-item', role:'menuitem',
+            onclick: () => { _closePopover(); it.fn(); }
+          });
+          btn.appendChild(SolsticeUtils.el('span', { class:'solstice__help-popover-item-icon', 'aria-hidden':'true' }, it.icon));
+          btn.appendChild(SolsticeUtils.el('span', null, it.label));
+          if (it.kbd) btn.appendChild(SolsticeUtils.el('span', { class:'solstice__help-popover-item-kbd' }, it.kbd));
+          popover.appendChild(btn);
+        });
+        document.body.appendChild(popover);
+        // Fecha ao clicar fora
+        setTimeout(() => {
+          document.addEventListener('click', function _outside(e){
+            if (popover && !popover.contains(e.target) && e.target !== fab){
+              document.removeEventListener('click', _outside);
+              _closePopover();
+            }
+          });
+        }, 50);
+      }
+
+      fab.addEventListener('click', _openPopover);
+      // Atalho "?" (Shift+/) abre o popover
+      document.addEventListener('keydown', (e) => {
+        if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+        if (e.target && e.target.isContentEditable) return;
+        if (e.key === '?' && !e.ctrlKey && !e.metaKey){
+          e.preventDefault();
+          _openPopover();
+        }
+      });
+    })();
 
     // v6-autonomous / B1-01: título do dashboard MOVIDO pro SolsticeDashHeader.
     // (Antes ficava no header global como #brand-doctitle — removido.)
@@ -26640,7 +26825,41 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       });
     }
 
-    return { show, confirm, prompt, select, isSkipped, listSkipped, unskip };
+    /**
+     * B3-03 (v6-autonomous / UX-05 — Pedro/Nubank): atalho explicativo
+     * para ações DESTRUTIVAS (não recuperáveis sem undo).
+     * Exemplos: excluir coluna, limpar dashboard, deletar snapshot.
+     *
+     * Difere de confirm() porque:
+     *   • Botão de confirmação em VERMELHO (--danger)
+     *   • Title prefixado com ⚠️
+     *   • Texto-padrão "Não pode ser desfeito" (ou opts.consequence custom)
+     *   • Default-focus no Cancelar (acidente é dispendioso)
+     *
+     * Uso:
+     *   const ok = await SolsticeModal.destructive({
+     *     title: 'Excluir coluna "receita"?',
+     *     consequence: '2 KPIs e 1 gráfico vão parar de funcionar.',
+     *     confirmLabel: 'Sim, excluir'
+     *   });
+     */
+    function destructive(opts){
+      opts = opts || {};
+      return confirm({
+        title: '⚠️ ' + (opts.title || 'Confirmar ação destrutiva'),
+        message: SolsticeUtils.el('div', null,
+          opts.message ? SolsticeUtils.el('div', { style:'margin-bottom:8px;' }, opts.message) : null,
+          SolsticeUtils.el('div', {
+            style:'padding:8px 12px;background:color-mix(in srgb, var(--c-error) 10%, transparent);border-left:3px solid var(--c-error);border-radius:4px;font-size:12px;color:var(--c-text-2);line-height:1.5;margin-top:6px;'
+          }, '🔴 ' + (opts.consequence || 'Esta ação não pode ser desfeita facilmente.'))
+        ),
+        danger: true,
+        confirmLabel: opts.confirmLabel || 'Sim, continuar',
+        cancelLabel: opts.cancelLabel || 'Cancelar'
+      });
+    }
+
+    return { show, confirm, destructive, prompt, select, isSkipped, listSkipped, unskip };
   })();
 
   /* ============================================================
