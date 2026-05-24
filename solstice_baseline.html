@@ -219,7 +219,13 @@
 /* ===== RESET ===== */
 @layer reset {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { height: 100%; }
+  /* Auditoria 2026.6 (FLUID-TYPE): tipografia fluida. Todos os tokens --fs-*
+     são rem, então escalar o font-size do html escala a UI inteira suavemente
+     com a largura da janela — sem saltos por breakpoint. Antes era fixo em 16px
+     (e media queries ENCOLHIAM em notebooks → 14,72px, "agoniante" em 1366).
+     Agora: ~15,5px em telas pequenas → ~19,5px em 2560+, contínuo.
+     1366≈15,8px · 1536≈16,3px · 1920≈17,5px · 2560≈19,5px. */
+  html { height: 100%; font-size: clamp(15.5px, 0.31vw + 11.5px, 19.5px); }
   body {
     min-height: 100%;
     font-family: var(--font-sans);
@@ -6194,21 +6200,20 @@
     .solstice__app.has-inspector { grid-template-columns: var(--v56-sidebar-w) 1fr var(--v56-inspector-w); }
   }
 
-  /* 2) Thinkpad / notebook típico (1366x768 e similares) — UI compacta automática */
+  /* 2) Thinkpad / notebook típico (1366x768 e similares) — chrome compacto.
+     Auditoria 2026.6 (FLUID-TYPE): NÃO encolhe mais os tokens de fonte aqui —
+     a tipografia fluida no html já dá a escala certa. Antes este bloco forçava
+     --fs-base:0.92rem (14,72px) e deixava o app "agoniante" em 1366. Mantemos só
+     a compactação de chrome (paddings/grid) que faz sentido em tela apertada. */
   @media (max-width: 1400px) and (min-width: 1101px) {
     :root {
-      --fs-base: 0.92rem;
-      --fs-md: 1.10rem;
-      --fs-lg: 1.35rem;
-      --fs-xl: 1.65rem;
-      --row-h: 32px;
+      --row-h: 36px;
     }
     .solstice__header { padding: 6px 12px; gap: 8px; }
     .solstice__header-ask { max-width: 360px; margin: 0 8px; }
     .solstice__toolbar-group { gap: 4px; }
-    .solstice__btn { padding: 0 10px; font-size: 12px; }
-    .solstice__pill { padding: 0 8px; font-size: 12px; }
-    .solstice__pill select { font-size: 12px; }
+    .solstice__btn { padding: 0 10px; }
+    .solstice__pill { padding: 0 8px; }
     .solstice__brand-sub { display: none; }
     .solstice__canvas { padding: 12px; }
     .solstice__sidebar { padding: 12px; }
