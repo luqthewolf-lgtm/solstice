@@ -852,14 +852,25 @@
     color: var(--c-muted); font-weight: var(--fw-semibold);
     margin-bottom: var(--sp-2);
   }
+  /* Auditoria 2026.6 (UI-POLISH): itens de navegação estilo app moderno —
+     item ativo com destaque accent (tint + cor + barra à esquerda), hover sutil. */
   .solstice__sidebar-tab {
+    position: relative;
     display: flex; align-items: center; gap: var(--sp-2);
     padding: var(--sp-2) var(--sp-3); border-radius: var(--rad-sm);
-    font-size: var(--fs-sm); color: var(--c-text-2);
-    cursor: pointer; transition: background var(--t-fast);
+    font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--c-text-2);
+    cursor: pointer; transition: background var(--t-fast), color var(--t-fast);
   }
   .solstice__sidebar-tab:hover { background: var(--c-surface-2); color: var(--c-text); }
-  .solstice__sidebar-tab.is-active { background: var(--c-surface-3); color: var(--c-text); }
+  .solstice__sidebar-tab.is-active {
+    background: color-mix(in srgb, var(--c-accent) 13%, transparent);
+    color: var(--c-accent); font-weight: var(--fw-semibold);
+  }
+  .solstice__sidebar-tab.is-active::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 60%; border-radius: var(--rad-full);
+    background: var(--c-accent);
+  }
   .solstice__sidebar-tab[disabled] { opacity: 0.45; cursor: not-allowed; }
 
   
@@ -1322,12 +1333,19 @@
   .solstice__insight-card {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
-    border-radius: var(--rad-sm);
+    border-radius: var(--rad-md);
     padding: var(--sp-3);
     display: flex; flex-direction: column; gap: 6px;
-    transition: border-color var(--t-fast);
+    /* Auditoria 2026.6 (UI-POLISH): cantos mais suaves + sombra leve + lift no
+       hover (microinteração). */
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    transition: border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
   }
-  .solstice__insight-card:hover { border-color: var(--c-accent); }
+  .solstice__insight-card:hover {
+    border-color: color-mix(in srgb, var(--c-accent) 50%, var(--c-border));
+    box-shadow: 0 6px 18px rgba(0,0,0,.10);
+    transform: translateY(-2px);
+  }
   .solstice__insight-card--success { border-left: 3px solid var(--c-success); }
   .solstice__insight-card--warn    { border-left: 3px solid var(--c-warn); }
   .solstice__insight-card--error   { border-left: 3px solid var(--c-error); }
@@ -4044,6 +4062,11 @@
     font-family: var(--comp-font-family, inherit);
     text-align: var(--comp-text-align, left);
     color: var(--comp-text-color, inherit);
+  }
+  /* Auditoria 2026.6 (UI-POLISH): hover sutil no card (borda accent) — sem
+     transform pra não "pular" os gráficos. */
+  .solstice__comp:hover {
+    border-color: color-mix(in srgb, var(--c-accent) 28%, var(--c-border));
   }
   /* Sprint 25 / F-10: Vtable usa todo o espaço vertical disponível.
    * :has(.v56-vtable) detecta o slot que contém a tabela virtualizada. */
