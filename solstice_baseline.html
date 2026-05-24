@@ -3152,17 +3152,24 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* Auditoria 2026.6 (WELCOME-FIT): em notebooks com escala do Windows (125/150%)
+       o viewport CSS fica baixo (~512px) — antes era justify-content:center +
+       overflow:hidden + max-height fixo, então o conteúdo era CENTRALIZADO e
+       CORTADO em cima/embaixo sem rolar ("barra comendo em cima"). Agora:
+       safe center (não corta o topo quando não cabe) + rola em vez de cortar. */
+    justify-content: safe center;
     text-align: center;
     padding: var(--sp-6) var(--sp-4);
     flex: 1;
     width: 100%;
-    max-height: calc(100vh - 160px);
-    overflow: hidden;
+    max-height: calc(100vh - 7rem);
+    overflow-y: auto;
   }
   .solstice__welcome-brand {
     font-family: var(--font-display);
-    font-size: var(--fs-3xl);
+    /* Hero escala com a janela (exceção de título hero — padrão de landing).
+       Antes era --fs-3xl fixo (48px), gigante e cortado em telas baixas. */
+    font-size: clamp(1.7rem, 2.6vw, 2.75rem);
     font-weight: var(--fw-bold);
     color: var(--c-text);
     margin-bottom: 4px;

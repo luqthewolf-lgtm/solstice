@@ -11,6 +11,21 @@ Auditoria conduzida **dirigindo o app de verdade** (Chrome via Playwright) sobre
 um CSV de vendas pt-BR realista (`1.234,56`, datas `dd/mm/aaaa`, nulos, outlier).
 Três bugs de alto impacto no caso de uso central foram encontrados e corrigidos.
 
+### 🖥️ WELCOME-FIT — Tela inicial cortada em notebooks com escala do Windows (parte 8)
+
+- **Sintoma** (foto real, notebook 1366 com escala 150%): título "Solstice"
+  gigante e **cortado no topo** ("barra comendo em cima"), tela parecendo
+  baixa-resolução/não-padrão. Causa: a escala do Windows (125/150%) faz o Chrome
+  enxergar um viewport CSS baixo (~911×512), que os testes em px exato (dpr=1)
+  nunca reproduziram.
+- **Raiz**: `.solstice__welcome` usava `justify-content:center` + `overflow:hidden`
+  + `max-height` fixo → numa tela baixa o conteúdo era centralizado e **cortado em
+  cima/embaixo sem rolar**. O hero usava `--fs-3xl` fixo (48px), enorme.
+- **Fix**: `justify-content: safe center` (não corta o topo quando não cabe) +
+  `overflow-y: auto` (rola em vez de cortar); hero com `clamp(1.7rem, 2.6vw,
+  2.75rem)` (exceção de título hero — escala como landing). Validado em 911×512,
+  1093×614 e 1366×768: nada cortado, hero proporcional, conteúdo acessível.
+
 ### 📐 STD-TYPE — Responsividade: fonte fixa + layout responsivo (padrão de app) (parte 7)
 
 - **Sintoma** (reportado pelo usuário): em monitor 2560 ficava bonito, mas em
