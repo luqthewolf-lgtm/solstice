@@ -5,6 +5,163 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Auditoria 2026.6 — "Teste de experiência do cliente (Playwright)" — 2026-05-23
+
+Auditoria conduzida **dirigindo o app de verdade** (Chrome via Playwright) sobre
+um CSV de vendas pt-BR realista (`1.234,56`, datas `dd/mm/aaaa`, nulos, outlier).
+Três bugs de alto impacto no caso de uso central foram encontrados e corrigidos.
+
+### 🔴 BR-NUM — Inferência de tipo quebrava colunas de dinheiro pt-BR (crítico)
+
+- **Sintoma**: colunas com número brasileiro agrupado (`"20.729,20"`, `"1.403,70"`)
+  eram classificadas como `dimension` (texto) e ficavam **não-agregáveis**; a soma
+  de receita aparecia ~1.280× menor (R$ 12 mil em vez de R$ 15,9 mi).
+- **Raiz**: as regexes numéricas (`DECIMAL`/`INTEGER`/`CURRENCY`) exigiam fim logo
+  após o decimal e não toleravam o agrupador de milhar com ponto. Além disso a
+  `CURRENCY` casava com inteiros puros (`"29"`) e era testada antes de `integer`,
+  então contagens (`qtd_vendas`) viravam "moeda".
+- **Fix** (`SolsticeTypes`): detecção numérica ciente de formato BR/US agrupado via
+  helpers `_numLike`/`_hasDecimals`/`_hasCurrencySym`; `currency` passou a exigir
+  símbolo monetário; `geo_lat`/`geo_lng` agora rejeitam valores com vírgula (preço
+  BR estava virando "latitude"). Resultado: `qtd_vendas`→integer, `preco`/`receita`→
+  decimal (agregáveis), `R$ …`→currency.
+- **Regressão**: `tests/types.test.mjs` (8 casos) + extração de `SolsticeTypes` em
+  `tests/extract-modules.mjs`.
+
+### 🟠 DICT-CONF — Domínio errado aplicado a CSV ambíguo
+
+- **Sintoma**: um CSV de vendas era detectado como **"Banco PJ"** a 44% (cobrindo só
+  3/9 colunas) e o modal sugeria nomes errados (`data`→"Data do Atendimento",
+  `categoria_produto`→"Segmento").
+- **Fix**: `DICT_DETECT_MIN_CONF` (antes declarado mas **não usado**) agora gateia
+  `SolsticeDictionary.detect()` e subiu de 0.40 → **0.55**. Abaixo do limiar cai pro
+  dicionário genérico (Title Case neutro: "Receita Total", "Categoria Produto"…),
+  com banner honesto "não bateu com nenhum domínio pré-feito".
+
+### 🟠 HIST-OUTLIER — Histograma inútil com um único outlier
+
+- **Sintoma**: o componente Distribuição usava range min-max cru para as faixas.
+  Um único outlier (comum em dados reais) esticava o eixo X e amontoava ~99% dos
+  registros em 1-2 barras, deixando o resto vazio e ilegível.
+- **Fix** (`SolsticeComponents` distribution): janela de binning robusta via cerca
+  de Tukey (`Q1−1.5·IQR, Q3+1.5·IQR`); valores fora caem nas faixas de borda
+  (overflow) e o rótulo avisa "outliers agrupados nas bordas". O miolo da
+  distribuição volta a ser legível sem esconder a existência do outlier.
+
+### 🔴 OUTLIER-SHAPE — "undefined outliers / NaN%" em Ask, insights e narrativa
+
+- **Sintoma**: perguntar "outliers em receita_total" no Ask respondia "Detectados
+  **undefined** outliers em Receita Total (**NaN**% do total)". Mesmo bug aparecia
+  em insights automáticos, recomendações e narrativa executiva.
+- **Raiz**: `SolsticeStats.outliersIQR()` retorna `{ indices, values, fences }`
+  (objeto), mas **6 call sites** liam `.length` direto no resultado (com um
+  `|| []` revelando que o autor achava que era array) → `undefined`.
+- **Fix**: os 6 sites passaram a ler `.indices.length`. Agora: "Detectados **2**
+  outliers em Receita Total (1.7% do total)".
+
+### 🟢 METRIC-RANK — KPI-título preferia contagem a receita
+
+- **Sintoma**: o auto-dashboard de vendas usava soma de `qtd_vendas` (1ª coluna
+  numérica, vencia por posição) como KPI principal, em vez de `receita_total`.
+- **Fix** (`SolsticeColumnScore`): critério aditivo que favorece colunas numéricas de
+  **valor** (receita/faturamento/lucro/GMV…) como headline, bônus menor pra
+  monetárias per-unit (preço/custo), e exclusão explícita de nomes de contagem
+  (qtd/quantidade/count). KPI-título passou a mostrar R$ 15,9 mi (receita).
+
+### 🧩 Varredura completa dos 20 componentes + layouts (2026.6 · parte 2)
+
+Cada um dos 20 componentes foi adicionado ao canvas com o dataset de teste,
+renderizado e teve o painel de opções (inspector) aberto, com captura de erros de
+console por componente. Achados e correções:
+
+- 🔴 **PROPS-CTX** — abrir a aba **Visual** do inspector da Tabela lançava
+  `ReferenceError: _ctxFor is not defined` (o helper local chama-se `_ctx`); o
+  accordion de opções quebrava. Corrigido.
+- 🟠 **SCATTER-AXIS** — rótulos de eixo com valores grandes (ex: receita
+  `4.310.124`) estouravam a margem e apareciam cortados (".0.124"). Agora usam
+  formato compacto (`4,3M` / `5k`).
+- 🟡 **HUMANIZE** — `slider` (título "QTD_VENDAS") e `distrib-time` (legenda/eixo
+  "qtd_vendas") mostravam o nome técnico cru. Agora via `SolsticeHumanize.column`.
+- 🟡 **TIMELINE-LABEL** — rótulos de categoria do `event-timeline` cortados à
+  esquerda ("Centro-Oeste" → "n-Oe…"). Margem esquerda dedicada (`PAD_L`).
+- 🟡 **HEATMAP-CAL** — calendário amontoado à esquerda com metade do espaço
+  vazio. Centralizado + espaçamento entre meses.
+
+Os 20 componentes renderizam e abrem o inspector com **zero erros de console**.
+Anotados (menor severidade, não corrigidos): rótulo "(vazio)" para nulos na
+Matriz, contraste de % no Funil sobre faixa escura, compressão de pontos do
+Scatter por outlier (mesmo caso do histograma), default de coluna do KPI.
+
+### 🎨 Customização + qualidade do AutoDashboard (2026.6 · parte 3)
+
+Teste de usabilidade real (dirigindo o inspector ao vivo) + qualidade do
+auto-layout:
+
+- ✅ **Customização confirmada**: trocar a coluna de um KPI pelo dropdown
+  re-renderiza na hora (qtd 4.603 → receita 15,9 mi → preço 303k); trocar a
+  agregação idem (soma → média = 38). Dropdowns oferecem as colunas certas
+  (KPI só numéricas) — nem restritivo demais, nem solto. Sem limite rígido de
+  componentes (60+ adicionáveis).
+- 🟠 **KPI-TARGET-STALE** — a "Meta" auto-inferida não recalculava ao trocar a
+  coluna (mostrava o p75 da coluna anterior, ex: "56" de qtd para uma receita de
+  milhões). Render recomputa quando a coluna muda.
+- 🎯 **KPI-ROW / MULTI-REC** — o AutoDashboard gerava **1 KPI só**, deixando a
+  "Visão executiva" magra e o dashboard como coluna única. Agora o Recommender
+  pode devolver várias recomendações e a regra de KPI emite os **top 3 metrics**
+  (vira linha de 3 KPIs via layout 3col-equal), com **agregação inteligente**:
+  SOMA pra valores aditivos (receita, quantidade) e MÉDIA pra per-unit (preço,
+  ticket). Resultado: Receita Total (R$ 15,9 mi) · Preço Médio (R$ 2.527) ·
+  Qtd Total (4.603) lado a lado. Dashboard saiu de 4 → 6 componentes.
+
+### 🧪 Teste com CSVs diversos + robustez de inferência (2026.6 · parte 4)
+
+Validação com 6 datasets de formatos/domínios diferentes (RH pt-BR, financeiro em
+formato **US** `$ 1,234.56` + datas ISO, produtos **sem coluna temporal**,
+científico com lat/lng, "sujo" com nulos/`R$`/`%`/coluna constante, e um de 3
+linhas). Confirmado OK: US/ISO reconhecidos, dataset sem temporal não força
+série, dataset minúsculo não quebra, aggs inteligentes por domínio, **zero erros
+de console em todos**. Bugs encontrados e corrigidos:
+
+- 🟠 **DATE-LENIENT** — `new Date("ACC-1234")` no V8 extrai o ano (→ 1234-01-01),
+  então códigos tipo "ACC-1234" viravam **temporal**. O detect temporal agora
+  exige que o valor comece com dígito.
+- 🟠 **BR-AMBIG** — `"0,123"`/`"1,000"` (vírgula + 3 dígitos) eram lidos como
+  milhar US (= inteiro), divergindo do `toNumber` que lê como decimal BR. A regex
+  US agrupada passou a exigir 2+ grupos OU decimal com ponto; ambíguos caem em
+  decimal BR (consistente com o parser).
+- 🟠 **ID-NOT-METRIC** — CSV com coluna `id` gerava `kpi[id:sum]` (somar IDs não
+  faz sentido). `SolsticeColumnScore` despromove colunas identificadoras por nome
+  (id/_id/código/matrícula/cpf/cnpj/cep).
+- 🟡 **AGG measurements** — o heurístico soma/média do KPI passou a usar MÉDIA
+  também para medições e taxas (temperatura, pH, lat/lng, densidade, `_pct`),
+  que nunca fazem sentido somar.
+
+Regressão: `tests/types.test.mjs` ganhou 4 casos (account não-temporal, "0,123"
+decimal, US 2+ grupos numérico, ISO temporal), validados contra o código real.
+Anotados (menor): `longitude` detectado como geo_lat (ambiguidade de valor),
+`margem_pct` aparecendo em gauge+kpi, rating 1–5 como ordinal.
+
+### 🧹 Itens de polimento da varredura (2026.6 · parte 5)
+
+Fechando os itens menores anotados:
+
+- 🟡 **GEO-NAME** — `longitude` era detectado como geo_lat (faixas de valor
+  sobrepostas; -73 é válido como lat e lng). `inferColumn` agora desambigua pelo
+  NOME da coluna (lat × lng). Confirmado: latitude→geo_lat, longitude→geo_lng.
+- 🟡 **SCATTER-OUTLIER** — pontos eram esmagados num canto por 1 outlier (igual ao
+  histograma). Domínio robusto (cerca de Tukey) nos dois eixos + clamp dos pontos
+  na borda; regressão/r² seguem nos dados reais.
+- 🟡 **SCALAR-DEDUP** — a mesma coluna virava gauge E kpi (ex: margem_pct). kpi/
+  gauge/bignum compartilham namespace no dedup do Recommender.
+- 🟡 **KPI-DEFAULT** — adicionar um KPI pela mão agora escolhe a melhor métrica via
+  ColumnScore (Receita Total), não a 1ª numérica (qtd); a Meta auto vem da coluna
+  certa.
+- 🟡 **PIVOT-EMPTY** — Matriz mostrava rótulo em branco para nulos; agora "(vazio)".
+
+Regressão final: 20/20 componentes e 6 CSVs diversos com **zero erros de console**.
+
+---
+
 ## [Unreleased] — Sprints 23-31 — "Conselho de Evolução: UX/Organização/Componentes" — 2026-05-23
 
 9 sprints contínuos guiados por persona walkthrough (7 personas: Marina/SRE,

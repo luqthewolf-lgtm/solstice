@@ -3768,8 +3768,8 @@
 
   /* Heatmap calendário (estilo GitHub) */
   .solstice__heat-cal-wrap {
-    display: flex; gap: 2px; flex-wrap: wrap;
-    align-items: flex-start; padding: var(--sp-2);
+    display: flex; gap: 10px; flex-wrap: wrap;
+    align-items: flex-start; justify-content: center; padding: var(--sp-2);
     overflow-x: auto;
   }
   .solstice__heat-cal-month {
@@ -6970,7 +6970,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       RESIZE_THROTTLE_MS:     150,             // window resize → redraw
       AUTOSAVE_INTERVAL_MS:   5000,            // estado → localStorage
       // Confidences
-      DICT_DETECT_MIN_CONF:   0.40,            // detect domain só ativa se >=40%
+      DICT_DETECT_MIN_CONF:   0.55,            // aplica vocabulário de domínio só se >=55% (Auditoria 2026.6 / DICT-CONF: 40% empurrava nomes errados em CSVs ambíguos)
       QUERY_MIN_CONFIDENCE:   0.40,            // pergunta NL aceita se confiança >=
       QUALITY_INVALID_ERROR:  0.25,            // >25% inválidos → vermelho
       // Insights
@@ -8785,7 +8785,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       results.sort((a,b) => b.confidence - a.confidence);
       const winner = results[0];
 
-      if (!winner || winner.confidence < 0.3){
+      // Auditoria 2026.6 (DICT-CONF): só aplica o vocabulário especializado de um
+      // domínio pré-feito quando a confiança passa do limiar. ANTES, um match
+      // fraco (CSV de vendas batendo 44% com "Banco PJ", cobrindo só 3/9 colunas)
+      // empurrava nomes errados ("Data do Atendimento", "Segmento"). Abaixo do
+      // limiar, cai pro genérico (Title Case neutro da própria coluna).
+      const MIN_DICT_CONF = (typeof SolsticeConfig !== 'undefined' && SolsticeConfig.DICT_DETECT_MIN_CONF) || 0.55;
+      if (!winner || winner.confidence < MIN_DICT_CONF){
         // Fallback: dicionário genérico, monta a partir de heurísticas
         const matches = [];
         for (const col of columns){
@@ -12272,6 +12278,43 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function _isLat(v){ const n = parseFloat(v); return !isNaN(n) && n >= -90 && n <= 90; }
     function _isLng(v){ const n = parseFloat(v); return !isNaN(n) && n >= -180 && n <= 180; }
 
+    // Auditoria 2026.6 (BR-NUM / SOL-T1): detecção numérica ciente de formato
+    // BR/US agrupado. ANTES, "1.234,56" (milhar com ponto + decimal vírgula) e
+    // "20.729,20" falhavam em TODAS as regexes numéricas (DECIMAL/INTEGER/
+    // CURRENCY exigiam fim logo após o decimal), então colunas de dinheiro reais
+    // de CSVs pt-BR caíam em 'dimension' e ficavam não-agregáveis — quebrando o
+    // caso de uso central. AGORA o número é reconhecido em qualquer formato e o
+    // valor é parseado por SolsticeBR.toNumber. Ver inferColumn() abaixo.
+    const NUM = {
+      BR_GROUPED: /^-?\d{1,3}(?:\.\d{3})+(?:,\d+)?$/,  // 1.234 · 1.234,56 · 1.234.567,89
+      // Auditoria 2026.6 (BR-AMBIG): US agrupado exige 2+ grupos OU decimal com
+      // ponto. Antes, "0,123"/"1,000" (1 grupo, sem ponto) eram lidos como milhar
+      // US (= inteiro), divergindo do SolsticeBR.toNumber que, no app pt-BR, lê
+      // vírgula como decimal. Agora esses caem no PLAIN e viram decimal BR.
+      US_GROUPED: /^-?\d{1,3}(?:,\d{3}){2,}(?:\.\d+)?$|^-?\d{1,3}(?:,\d{3})+\.\d+$/,  // 1,234,567 · 1,234.56
+      PLAIN:      /^-?\d+(?:[.,]\d+)?$/                // 714 · 714,80 · 714.80 · -5
+    };
+    function _stripMoney(v){
+      return String(v).trim()
+        .replace(/^(R\$|US\$|\$|€|£)\s*/i, '')   // símbolo monetário no início
+        .replace(/\s*(BRL|USD|EUR|GBP)$/i, '')   // código ISO no fim
+        .trim();
+    }
+    function _numLike(v){
+      if (typeof v === 'number') return isFinite(v);
+      const s = _stripMoney(v);
+      return s !== '' && (NUM.BR_GROUPED.test(s) || NUM.US_GROUPED.test(s) || NUM.PLAIN.test(s));
+    }
+    function _hasDecimals(v){
+      const s = _stripMoney(v);
+      if (NUM.BR_GROUPED.test(s)) return /,\d/.test(s);   // 1.234,56 → sim · 1.234 → não
+      if (NUM.US_GROUPED.test(s)) return /\.\d/.test(s);  // 1,234.56 → sim · 1,234 → não
+      return NUM.PLAIN.test(s) && /[.,]\d/.test(s);       // 714,80 → sim · 714 → não
+    }
+    function _hasCurrencySym(v){
+      return /(^|\s)(R\$|US\$|\$|€|£)|\b(BRL|USD|EUR|GBP)\b/i.test(String(v));
+    }
+
     // Auditoria 2026 (B-03 / A-302): JS interpreta `new Date("01/02/2024")` como
     // mm/dd (US). No Brasil é dd/mm. Esta família de helpers garante o parse
     // pt-BR correto e expõe `toDate` para todo o resto do app usar.
@@ -12313,19 +12356,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      */
     const TYPES = {
       // === NUMÉRICOS ===
-      'measure':    { group:'numeric', detect: v => RX.DECIMAL.test(String(v).trim()),  validate: v => !isNaN(parseFloat(v)),  aggs: ['sum','avg','min','max','median','p95','count'], format: (v,L) => L.decimal(parseFloat(v),2), viz: ['kpi','line','bar','area','scatter'] },
-      // Auditoria 2026 (R-01b / A-301): currency/percentage usam
-      // SolsticeBR.toNumber para honrar agrupador pt-BR. Em validate/format,
-      // valores como "R$ 1.234,56" e "12,5%" agora são parseados certos.
-      'currency':   { group:'numeric', detect: v => RX.CURRENCY.test(String(v).trim()), validate: v => !isNaN(SolsticeBR.toNumber(v)), aggs: ['sum','avg','min','max','median'], format: (v,L) => L.currency(typeof v==='number'?v:SolsticeBR.toNumber(v)), viz: ['kpi','bar','area','treemap'] },
-      'percentage': { group:'numeric', detect: v => RX.PERCENT.test(String(v).trim()) || (typeof v==='number' && v >= 0 && v <= 1), validate: v => !isNaN(parseFloat(v)), aggs: ['avg','min','max','median'], format: (v,L) => { const n = typeof v==='number'? (v <= 1 ? v : v/100) : SolsticeBR.toNumber(String(v).replace('%',''))/100; return L.percent(n, 1); }, viz: ['kpi','line','bar','gauge'] },
-      'integer':    { group:'numeric', detect: v => RX.INTEGER.test(String(v).trim()),  validate: v => Number.isInteger(+v), aggs: ['sum','avg','min','max','count','median'], format: (v,L) => L.integer(parseInt(v)), viz: ['kpi','bar','histogram'] },
-      'decimal':    { group:'numeric', detect: v => RX.DECIMAL.test(String(v).trim()) && /[.,]/.test(String(v)), validate: v => !isNaN(+v), aggs: ['sum','avg','min','max','median','p95'], format: (v,L) => L.decimal(parseFloat(v),2), viz: ['kpi','line','scatter'] },
+      // Auditoria 2026.6 (BR-NUM): detect/validate via _numLike (BR/US agrupado)
+      // e format/parse via SolsticeBR.toNumber. measure = numérico genérico.
+      'measure':    { group:'numeric', detect: v => _numLike(v),  validate: v => _numLike(v),  aggs: ['sum','avg','min','max','median','p95','count'], format: (v,L) => L.decimal(SolsticeBR.toNumber(v),2), viz: ['kpi','line','bar','area','scatter'] },
+      // Auditoria 2026 (R-01b / A-301) + 2026.6 (BR-NUM): currency exige símbolo
+      // monetário (R$/$/€/£/ISO) para não confundir contagens (ex: qtd_vendas=29)
+      // com dinheiro. Parse/format honram agrupador pt-BR via SolsticeBR.toNumber.
+      'currency':   { group:'numeric', detect: v => _hasCurrencySym(v) && _numLike(v), validate: v => _numLike(v), aggs: ['sum','avg','min','max','median'], format: (v,L) => L.currency(typeof v==='number'?v:SolsticeBR.toNumber(v)), viz: ['kpi','bar','area','treemap'] },
+      'percentage': { group:'numeric', detect: v => RX.PERCENT.test(String(v).trim()) || (typeof v==='number' && v >= 0 && v <= 1), validate: v => !isNaN(SolsticeBR.toNumber(String(v).replace('%',''))), aggs: ['avg','min','max','median'], format: (v,L) => { const n = typeof v==='number'? (v <= 1 ? v : v/100) : SolsticeBR.toNumber(String(v).replace('%',''))/100; return L.percent(n, 1); }, viz: ['kpi','line','bar','gauge'] },
+      'integer':    { group:'numeric', detect: v => _numLike(v) && !_hasDecimals(v),  validate: v => _numLike(v) && !_hasDecimals(v), aggs: ['sum','avg','min','max','count','median'], format: (v,L) => L.integer(Math.round(SolsticeBR.toNumber(v))), viz: ['kpi','bar','histogram'] },
+      'decimal':    { group:'numeric', detect: v => _numLike(v) && _hasDecimals(v), validate: v => _numLike(v), aggs: ['sum','avg','min','max','median','p95'], format: (v,L) => L.decimal(SolsticeBR.toNumber(v),2), viz: ['kpi','line','scatter'] },
       'duration':   { group:'numeric', detect: v => RX.DURATION.test(String(v).trim()), validate: v => true, aggs: ['sum','avg','min','max','median'], format: (v) => v, viz: ['kpi','bar','line'] },
 
       // === TEMPORAIS ===
       // Auditoria 2026 (B-03 / A-302): toDate substitui new Date para honrar dd/mm pt-BR.
-      'temporal':   { group:'temporal', detect: v => !isNaN(toDate(v).getTime()) && /[-\/:T]/.test(String(v)), validate: v => !isNaN(toDate(v).getTime()), aggs: ['min','max','count'], format: (v,L) => L.datetime(toDate(v)), viz: ['line','area','calendar','timeline'] },
+      // Auditoria 2026.6 (DATE-LENIENT): o V8 parseia new Date("ACC-1234") de
+      // forma leniente extraindo o ano → 1234-01-01, então códigos como "ACC-1234"
+      // viravam 'temporal'. Datas reais começam com dígito ("2024-…", "01/02/…");
+      // exigir /^\d/ barra identificadores alfanuméricos sem perder datas válidas.
+      'temporal':   { group:'temporal', detect: v => { const s = String(v).trim(); return /^\d/.test(s) && /[-\/:T]/.test(s) && !isNaN(toDate(s).getTime()); }, validate: v => /^\d/.test(String(v).trim()) && !isNaN(toDate(v).getTime()), aggs: ['min','max','count'], format: (v,L) => L.datetime(toDate(v)), viz: ['line','area','calendar','timeline'] },
       'date_only':  { group:'temporal', detect: v => RX.ISO_DATE.test(String(v).trim()) || RX.BR_DATE.test(String(v).trim()), validate: v => !isNaN(toDate(v).getTime()), aggs: ['min','max','count'], format: (v,L) => L.date(toDate(v)), viz: ['line','calendar','timeline'] },
       'time_only':  { group:'temporal', detect: v => RX.ISO_TIME.test(String(v).trim()), validate: v => /^\d{2}:\d{2}/.test(String(v)), aggs: ['count'], format: v => v, viz: ['bar','clock'] },
       'timestamp':  { group:'temporal', detect: v => RX.ISO_DT.test(String(v).trim()), validate: v => !isNaN(new Date(v).getTime()), aggs: ['min','max','count'], format: (v,L) => L.datetime(new Date(v)), viz: ['line','area','timeline'] },
@@ -12350,8 +12399,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // S4-03: o bug reportado pelo usuário ("regiao: 200 inválidos (tipo geo_uf)" — falso!) era exatamente aqui.
       'geo_uf':      { group:'geo', detect: v => RX.UF_BR.test(String(v).trim()), validate: v => RX.UF_BR.test(String(v).trim()), aggs: ['count','uniqueCount'], format: v => String(v).toUpperCase(), viz: ['map','bar'] },
       'geo_country': { group:'geo', detect: v => /^[A-Z]{2,3}$/.test(String(v).trim()) || /^(brasil|brazil|argentina|chile|mexico|estados unidos|usa|portugal)$/i.test(String(v).trim()), validate: v => true, aggs: ['count','uniqueCount'], format: v => v, viz: ['map','bar'] },
-      'geo_lat':     { group:'geo', detect: v => _isLat(v) && /\./.test(String(v)), validate: v => _isLat(v), aggs: ['min','max'], format: (v,L) => L.decimal(parseFloat(v),5), viz: ['map','scatter'] },
-      'geo_lng':     { group:'geo', detect: v => _isLng(v) && /\./.test(String(v)), validate: v => _isLng(v), aggs: ['min','max'], format: (v,L) => L.decimal(parseFloat(v),5), viz: ['map','scatter'] },
+      // Auditoria 2026.6 (BR-NUM): guard contra vírgula — "1.403,70" (preço BR)
+      // tinha parseFloat=1.403, caía na faixa de latitude e era detectado como
+      // geo_lat. Coordenadas não usam vírgula decimal, então !/,/ as exclui.
+      'geo_lat':     { group:'geo', detect: v => !/,/.test(String(v)) && /\./.test(String(v)) && _isLat(v), validate: v => _isLat(v), aggs: ['min','max'], format: (v,L) => L.decimal(parseFloat(v),5), viz: ['map','scatter'] },
+      'geo_lng':     { group:'geo', detect: v => !/,/.test(String(v)) && /\./.test(String(v)) && _isLng(v), validate: v => _isLng(v), aggs: ['min','max'], format: (v,L) => L.decimal(parseFloat(v),5), viz: ['map','scatter'] },
       'address':     { group:'geo', detect: v => /\b(rua|av|avenida|alameda|travessa|praça|rod|rodovia)\b/i.test(String(v)) && String(v).length > 12, validate: v => true, aggs: ['count'], format: v => v, viz: ['table'] },
 
       // === ESTRUTURADOS ===
@@ -12385,6 +12437,16 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (filled / total < 0.05) return { type: 'sparse', confidence: 0.95, ratio: { nulls: 1 - filled/total } };
       const unique = new Set(sample.map(String));
       if (unique.size === 1) return { type: 'constant', confidence: 1, ratio: { uniques: 1 } };
+
+      // 0-pre) Auditoria 2026.6 (DATE-WINS): se os valores são claramente datas
+      // (BR dd/mm/aaaa ou ISO), o tipo é temporal — ponto. Não deixa a inferência
+      // semântica por NOME sobrescrever (ex: "mes"→duration com conf 0.3 fazia uma
+      // coluna de datas virar duração e o dashboard perdia a série temporal).
+      const _dateHits = sample.filter(v => { const s = String(v).trim(); return RX.BR_DATE.test(s) || RX.ISO_DATE.test(s) || RX.ISO_DT.test(s); }).length;
+      if (_dateHits / filled >= 0.7){
+        const onlyDate = sample.every(v => { const s = String(v).trim(); return RX.BR_DATE.test(s) || RX.ISO_DATE.test(s); });
+        return { type: onlyDate ? 'date_only' : 'temporal', confidence: _dateHits / filled, ratio: { nulls: 1 - filled/total, uniques: unique.size / filled } };
+      }
 
       // 0) ADR-176 (Onda 0): se nome da coluna foi passado E SolsticeInference
       //    existe, tenta inferência semântica PRIMEIRO. Engine novo tem 92% acc
@@ -12442,6 +12504,28 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // 4) Refinamento para numérico: se foi detectado como currency mas só 50%, cai pra measure
       if (best === 'dimension' && scores['integer'] >= 0.5) best = 'integer';
       if (best === 'dimension' && scores['decimal'] >= 0.5) best = 'decimal';
+
+      // 4b) Auditoria 2026.6 (GEO-NAME + GEO-FALSEPOS): latitude/longitude colidem
+      // por valor com qualquer decimal pequeno (0–1, -90..90) — ex: profit_margin
+      // "0.50" virava geo_lat — e -73 é válido como lat e lng. Só aceita geo quando
+      // o NOME confirma; senão rebaixa pro tipo numérico que casaria. Com nome geo,
+      // desambigua lat × lng.
+      if (best === 'geo_lat' || best === 'geo_lng'){
+        const ln = String(columnName || '').toLowerCase();
+        const geoName = /lat|lon|lng|longitude|coord|geo/.test(ln);
+        if (!geoName){
+          best = scores['decimal'] >= 0.5 ? 'decimal' : (scores['measure'] >= 0.5 ? 'measure' : 'dimension');
+        } else if (/\blng\b|\blon\b|longitude/.test(ln)){ best = 'geo_lng'; }
+        else { best = 'geo_lat'; }
+      }
+
+      // 4c) Auditoria 2026.6 (ID-CARDINALITY): identificador é quase-único (CPF,
+      // código). Texto curto repetido ("West", "Ativo", "Online") casava no detect
+      // ganancioso de identifier (vinha antes de dimension na ordem). Se a coluna
+      // repete muito (cardinalidade baixa), é dimensão, não identificador.
+      if (best === 'identifier' && filled > 0 && (unique.size / filled) < 0.85){
+        best = 'dimension';
+      }
 
       return {
         type: best,
@@ -13043,6 +13127,36 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
     }
 
+    /** Auditoria 2026.6 (JSON-IMPORT): o menu Importar→JSON e o README prometem
+     *  JSON, mas run() só fazia CSV — um .json caía em "CSV_EMPTY". Parseia um
+     *  array de objetos (ou {chave:[...]}) → { rows, columns } no mesmo formato do
+     *  CSV (header:true), pra seguir o mesmo pipeline de infer/validate/enrich. */
+    function _parseJSON(text){
+      try {
+        let data = JSON.parse(text);
+        if (!Array.isArray(data)){
+          const arr = data && typeof data === 'object' ? Object.values(data).find(v => Array.isArray(v)) : null;
+          if (arr) data = arr;
+          else if (data && typeof data === 'object') data = [data];
+          else return null;
+        }
+        if (!data.length || typeof data[0] !== 'object' || data[0] == null) return null;
+        const cols = []; const seen = new Set();
+        data.forEach(o => { if (o && typeof o === 'object') Object.keys(o).forEach(k => { if (!seen.has(k)){ seen.add(k); cols.push(k); } }); });
+        if (!cols.length) return null;
+        const rows = data.map(o => {
+          const r = {};
+          cols.forEach(k => {
+            let v = (o && o[k] != null) ? o[k] : '';
+            if (v && typeof v === 'object') v = JSON.stringify(v);  // objetos/arrays aninhados → texto
+            r[k] = v;
+          });
+          return r;
+        });
+        return { rows, columns: cols };
+      } catch(e){ return null; }
+    }
+
     /** Pipeline de PARSE de CSV (Auditoria 2026.4 / RT-09).
      *
      *  ⚠️ ATENÇÃO: `SolsticeIngest.run` ≠ `window.Solstice._runIngestFile`.
@@ -13097,6 +13211,33 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         : detectEncoding(buffer);
       const text = decodeBytes(buffer, encDetection.encoding);
       onStep('encoding', 'done', encDetection);
+
+      // Auditoria 2026.6 (JSON-IMPORT): se é JSON (por extensão ou conteúdo),
+      // parseia como array de objetos e segue o pipeline. Se falhar, cai no CSV.
+      if (/\.json$/i.test(file.name || '') || /^\s*[\[{]/.test(text)){
+        const jr = _parseJSON(text);
+        if (jr){
+          onStep('detect', 'done', { delimiter: 'json', confidence: 1 });
+          onStep('parse', 'done', { rows: jr.rows.length, columns: jr.columns.length, errors: 0 });
+          onStep('infer', 'running');
+          const jtypes = inferColumns(jr.rows, jr.columns);
+          onStep('infer', 'done', { types: Object.keys(jtypes).length });
+          onStep('validate', 'running');
+          const jissues = validate(jr.rows, jr.columns, jtypes);
+          onStep('validate', 'done', { invalid: jissues.total });
+          onStep('enrich', 'running');
+          const jresult = enrich(jr.rows, jr.columns, jtypes, jissues);
+          onStep('enrich', 'done');
+          try { _ingestRunning = false; } catch(_){}
+          return {
+            ...jresult,
+            dialect: { delimiter: 'json', confidence: 1 },
+            sourceName: file.name, encoding: encDetection,
+            errors: [], dirtyColumnNames: [], _buffer: buffer
+          };
+        }
+        // _parseJSON falhou (JSON inválido) — segue tentando como CSV abaixo.
+      }
 
       onStep('detect', 'running');
       const dialect = detectDialect(text);
@@ -20006,7 +20147,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // baseado em estatísticas do dataset: meta = p75 (se higherIsBetter) ou
       // p25 (se lowerIsBetter, ex. tempo de atendimento) ou média histórica.
       defaultConfig: (ctx) => {
-        const col = _firstColOfGroup(ctx, 'numeric');
+        // Auditoria 2026.6 (KPI-DEFAULT): ao adicionar um KPI pela mão, escolhe a
+        // MELHOR métrica via SolsticeColumnScore (receita > quantidade), igual ao
+        // AutoDashboard — antes pegava a 1ª numérica (qtd) por posição.
+        let col = _firstColOfGroup(ctx, 'numeric');
+        try {
+          if (typeof SolsticeColumnScore !== 'undefined' && SolsticeColumnScore.rank){
+            const numCols = (ctx.columns || []).filter(c => SolsticeTypes.group((ctx.types[c] || {}).type) === 'numeric');
+            const ranked = SolsticeColumnScore.rank(ctx).filter(r => numCols.includes(r.col));
+            if (ranked.length) col = ranked[0].col;
+          }
+        } catch(_){}
         let autoTarget = null;
         if (col){
           try {
@@ -20184,10 +20335,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
 
         // === Patch 2 (ADR-132): barra de progresso/tolerância de meta ===
-        if (cfg.target && cfg.target.value != null && !isNaN(parseFloat(cfg.target.value))){
-          const tgt = parseFloat(cfg.target.value);
+        // Auditoria 2026.6 (KPI-TARGET-STALE): a Meta auto-inferida (_auto) era
+        // calculada só na criação; ao TROCAR a coluna pelo inspector ela exibia o
+        // p75 da coluna antiga (ex: "56" de qtd_vendas mostrado pra receita).
+        // Recomputa pro display quando a coluna mudou — sem mutar o config salvo.
+        let _tgtVal = cfg.target && cfg.target.value, _tgtLabel = cfg.target && cfg.target.label;
+        if (cfg.target && cfg.target._auto && cfg.target._col !== cfg.column && values.length >= 10){
+          const dc = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.column];
+          const hib = !dc || dc.higherIsBetter !== false;
+          const srt = values.slice().sort((a,b)=>a-b);
+          const p = hib ? 0.75 : 0.25, ix = (srt.length-1)*p, lo = Math.floor(ix), hi = Math.ceil(ix);
+          _tgtVal = Math.round((srt[lo] + (ix-lo)*(srt[hi]-srt[lo]))*100)/100;
+          _tgtLabel = hib ? 'Meta (p75 histórico)' : 'Meta (p25 histórico)';
+        }
+        if (cfg.target && _tgtVal != null && !isNaN(parseFloat(_tgtVal))){
+          const tgt = parseFloat(_tgtVal);
           const mode = cfg.target.mode || 'progress';
-          const label = cfg.target.label || 'Meta';
+          const label = _tgtLabel || 'Meta';
           const currentValue = (function(){
             // Reusa o cálculo do mesmo agg
             if (agg === 'sum')   return values.reduce((a,b)=>a+b, 0);
@@ -20869,13 +21033,31 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             const vs = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
             if (!vs.length) return null;
             const [mn, mx] = SolsticeStats.minMax(vs); /* code review 2026: minMax safe */
-            const st = (mx - mn) / nBins || 1;
+            // Auditoria 2026.6 (HIST-OUTLIER): binning robusto a outliers. ANTES o
+            // range era min-max cru, então UM único outlier (ex: 1 receita 60×
+            // maior) esticava o eixo e amontoava ~99% dos dados em 1-2 faixas,
+            // deixando o histograma ilegível. AGORA a janela de binning usa a
+            // cerca de Tukey (Q1−1.5·IQR, Q3+1.5·IQR); valores fora caem nas
+            // faixas de borda (overflow) — o outlier ainda aparece, mas o miolo
+            // da distribuição fica legível.
+            let lo = mn, hi = mx, clamped = false;
+            if (vs.length >= 8){
+              const q = SolsticeStats.quartiles(vs);
+              if (q && q.iqr > 0){
+                const fLo = q.q1 - 1.5 * q.iqr, fHi = q.q3 + 1.5 * q.iqr;
+                const nLo = Math.max(mn, fLo), nHi = Math.min(mx, fHi);
+                if (nHi > nLo && (nLo > mn || nHi < mx)){ lo = nLo; hi = nHi; clamped = true; }
+              }
+            }
+            const st = (hi - lo) / nBins || 1;
             const bs = Array(nBins).fill(0);
             vs.forEach(v => {
-              const i = Math.min(nBins - 1, Math.floor((v - mn) / st));
+              let i = Math.floor((v - lo) / st);
+              if (i < 0) i = 0;                    // outlier abaixo → 1ª faixa
+              if (i > nBins - 1) i = nBins - 1;    // outlier acima → última faixa
               bs[i]++;
             });
-            return { values: vs, min: mn, max: mx, step: st, bins: bs };
+            return { values: vs, min: lo, max: hi, step: st, bins: bs, clamped };
           });
           if (!binned){
             host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' }, 'Sem valores numéricos válidos em "' + SolsticeHumanize.column(col, ctx.dictionary) + '".'));
@@ -20997,8 +21179,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             svg.appendChild(yLbl);
           }
           host.appendChild(svg);
+          // Auditoria 2026.6 (HIST-OUTLIER): avisa quando a janela foi limitada
+          // por outliers, pra leitura honesta do eixo.
           host.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);text-align:center;margin-top:4px;font-family:var(--font-mono);' },
-            SolsticeHumanize.column(col, ctx.dictionary) + ' · ' + nBins + ' faixas · ' + SolsticeHumanize.recordCount(values.length)));
+            SolsticeHumanize.column(col, ctx.dictionary) + ' · ' + nBins + ' faixas · ' + SolsticeHumanize.recordCount(values.length) +
+            (binned.clamped ? ' · outliers agrupados nas bordas' : '')));
         } else {
           // === MODO FREQUÊNCIA (categórica · ou qualquer tipo não-numérico) ===
           const topN = cfg.topN || 12;
@@ -21615,11 +21800,24 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const tier = _tierFor(host);
         const W = tier.W, H = tier.H, pad = tier.isCompact ? 20 : 36;
         const xs = pts.map(p => p[0]); const ys = pts.map(p => p[1]);
-        const [xMin, xMax] = SolsticeStats.minMax(xs); /* code review 2026: minMax safe */
-        const [yMin, yMax] = SolsticeStats.minMax(ys); /* code review 2026: minMax safe */
+        // Auditoria 2026.6 (SCATTER-OUTLIER): domínio robusto (cerca de Tukey) pra
+        // que 1 outlier não comprima todos os pontos num canto (mesmo problema do
+        // histograma). Pontos fora caem na borda (coordenada clampeada). Regressão
+        // e r² seguem calculados sobre os dados reais.
+        const _robust = (arr) => {
+          const [mn, mx] = SolsticeStats.minMax(arr);
+          if (arr.length < 8) return [mn, mx];
+          const q = SolsticeStats.quartiles(arr);
+          if (!q || !(q.iqr > 0)) return [mn, mx];
+          const lo = Math.max(mn, q.q1 - 1.5 * q.iqr), hi = Math.min(mx, q.q3 + 1.5 * q.iqr);
+          return (hi > lo && (lo > mn || hi < mx)) ? [lo, hi] : [mn, mx];
+        };
+        const [xMin, xMax] = _robust(xs);
+        const [yMin, yMax] = _robust(ys);
         const xR = xMax - xMin || 1; const yR = yMax - yMin || 1;
-        function px(x){ return pad + ((x - xMin) / xR) * (W - 2*pad); }
-        function py(y){ return H - pad - ((y - yMin) / yR) * (H - 2*pad); }
+        const _clampPx = (v, a, b) => v < a ? a : (v > b ? b : v);
+        function px(x){ return _clampPx(pad + ((x - xMin) / xR) * (W - 2*pad), pad, W - pad); }
+        function py(y){ return _clampPx(H - pad - ((y - yMin) / yR) * (H - 2*pad), pad, H - pad); }
         const sMin = sizeVals.length ? SolsticeStats.min(sizeVals) : 0;
         const sMax = sizeVals.length ? SolsticeStats.max(sizeVals) : 0;
         function pr(i){
@@ -21649,17 +21847,26 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         svg.appendChild(g);
 
         // Eixos labels
+        // Auditoria 2026.6 (SCATTER-AXIS): valores grandes (ex: receita 4.310.124)
+        // viravam um rótulo longo "4.310.124,0" que estourava a margem do eixo e
+        // era cortado (aparecia ".0.124"). Formato compacto (4,3M / 5,0k) resolve.
+        const _fmtAx = (v) => {
+          const a = Math.abs(v);
+          if (a >= 1e6) return ctx.L.decimal(v/1e6, 1) + 'M';
+          if (a >= 1e3) return ctx.L.decimal(v/1e3, 1) + 'k';
+          return ctx.L.decimal(v, a > 0 && a < 10 ? 1 : 0);
+        };
         const axisG = document.createElementNS(NS, 'g'); axisG.setAttribute('class', 'solstice__scatter-axis');
         [[xMin, pad, H - 6, 'start'], [xMax, W - pad, H - 6, 'end']].forEach(([v, x, y, anchor]) => {
           const t = document.createElementNS(NS, 'text');
           t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('text-anchor', anchor);
-          t.textContent = ctx.L.decimal(v, 1);
+          t.textContent = _fmtAx(v);
           axisG.appendChild(t);
         });
         [[yMin, pad - 4, H - pad, 'end'], [yMax, pad - 4, pad + 6, 'end']].forEach(([v, x, y, anchor]) => {
           const t = document.createElementNS(NS, 'text');
           t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('text-anchor', anchor);
-          t.textContent = ctx.L.decimal(v, 1);
+          t.textContent = _fmtAx(v);
           axisG.appendChild(t);
         });
         svg.appendChild(axisG);
@@ -22662,11 +22869,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           const accent = getComputedStyle(document.documentElement).getPropertyValue('--c-accent').trim() || '#4D9FFF';
           const warn   = getComputedStyle(document.documentElement).getPropertyValue('--c-warn').trim() || '#F59E0B';
           const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
-          const yDict = ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.yColumn];
-          const yName = (yDict && yDict.friendlyName) || cfg.yColumn;
-          const y2Name = cfg.y2Column ? (
-            (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.y2Column] && ctx.dictionary.columns[cfg.y2Column].friendlyName) || cfg.y2Column
-          ) : null;
+          // Auditoria 2026.6 (HUMANIZE): legendas/eixos mostravam o nome cru
+          // "qtd_vendas". SolsticeHumanize resolve dicionário + humaniza técnicos.
+          const yName = SolsticeHumanize.column(cfg.yColumn, ctx.dictionary);
+          const y2Name = cfg.y2Column ? SolsticeHumanize.column(cfg.y2Column, ctx.dictionary) : null;
           const _aggLabel = (a) => ({sum:'soma',avg:'média',count:'contagem',max:'máx',min:'mín'}[a] || a);
           const datasets = [];
           if (cfg.showDistribution !== false){
@@ -22801,7 +23007,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (sl.type === 'kpi' && sl.config && sl.config.column){
             const col = sl.config.column;
             const vals = ctx.rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
-            const outs = SolsticeStats.outliersIQR(vals) || [];
+            const outs = SolsticeStats.outliersIQR(vals).indices || [];  // OUTLIER-SHAPE 2026.6
             if (outs.length && outs.length / vals.length > 0.05){
               items.push({
                 id: 'outl-' + sl.id,
@@ -23018,6 +23224,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (v == null || isNaN(v)) return '—';
           return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
         }
+        // Auditoria 2026.6 (PIVOT-EMPTY): valores nulos/vazios viravam rótulo de
+        // linha/coluna em branco. Mostra "(vazio)" pra ficar explícito.
+        function _label(v){ return (v == null || v === '' || v === 'null' || v === 'undefined') ? '(vazio)' : v; }
         // Render tabela
         const wrap = SolsticeUtils.el('div', { style:'overflow:auto;max-height:480px;padding:8px;' });
         const table = SolsticeUtils.el('table', {
@@ -23028,7 +23237,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const thead = SolsticeUtils.el('thead');
         const trh = SolsticeUtils.el('tr');
         trh.appendChild(SolsticeUtils.el('th', { style:'padding:6px 10px;text-align:left;border-bottom:2px solid var(--c-border);background:var(--c-surface-2);position:sticky;top:0;z-index:2;' }, ''));
-        colVals.forEach(cv => trh.appendChild(SolsticeUtils.el('th', { style:'padding:6px 10px;text-align:right;border-bottom:2px solid var(--c-border);background:var(--c-surface-2);position:sticky;top:0;z-index:2;font-weight:600;' }, cv)));
+        colVals.forEach(cv => trh.appendChild(SolsticeUtils.el('th', { style:'padding:6px 10px;text-align:right;border-bottom:2px solid var(--c-border);background:var(--c-surface-2);position:sticky;top:0;z-index:2;font-weight:600;' }, _label(cv))));
         if (cfg.showTotals) trh.appendChild(SolsticeUtils.el('th', { style:'padding:6px 10px;text-align:right;border-bottom:2px solid var(--c-border);background:var(--c-surface-3);position:sticky;top:0;z-index:2;font-weight:700;color:var(--c-accent);' }, 'TOTAL'));
         thead.appendChild(trh);
         table.appendChild(thead);
@@ -23036,7 +23245,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const tbody = SolsticeUtils.el('tbody');
         rowVals.forEach(rv => {
           const tr = SolsticeUtils.el('tr');
-          tr.appendChild(SolsticeUtils.el('td', { style:'padding:4px 10px;font-weight:600;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);' }, rv));
+          tr.appendChild(SolsticeUtils.el('td', { style:'padding:4px 10px;font-weight:600;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);' }, _label(rv)));
           let rowTotal = 0;
           colVals.forEach(cv => {
             const v = cells[rv][cv] || 0;
@@ -23090,7 +23299,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const curMin = cfg.minVal != null ? cfg.minVal : dmin;
         const curMax = cfg.maxVal != null ? cfg.maxVal : dmax;
         const step = (dmax - dmin) / 100 || 1;
-        const friendly = (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[cfg.column] && ctx.dictionary.columns[cfg.column].friendlyName) || cfg.column;
+        const friendly = SolsticeHumanize.column(cfg.column, ctx.dictionary);  // Auditoria 2026.6 (HUMANIZE): era cfg.column cru ("QTD_VENDAS"); agora "Qtd Vendas"
 
         const wrap = SolsticeUtils.el('div', { style:'padding:16px;display:flex;flex-direction:column;gap:12px;' });
         wrap.appendChild(SolsticeUtils.el('div', { style:'font-size:11px;color:var(--c-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;' }, friendly));
@@ -23322,6 +23531,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         // pontos viraram blob ilegível. Agora cada categoria tem sua "raia".
         const NS = 'http://www.w3.org/2000/svg';
         const PAD = 30;
+        // Auditoria 2026.6 (TIMELINE-LABEL): margem esquerda maior só pros rótulos
+        // de categoria (eram cortados — "Centro-Oeste" virava "n-Oe…").
+        const PAD_L = 64;
         const laneCount = Math.min(cats.length, 8);   // cap em 8 raias visualmente
         const laneH = 24;
         const W = 600;
@@ -23334,25 +23546,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         cats.slice(0, laneCount).forEach((cat, idx) => {
           const y = 30 + idx * laneH + laneH/2;
           const line = document.createElementNS(NS, 'line');
-          line.setAttribute('x1', String(PAD)); line.setAttribute('y1', String(y));
+          line.setAttribute('x1', String(PAD_L)); line.setAttribute('y1', String(y));
           line.setAttribute('x2', String(W - PAD)); line.setAttribute('y2', String(y));
           line.setAttribute('stroke', 'var(--c-border)'); line.setAttribute('stroke-width', '1');
           line.style.opacity = '0.3';
           svg.appendChild(line);
           // Label da raia à esquerda
           const lbl = document.createElementNS(NS, 'text');
-          lbl.setAttribute('x', String(PAD - 4));
+          lbl.setAttribute('x', String(PAD_L - 6));
           lbl.setAttribute('y', String(y + 3));
           lbl.setAttribute('text-anchor', 'end');
           lbl.setAttribute('fill', colorOf(cat));
           lbl.setAttribute('font-size', '9');
           lbl.setAttribute('font-weight', '600');
-          lbl.textContent = String(cat).length > 10 ? String(cat).slice(0, 9) + '…' : cat;
+          lbl.textContent = String(cat).length > 11 ? String(cat).slice(0, 10) + '…' : cat;
           svg.appendChild(lbl);
         });
         // Eventos posicionados pela raia da sua categoria
         events.forEach(e => {
-          const x = PAD + ((e.date.getTime() - tMin) / span) * (W - PAD*2);
+          const x = PAD_L + ((e.date.getTime() - tMin) / span) * (W - PAD_L - PAD);
           const laneIdx = cats.indexOf(e.label);
           const y = laneIdx < laneCount ? 30 + laneIdx * laneH + laneH/2 : H/2;
           const r = e.value != null ? Math.min(8, Math.max(3, e.value / 10)) : 4;
@@ -23367,7 +23579,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           svg.appendChild(circle);
         });
         // Datas extremas
-        [['x', PAD, tMin], ['x', W - PAD, tMax]].forEach(([_, x, t], i) => {
+        [['x', PAD_L, tMin], ['x', W - PAD, tMax]].forEach(([_, x, t], i) => {
           const txt = document.createElementNS(NS, 'text');
           txt.setAttribute('x', String(x));
           txt.setAttribute('y', String(H - 8));
@@ -24796,7 +25008,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (def.id === 'table'){
           especBody.appendChild(_divider());
           especBody.appendChild(_subHeading('Drill-down hierárquico', 'agregação por níveis'));
-          const ctx2 = _ctxFor ? _ctxFor() : { columns: [], types: {} };
+          const ctx2 = _ctx();  // Auditoria 2026.6 (PROPS-CTX): era _ctxFor() — helper inexistente neste módulo, lançava ReferenceError e quebrava a aba Visual da tabela. O helper local é _ctx().
           const isDrillMode = (cfg.mode || 'flat') === 'drill';
           especBody.appendChild(field('Modo de exibição', makeSelect([
             ['flat','📋 Linhas planas (default)'],
@@ -32733,7 +32945,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         if (values.length < 3) return { answer:'Dados insuficientes para diagnóstico.', action:null, confidence:0.3 };
         const stats = SolsticeStats.describe(values) || { mean: values.reduce((a,b)=>a+b,0)/values.length };
         const trend = SolsticeStats.trend(values) || { direction:'flat', magnitude: 0 };
-        const outliers = (SolsticeStats.outliersIQR(values) || []).length;
+        const outliers = (SolsticeStats.outliersIQR(values).indices || []).length;  // OUTLIER-SHAPE 2026.6
         const meta = _meta(col, ctx);
         const hib = meta && meta.higherIsBetter;
         const dir = trend.direction;
@@ -32808,7 +33020,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const col = s.metrics[0];
         if (!col) return { answer:'Especifique a métrica.', action:null, confidence:0.2 };
         const values = _numericValues(col, ctx.rows);
-        const outs = SolsticeStats.outliersIQR(values) || [];
+        // Auditoria 2026.6 (OUTLIER-SHAPE): outliersIQR retorna {indices,values,
+        // fences} — não um array. Ler .length direto dava "undefined outliers /
+        // NaN%". Usa .indices (sempre presente, inclusive no early-return).
+        const outs = SolsticeStats.outliersIQR(values).indices || [];
         return {
           answer: `Detectados **${outs.length}** outliers em **${_friendly(col, ctx)}** (${(outs.length/values.length*100).toFixed(1)}% do total).`,
           action: { type:'create_component', componentType:'boxplot', config:{ valueColumn: col } },
@@ -33094,7 +33309,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const flagged = [];
         for (const col of numCols){
           const values = _numericValues(col, ctx.rows);
-          const outs = (SolsticeStats.outliersIQR(values) || []).length;
+          const outs = (SolsticeStats.outliersIQR(values).indices || []).length;  // OUTLIER-SHAPE 2026.6
           if (outs > values.length * 0.05) flagged.push(`${_friendly(col, ctx)} (${outs} outliers)`);
         }
         return { answer: flagged.length ? `Anomalias detectadas em: ${flagged.join(' · ')}.` : 'Nenhuma anomalia significativa detectada nas 3 primeiras métricas.', action:null, confidence: 0.7 };
@@ -34059,7 +34274,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       // Outliers como recomendação acionável
       kpiAnalytics.forEach(k => {
         const values = rows.map(r => SolsticeStats.parseNum(r[k.col])).filter(v => !isNaN(v));
-        const outs = (SolsticeStats.outliersIQR(values) || []).length;
+        const outs = (SolsticeStats.outliersIQR(values).indices || []).length;  // OUTLIER-SHAPE 2026.6
         if (outs > values.length * 0.05){
           recs.push('Revisar registros anormais em **' + k.friendly + '** — ' + outs + ' outliers (' + (outs/values.length*100).toFixed(0) + '%)');
         }
@@ -34074,7 +34289,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const anomalies = [];
       kpiAnalytics.forEach(k => {
         const values = rows.map(r => SolsticeStats.parseNum(r[k.col])).filter(v => !isNaN(v));
-        const outs = SolsticeStats.outliersIQR(values) || [];
+        const outs = SolsticeStats.outliersIQR(values).indices || [];  // OUTLIER-SHAPE 2026.6
         if (outs.length > values.length * 0.03){
           const pct = (outs.length/values.length*100).toFixed(0);
           anomalies.push('**' + k.friendly + '**: ' + outs.length + ' outliers (' + pct + '%) — valores extremos podem distorcer média');
@@ -36354,6 +36569,36 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const isTechnical = friendly === col || /^[a-z_]+$/.test(friendly);
       s += WEIGHTS.synonymBonus * (isTechnical ? 0 : 1);
 
+      // 9. Bônus de métrica de negócio (Auditoria 2026.6 / METRIC-RANK).
+      // ANTES, o KPI-título de um CSV de vendas saía como soma de "qtd_vendas"
+      // (1ª coluna numérica, vencia por posição) em vez de "receita_total" — a
+      // métrica que o usuário realmente quer ver. Colunas numéricas de VALOR
+      // (receita, faturamento, lucro, GMV…) ganham um bônus aditivo para virarem
+      // a headline; preço/custo (per-unit) ganham um bônus menor; nomes de
+      // contagem (qtd/quantidade/count) são explicitamente excluídos.
+      if (group === 'numeric'){
+        const hay = (col + ' ' + friendly).toLowerCase();
+        const isCount = /\b(qtd|qtde|quant|quantidade|contagem|n[uú]mero|num_|_num|count|qty|nro|n_)\b|qtd|quant/.test(hay);
+        if (!isCount){
+          if (/receita|faturament|fatura|revenue|gmv|lucro|montante|arrecad|ganho|valor|^vlr|_vlr|billing|turnover/.test(hay)){
+            s += 0.14;   // métrica-valor primária → forte candidata a KPI-título
+          } else if (/pre[çc]o|custo|despesa|gasto|ticket|sal[áa]rio|saldo|amount|pre[çc]o_unit/.test(hay)){
+            s += 0.05;   // monetária per-unit/secundária
+          }
+        }
+      }
+
+      // 10. Despromoção de identificadores (Auditoria 2026.6 / ID-NOT-METRIC).
+      // "id"/"_id"/"código"/"matrícula" são chaves, não métricas — somar/graficar
+      // não faz sentido (CSV sujo gerava kpi[id:sum]). Despromove por NOME (não por
+      // cardinalidade, que penalizaria medidas contínuas como receita).
+      if (group === 'numeric'){
+        const low = col.toLowerCase();
+        if (/^id$|_id$|^id_|^c[oó]d|c[oó]digo|^seq|^chave$|^key$|matr[ií]cula|protocolo|cpf|cnpj|cep/.test(low)){
+          s *= 0.2;
+        }
+      }
+
       return Math.round(s * 100);
     }
 
@@ -36426,18 +36671,31 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       },
       {
         id: 'kpi-from-top-numeric',
-        label: 'KPI da coluna numérica mais importante',
+        label: 'Linha de KPIs das métricas mais importantes',
         build(ctx){
+          // Auditoria 2026.6 (KPI-ROW): antes gerava 1 KPI só, deixando a "Visão
+          // executiva" magra e o dashboard como coluna única. Agora emite os top 3
+          // metrics (vira linha de 3 KPIs via layout 3col-equal do overview), com
+          // agregação inteligente: SOMA pra valores aditivos (receita, quantidade)
+          // e MÉDIA pra métricas per-unit/taxa (preço, ticket, idade, score, %).
           const numCols = _byGroup(ctx, 'numeric');
           if (!numCols.length) return null;
           const ranked = SolsticeColumnScore.rank(ctx).filter(r => numCols.includes(r.col));
           if (!ranked.length) return null;
-          return {
-            componentType: 'kpi',
-            config: { column: ranked[0].col, agg: 'sum' },
-            confidence: 75,
-            reasoning: 'Coluna "' + SolsticeHumanize.column(ranked[0].col, ctx.dictionary) + '" tem score de importância ' + ranked[0].score + '/100 — KPI básico.'
+          const _isRate = (col) => {
+            const hay = (col + ' ' + SolsticeHumanize.column(col, ctx.dictionary)).toLowerCase();
+            // per-unit / rate / medições que nunca fazem sentido SOMAR (Auditoria 2026.6).
+            return /pre[çc]o|m[ée]di|ticket|taxa|rate|ratio|percent|perc|pct|%|idade|score|nota|unit|por_|_por|avg|temperatura|temp|\bph\b|latitude|longitude|\blat\b|\blng\b|umidade|press|densidade|velocidade|\bn[ií]vel|[ií]ndice/.test(hay);
           };
+          return ranked.slice(0, 3).map((rk, i) => {
+            const agg = _isRate(rk.col) ? 'avg' : 'sum';
+            return {
+              componentType: 'kpi',
+              config: { column: rk.col, agg },
+              confidence: 76 - i * 2,
+              reasoning: 'Coluna "' + SolsticeHumanize.column(rk.col, ctx.dictionary) + '" (score ' + rk.score + '/100) — KPI ' + (agg === 'avg' ? '(média)' : '(total)') + '.'
+            };
+          });
         }
       },
       {
@@ -36702,14 +36960,24 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       RULES.forEach(rule => {
         if (opts.intent && !_intentMatches(rule, opts.intent)) return;
         try {
-          const r = rule.build(ctx);
-          if (!r || r.confidence == null) return;
-          const c = r.config || {};
-          const mainCol = c.column || c.yColumn || c.valueColumn || c.sourceColumn || c.xColumn || '';
-          const sig = (r.componentType || '') + '::' + mainCol;
-          if (usedSig.has(sig)) return;
-          usedSig.add(sig);
-          out.push({ ...r, ruleId: rule.id, label: rule.label });
+          const built = rule.build(ctx);
+          if (!built) return;
+          // Auditoria 2026.6 (MULTI-REC): uma regra pode devolver VÁRIAS
+          // recomendações (ex: linha de KPIs com 3 métricas). Aceita array.
+          const recsFromRule = Array.isArray(built) ? built : [built];
+          for (const r of recsFromRule){
+            if (!r || r.confidence == null) continue;
+            const c = r.config || {};
+            const mainCol = c.column || c.yColumn || c.valueColumn || c.sourceColumn || c.xColumn || '';
+            // Auditoria 2026.6 (SCALAR-DEDUP): kpi/gauge/bignum mostram UM número de
+            // uma coluna — a mesma coluna não deve virar gauge E kpi (era o caso de
+            // margem_pct). Compartilham namespace 'scalar' no dedup.
+            const _scalar = (r.componentType === 'kpi' || r.componentType === 'gauge' || r.componentType === 'bignum');
+            const sig = (_scalar ? 'scalar' : (r.componentType || '')) + '::' + mainCol;
+            if (usedSig.has(sig)) continue;
+            usedSig.add(sig);
+            out.push({ ...r, ruleId: rule.id, label: rule.label });
+          }
         } catch(e){ /* regra falhou silenciosa */ }
       });
       out.sort((a, b) => b.confidence - a.confidence);

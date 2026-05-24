@@ -113,6 +113,22 @@ ${formulaBody}
 writeFileSync(resolve(DIST, 'formula.mjs'), formula);
 
 // ============================================================
+// SolsticeTypes (Auditoria 2026.6 / BR-NUM — inferência BR-aware)
+// Depende só de SolsticeBR (global). SolsticeInference fica undefined →
+// usa detecção por valor (o caminho que queremos testar); SolsticeLog só
+// aparece no catch (não dispara). `typeof X` em var não declarada é seguro.
+// ============================================================
+const typesBody = extractIIFE(content, 'SolsticeTypes');
+writeFileSync(resolve(DIST, 'types.mjs'), `
+// Auto-extraído de solstice_baseline.html — NÃO EDITAR À MÃO.
+import { SolsticeBR } from './br.mjs';
+globalThis.SolsticeBR = SolsticeBR;
+export const SolsticeTypes = (function(){
+${typesBody}
+})();
+`);
+
+// ============================================================
 // B4-05 (v6-autonomous) — módulos novos
 // ============================================================
 
@@ -168,6 +184,7 @@ export const SolsticeUtils = {
 
 console.log('✓ Módulos extraídos para tests/dist/');
 console.log('  - br.mjs (stub)');
+console.log('  - types.mjs (' + typesBody.length + ' chars)');
 console.log('  - formula-core.mjs (' + formulaCoreBody.length + ' chars)');
 console.log('  - stats.mjs (' + statsBody.length + ' chars)');
 console.log('  - formula.mjs (' + formulaBody.length + ' chars)');
