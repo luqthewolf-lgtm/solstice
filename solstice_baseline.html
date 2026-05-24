@@ -664,9 +664,17 @@
     /* Auditoria 2026 (M-C-1 / A-901): padding literais migrados para tokens
        de espaçamento. 7px≈--sp-2; 12px≈--sp-3. */
     padding: var(--sp-2) var(--sp-3);
-    background: var(--c-surface-2);
-    border: 1px solid var(--c-border);
-    border-radius: var(--rad-md);
+    /* Auditoria 2026.6 (HEADER-REDESIGN): a barra "Pergunte ao Solstice" é o
+       centro de IA do produto — ganha borda em gradiente sutil (accent) + leve
+       glow, sinalizando "fale com a IA". Borda via background gradient + máscara. */
+    background:
+      linear-gradient(var(--c-surface-2), var(--c-surface-2)) padding-box,
+      linear-gradient(120deg,
+        color-mix(in srgb, var(--c-accent) 55%, transparent),
+        color-mix(in srgb, var(--c-accent) 12%, transparent) 45%,
+        color-mix(in srgb, var(--c-accent) 40%, transparent)) border-box;
+    border: 1.5px solid transparent;
+    border-radius: var(--rad-full);
     color: var(--c-text-2);
     font-size: var(--fs-sm);
     cursor: pointer;
@@ -674,9 +682,8 @@
     text-align: left;
   }
   .solstice__header-ask-input:hover {
-    border-color: var(--c-accent);
-    background: var(--c-surface);
     color: var(--c-text);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 14%, transparent);
   }
   .solstice__header-ask-input:focus-visible {
     outline: 2px solid var(--c-accent);
@@ -3402,6 +3409,54 @@
   }
   .solstice__header-actions .solstice__toolbar-group:first-child { padding-left: 0; }
   .solstice__header-actions .solstice__toolbar-group:last-child { padding-right: 0; }
+
+  /* Auditoria 2026.6 (HEADER-REDESIGN): menus popover do header (<details>).
+     Consolidam controles que poluíam a barra (tema, ajuda) num clique só. */
+  .solstice__menu { position: relative; display: inline-flex; }
+  .solstice__menu > summary { list-style: none; cursor: pointer; }
+  .solstice__menu > summary::-webkit-details-marker { display: none; }
+  .solstice__menu > summary::marker { content: ''; }
+  .solstice__menu[open] > summary.solstice__menu-trigger {
+    background: var(--c-surface-3);
+    box-shadow: inset 0 0 0 1px var(--c-border);
+  }
+  .solstice__menu-trigger-label { margin: 0 4px; }
+  .solstice__caret { opacity: .55; font-size: 10px; }
+  .solstice__menu-pop {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    z-index: var(--z-modal, 200);
+    min-width: 250px; padding: var(--sp-2);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    box-shadow: 0 12px 32px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.12);
+    display: flex; flex-direction: column; gap: 2px;
+    animation: solstice-menu-in 120ms var(--ease-out, ease);
+  }
+  @keyframes solstice-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .solstice__menu-head {
+    font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .07em;
+    color: var(--c-muted); padding: var(--sp-1) var(--sp-2) var(--sp-2);
+  }
+  .solstice__menu-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--sp-4); padding: var(--sp-2);
+    border-radius: var(--rad-sm); cursor: default;
+  }
+  .solstice__menu-row:hover { background: var(--c-surface-2); }
+  .solstice__menu-row-label { font-size: var(--fs-sm); color: var(--c-text); white-space: nowrap; }
+  .solstice__menu-row select {
+    border: 1px solid var(--c-border); background: var(--c-surface-2);
+    color: var(--c-text); border-radius: var(--rad-sm);
+    padding: 4px 8px; font-size: var(--fs-sm); cursor: pointer; min-width: 110px;
+  }
+  .solstice__menu-item {
+    display: flex; align-items: center; gap: var(--sp-2); justify-content: space-between;
+    width: 100%; text-align: left; padding: var(--sp-2) var(--sp-2);
+    background: none; border: none; border-radius: var(--rad-sm);
+    color: var(--c-text); font-size: var(--fs-sm); cursor: pointer; font-family: inherit;
+  }
+  .solstice__menu-item:hover { background: var(--c-surface-2); }
 
   /* Patch Final (ADR-144) + Patch Corretivo (BUG G) — Export PDF via window.print() */
   @media print {
@@ -6647,7 +6702,7 @@
       <button id="btn-header-ask" class="solstice__header-ask-input" type="button"
               title="Importe um CSV → depois pergunte em português · Ctrl+P"
               aria-label="Abrir Pergunte ao Solstice">
-        <span class="solstice__header-ask-icon" aria-hidden="true">💬</span>
+        <span class="solstice__header-ask-icon" aria-hidden="true">✨</span>
         <span class="solstice__header-ask-placeholder" id="header-ask-placeholder">Importe um CSV pra começar…</span>
         <span class="solstice__header-ask-kbd" aria-hidden="true">Ctrl+P</span>
       </button>
@@ -6687,79 +6742,78 @@
         </button>
       </div>
 
-      <!-- Audit Fix 3: renomeado "Aparência" para "Tema" (não conflita com
-           "Aparência do card" da aba Style do componente).
-           Grupo 2: Tema (idioma, paleta, densidade, modo claro/escuro) -->
-      <div class="solstice__toolbar-group" aria-label="Tema da interface">
-        <label class="solstice__pill" title="Idioma da interface">
-          🌐 <select id="locale-select" aria-label="Selecionar idioma">
-            <option value="pt-BR">PT-BR</option>
-            <option value="en-US">EN-US</option>
-            <option value="es-ES">ES-ES</option>
-            <option value="en-GB">EN-GB</option>
-          </select>
-        </label>
-
-        <label class="solstice__pill" title="Paleta de cores">
-          🎨 <select id="palette-select" aria-label="Selecionar paleta de cores">
-            <option value="ocean">Ocean</option>
-            <option value="sunset">Sunset</option>
-            <option value="forest">Forest</option>
-            <option value="vineyard">Vineyard</option>
-            <option value="coffee">Coffee</option>
-            <option value="slate">Slate</option>
-            <option value="itau">Itaú</option>
-            <!-- TEMA1 v4 · Auditoria 2026.4 (JM-07): paleta custom — usuário define cor base; sistema gera variações dark/light. -->
-            <option value="custom">✦ Custom...</option>
-          </select>
-        </label>
-        <!-- CUSTOM1 v4 · Auditoria 2026.4 (JM-07): color picker SEMPRE visível ao
-             lado do dropdown. Antes, escolher cor custom exigia 2 steps (abrir
-             dropdown, escolher "Custom", abrir picker). Agora: escolher cor já
-             aplica como "Custom" automaticamente — 1 step. -->
-        <label class="solstice__pill" id="palette-custom-wrap" title="Cor custom — escolhe e aplica direto">
-          <input type="color" id="palette-custom-input" aria-label="Cor base do tema" value="#FF6C00"
-                 style="width:24px;height:18px;border:none;background:transparent;cursor:pointer;padding:0;">
-        </label>
-
-        <label class="solstice__pill" title="Densidade da interface">
-          📐 <select id="density-select" aria-label="Densidade da interface">
-            <option value="compact">Compacto</option>
-            <option value="comfortable">Confortável</option>
-            <option value="spacious">Espaçoso</option>
-          </select>
-        </label>
+      <!-- Auditoria 2026.6 (HEADER-REDESIGN): "Aparência" consolidada num ÚNICO
+           menu popover (<details>, sem JS de toggle) — idioma + paleta + cor base
+           + densidade saíram da barra (poluíam com 4 pills). O toggle claro/escuro
+           fica visível por ser ação rápida. IDs preservados → handlers intactos. -->
+      <div class="solstice__toolbar-group">
+        <details class="solstice__menu" id="theme-menu">
+          <summary class="solstice__btn solstice__btn--ghost solstice__menu-trigger" title="Aparência — idioma, paleta, densidade" aria-label="Aparência" aria-haspopup="menu">
+            <span aria-hidden="true">🎨</span><span class="solstice__menu-trigger-label">Tema</span><span aria-hidden="true" class="solstice__caret">▾</span>
+          </summary>
+          <div class="solstice__menu-pop" role="menu" aria-label="Aparência da interface">
+            <div class="solstice__menu-head">Aparência</div>
+            <label class="solstice__menu-row" title="Idioma da interface">
+              <span class="solstice__menu-row-label">🌐 Idioma</span>
+              <select id="locale-select" aria-label="Selecionar idioma">
+                <option value="pt-BR">PT-BR</option>
+                <option value="en-US">EN-US</option>
+                <option value="es-ES">ES-ES</option>
+                <option value="en-GB">EN-GB</option>
+              </select>
+            </label>
+            <label class="solstice__menu-row" title="Paleta de cores">
+              <span class="solstice__menu-row-label">🎨 Paleta</span>
+              <select id="palette-select" aria-label="Selecionar paleta de cores">
+                <option value="ocean">Ocean</option>
+                <option value="sunset">Sunset</option>
+                <option value="forest">Forest</option>
+                <option value="vineyard">Vineyard</option>
+                <option value="coffee">Coffee</option>
+                <option value="slate">Slate</option>
+                <option value="itau">Itaú</option>
+                <option value="custom">✦ Custom...</option>
+              </select>
+            </label>
+            <label class="solstice__menu-row" id="palette-custom-wrap" title="Cor custom — escolhe e aplica direto">
+              <span class="solstice__menu-row-label">✦ Cor base</span>
+              <input type="color" id="palette-custom-input" aria-label="Cor base do tema" value="#FF6C00"
+                     style="width:34px;height:22px;border:none;background:transparent;cursor:pointer;padding:0;">
+            </label>
+            <label class="solstice__menu-row" title="Densidade da interface">
+              <span class="solstice__menu-row-label">📐 Densidade</span>
+              <select id="density-select" aria-label="Densidade da interface">
+                <option value="compact">Compacto</option>
+                <option value="comfortable">Confortável</option>
+                <option value="spacious">Espaçoso</option>
+              </select>
+            </label>
+          </div>
+        </details>
 
         <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="theme-toggle" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
           <span id="theme-icon" aria-hidden="true">🌙</span>
         </button>
       </div>
 
-      <!-- Grupo 3: Conta (perfil/settings + atalhos + ajuda) — SOL-G1/G5 -->
+      <!-- Grupo 3: Conta — perfil/config + ajuda agrupados num menu (atalhos e
+           tour viram itens internos, tirando ícones soltos da barra). -->
       <div class="solstice__toolbar-group">
         <button class="solstice__btn solstice__btn--ghost" id="profile-btn" title="Perfil e configurações" aria-label="Perfil e configurações">
           <span id="profile-avatar" style="width:20px;height:20px;border-radius:50%;background:var(--c-accent);display:inline-block;" aria-hidden="true"></span>
-          <!-- Sprint 33 / BUG-EV-04: placeholder antes era "Lucas" hardcoded.
-               Novo user via direto. Substituído por "Visitante" — perfil real
-               é populado pelo SolsticeProfiles.current() no boot. -->
           <span id="profile-name">Visitante</span>
         </button>
 
-        <!-- Auditoria 2026.2 (BR-B): tooltip mais claro indicando atalho global Ctrl+/ -->
-        <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="btn-show-shortcuts"
-                title="Ver todos os atalhos de teclado · pressione Ctrl + / em qualquer lugar"
-                aria-label="Ver atalhos de teclado">
-          ⌨️
-        </button>
-
-        <!-- Auditoria 2026.2 (BR-M8): tooltip + aria-label expandidos para
-             ajudar usuário novo. O onboarding é o caminho principal pra entender
-             o produto em < 2 minutos. -->
-        <button class="solstice__btn solstice__btn--icon solstice__btn--ghost" id="help-btn"
-                title="Abrir tour de boas-vindas · primeiros passos · atalhos (tecla ?)"
-                aria-label="Abrir ajuda — tour, primeiros passos, atalhos">
-          ?
-        </button>
+        <details class="solstice__menu" id="help-menu">
+          <summary class="solstice__btn solstice__btn--icon solstice__btn--ghost solstice__menu-trigger" title="Ajuda e atalhos" aria-label="Ajuda e atalhos" aria-haspopup="menu">
+            <span aria-hidden="true">?</span>
+          </summary>
+          <div class="solstice__menu-pop" role="menu" aria-label="Ajuda">
+            <div class="solstice__menu-head">Ajuda</div>
+            <button class="solstice__menu-item" id="help-btn" type="button" role="menuitem">🧭 Tour · primeiros passos</button>
+            <button class="solstice__menu-item" id="btn-show-shortcuts" type="button" role="menuitem">⌨️ Atalhos de teclado <span style="opacity:.55;font-size:11px;">Ctrl + /</span></button>
+          </div>
+        </details>
       </div>
     </div>
   </header>
@@ -11644,6 +11698,34 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     // 5. Help button (reabre onboarding)
     document.getElementById('help-btn').addEventListener('click', () => SolsticeOnboarding.show());
+
+    // Auditoria 2026.6 (HEADER-REDESIGN): menus popover do header (<details>)
+    // fecham ao clicar fora, ao escolher um item, e com Esc — comportamento
+    // esperado de menu. Sem libs; um único listener global.
+    (function _initHeaderMenus(){
+      const menus = () => document.querySelectorAll('details.solstice__menu[open]');
+      document.addEventListener('click', (e) => {
+        menus().forEach(d => {
+          const insideTrigger = e.target.closest && e.target.closest('summary');
+          const clickedItem = e.target.closest && e.target.closest('.solstice__menu-item');
+          if (clickedItem) { d.removeAttribute('open'); return; }
+          if (!d.contains(e.target) || (insideTrigger && insideTrigger.parentElement !== d)) {
+            // clique fora deste details (ou no trigger de outro) → fecha
+            if (!d.contains(e.target)) d.removeAttribute('open');
+          }
+        });
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') menus().forEach(d => d.removeAttribute('open'));
+      });
+      // abrir um menu fecha os outros
+      document.querySelectorAll('details.solstice__menu > summary').forEach(s => {
+        s.addEventListener('click', () => {
+          const self = s.parentElement;
+          document.querySelectorAll('details.solstice__menu[open]').forEach(d => { if (d !== self) d.removeAttribute('open'); });
+        });
+      });
+    })();
 
     // B3-05 (v6-autonomous / OB-05 — Cláudia/Stone): FAB Ajuda flutuante
     // Botão "?" fixo bottom-right que abre menu rápido (atalhos · tour · sobre)

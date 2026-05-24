@@ -11,6 +11,24 @@ Auditoria conduzida **dirigindo o app de verdade** (Chrome via Playwright) sobre
 um CSV de vendas pt-BR realista (`1.234,56`, datas `dd/mm/aaaa`, nulos, outlier).
 Três bugs de alto impacto no caso de uso central foram encontrados e corrigidos.
 
+### 🎨 HEADER-REDESIGN — Reestruturação da barra superior (macro + menus) (parte 10)
+
+- **Pedido**: a barra de cima estava poluída/"horrível"; reestruturar, agrupar,
+  virar macro + listas, com cara de produto de IA.
+- **Antes**: ~14 controles soltos numa linha (Importar, refresh, pasta, Salvar,
+  Exportar, Imagem, idioma, paleta, cor, densidade, dark, perfil, atalhos, ajuda).
+- **Agora** (inspirado em Linear/Notion/Figma):
+  - **Aparência** consolidada num **menu "🎨 Tema"** (popover `<details>`, sem lib):
+    idioma · paleta · cor base · densidade. Saíram 4 pills da barra.
+  - **Ajuda** virou menu "?" com Tour + Atalhos (tirou o ícone ⌨️ solto).
+  - **Busca de IA** ("✨ Pergunte ao Solstice") redesenhada como **centro**: pill
+    arredondado com borda em gradiente accent + glow no hover — a "cara de IA".
+  - Menus fecham ao clicar fora / Esc; abrir um fecha os outros.
+  - Em ≤1850px (ThinkPad/zoom) a busca desce pra 2ª linha; toolbar fica limpa em
+    cima. Em monitor (1920+) tudo em 1 linha.
+- IDs preservados → todos os handlers (selects de tema, perfil, ajuda) intactos.
+  Validado 1366/1920/2560, menus abrindo, 20/20 componentes sem erro de console.
+
 ### 🧩 ADAPT-TYPE + HEADER-ADAPT — App escala e header se adapta em qualquer resolução (parte 9)
 
 - **Pedido**: adaptar a TODAS as resoluções (nem pequeno, nem cortado); "a barra de
