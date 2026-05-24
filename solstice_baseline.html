@@ -640,6 +640,22 @@
     max-width: 520px;
     margin: 0 var(--sp-4);
   }
+  /* Auditoria 2026.6 (HEADER-ROW2): em telas que não comportam logo + busca +
+     todas as ações numa linha só (ThinkPad 1366, ou com zoom do navegador), a
+     barra de busca desce inteira pra uma 2ª linha LIMPA, e a toolbar (logo à
+     esquerda · ações à direita) fica na 1ª — em vez de espalhar/desorganizar
+     com o flex-wrap. Acima de 1850px tudo cabe em 1 linha (monitor); abaixo —
+     inclui ThinkPad 1366 e o uso com zoom do navegador a 75% (~1821px) — vira a
+     2ª linha organizada. */
+  @media (max-width: 1850px) {
+    .solstice__header-ask {
+      order: 3;
+      flex: 1 1 100%;
+      max-width: 100%;
+      margin: var(--sp-2) 0 0;
+    }
+    .solstice__brand-sub { display: none; }
+  }
   .solstice__header-ask-input {
     display: flex;
     align-items: center;
@@ -5043,8 +5059,10 @@
   /* ===== BLOCO 5 r4 — Dashboard Header (banner) ===== */
   .solstice__dash-header {
     width: 100%;
-    padding: var(--sp-5) var(--sp-6);
-    margin-bottom: var(--sp-4);
+    /* Auditoria 2026.6 (BANNER-COMPACT): banner mais baixo — em ThinkPad 768px de
+       altura o banner gigante comia o espaço do conteúdo. */
+    padding: var(--sp-4) var(--sp-5);
+    margin-bottom: var(--sp-3);
     border-radius: var(--rad-md);
     display: flex; flex-direction: column;
     justify-content: center;
@@ -5073,7 +5091,7 @@
 
   .solstice__dash-header-title {
     font-family: var(--font-display);
-    font-size: var(--fs-2xl);
+    font-size: var(--fs-xl);
     font-weight: var(--fw-bold);
     margin: 0;
     letter-spacing: -0.02em;
