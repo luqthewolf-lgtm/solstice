@@ -11,20 +11,26 @@ Auditoria conduzida **dirigindo o app de verdade** (Chrome via Playwright) sobre
 um CSV de vendas pt-BR realista (`1.234,56`, datas `dd/mm/aaaa`, nulos, outlier).
 Três bugs de alto impacto no caso de uso central foram encontrados e corrigidos.
 
-### 📐 FLUID-TYPE — Responsividade: tipografia fluida em todas as resoluções (parte 7)
+### 📐 STD-TYPE — Responsividade: fonte fixa + layout responsivo (padrão de app) (parte 7)
 
 - **Sintoma** (reportado pelo usuário): em monitor 2560 ficava bonito, mas em
   notebook ~1366 ficava "muito pequeno, agoniante". Medido: o `body` era **14,72px
   em ≤1366**, 16px em 1920 e 16,8px em 2560.
-- **Raiz**: o root era fixo em 16px (sem escala fluida) e uma media query
-  `@media (max-width:1400px)` **encolhia** os tokens de fonte (`--fs-base:0.92rem`)
-  "pra caber mais" — deixando notebooks cramped.
-- **Fix**: tipografia **fluida** via `html { font-size: clamp(15.5px, 0.31vw + 11.5px, 19.5px) }`.
-  Como todos os tokens `--fs-*` são rem, a UI inteira escala suave com a janela,
-  sem saltos. Removido o encolhimento de fonte na query de notebook (mantida só a
-  compactação de chrome). Medido depois: **1366≈15,7px · 1920≈17,5px · 2560≈20,4px**,
-  contínuo. Validado em 1280/1366/1920/2560 sem overflow e 20/20 componentes sem
-  erro de console.
+- **Raiz**: uma media query `@media (max-width:1400px)` **encolhia** os tokens de
+  fonte (`--fs-base:0.92rem`) "pra caber mais" — deixando notebooks cramped.
+- **Decisão de design**: fonte-base **FIXA** (16px), igual em qualquer resolução —
+  padrão de apps sérios (Notion/Linear/Figma/Power BI web) e o que mantém
+  **PDF/print/screenshot previsíveis** (o tamanho não muda conforme a janela).
+  Tentou-se tipografia fluida (clamp+vw) antes, mas é não-padrão pra UI de app e
+  prejudica a consistência de export — revertido. A responsividade fica no
+  **LAYOUT** (larguras fluidas via `clamp(vw)`, reflow, densidade), não na fonte.
+  Quem quer "aumentar tudo junto" usa o **zoom do navegador (Ctrl +/-)**, que
+  escala todos os `--fs-*`/`--sp-*` (agora em rem) de forma uniforme.
+- **Fix**: `html { font-size: 16px }` fixo; removido o encolhimento de fonte da
+  query de notebook e o boost de fonte da query ≥2200px. Tokens de espaçamento,
+  raios e alturas convertidos de px → **rem** (FLUID-SCALE) pra acompanharem o zoom
+  do navegador de forma harmônica. Medido depois: **body 16px em 1280/1366/1920/2560**
+  (consistente); canvas reflui com a largura. 20/20 componentes sem erro de console.
 
 ### 🔴 BR-NUM — Inferência de tipo quebrava colunas de dinheiro pt-BR (crítico)
 

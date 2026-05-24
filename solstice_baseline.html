@@ -219,13 +219,16 @@
 /* ===== RESET ===== */
 @layer reset {
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  /* Auditoria 2026.6 (FLUID-TYPE): tipografia fluida. Todos os tokens --fs-*
-     são rem, então escalar o font-size do html escala a UI inteira suavemente
-     com a largura da janela — sem saltos por breakpoint. Antes era fixo em 16px
-     (e media queries ENCOLHIAM em notebooks → 14,72px, "agoniante" em 1366).
-     Agora: ~15,5px em telas pequenas → ~19,5px em 2560+, contínuo.
-     1366≈15,8px · 1536≈16,3px · 1920≈17,5px · 2560≈19,5px. */
-  html { height: 100%; font-size: clamp(15.5px, 0.31vw + 11.5px, 19.5px); }
+  /* Auditoria 2026.6 (STD-TYPE): fonte-base FIXA (16px) — padrão de app sério
+     (Notion/Linear/Figma/Power BI web). NÃO escala com a resolução: isso mantém
+     o texto consistente em qualquer tela E deixa PDF/print/screenshot previsíveis
+     (o tamanho não muda conforme a janela). Quem quer "aumentar tudo junto" usa o
+     zoom do navegador (Ctrl + / -), que escala todos os rem uniformemente (efeito
+     Photoshop sob demanda). A responsividade fica no LAYOUT (larguras fluidas,
+     reflow, densidade), não no tamanho da fonte.
+     OBS: o bug "agoniante em 1366" era uma media query que ENCOLHIA a fonte pra
+     14,72px em notebooks — isso foi removido; agora é 16px consistente. */
+  html { height: 100%; font-size: 16px; }
   body {
     min-height: 100%;
     font-family: var(--font-sans);
@@ -293,11 +296,14 @@
 
     /* Espaçamento 4px — Auditoria 2026 (cleanliness): removidos --sp-0, --sp-10,
        --sp-12, --sp-16, --sp-20 (declarados mas nunca consumidos). */
-    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
-    --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+    /* Auditoria 2026.6 (FLUID-SCALE): spacing em rem (não px) pra escalar JUNTO
+       com a tipografia fluida — "zoom Photoshop": aumentou a janela, tudo cresce
+       na mesma proporção. Base 16px → 0.25rem=4px, 1rem=16px, etc. */
+    --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 0.75rem; --sp-4: 1rem;
+    --sp-5: 1.25rem; --sp-6: 1.5rem; --sp-8: 2rem;
 
-    /* Bordas — Auditoria 2026: --rad-xl removido (sem uso). */
-    --rad-xs: 4px; --rad-sm: 6px; --rad-md: 10px; --rad-lg: 14px;
+    /* Bordas — em rem (escalam junto). --rad-full fica px (pílula). */
+    --rad-xs: 0.25rem; --rad-sm: 0.375rem; --rad-md: 0.625rem; --rad-lg: 0.875rem;
     --rad-full: 9999px;
 
     /* Transições — Auditoria 2026: --ease-in removido (sem uso). */
@@ -324,23 +330,25 @@
   /* Densidade — tokens globais + tokens específicos do editor (Bloco 2 r2) */
   /* Auditoria 2026 (cleanliness): --pad-y e --gap removidos das densidades
      (declarados mas nunca consumidos via var()). --pad-x continua usado. */
+  /* Auditoria 2026.6 (FLUID-SCALE): alturas/paddings de densidade em rem pra
+     escalarem junto com a tipografia fluida (zoom uniforme). */
   :root[data-density="compact"] {
-    --row-h: 32px; --pad-x: var(--sp-3);
-    --ed-pad-y: 6px; --ed-pad-x: 8px;  --ed-gap: 2px;
-    --ed-row2-mt: 1px; --ed-fill-mt: 2px;
-    --ed-info-size: 10px; --ed-action-size: 14px;
+    --row-h: 2rem; --pad-x: var(--sp-3);
+    --ed-pad-y: 0.375rem; --ed-pad-x: 0.5rem;  --ed-gap: 0.125rem;
+    --ed-row2-mt: 0.0625rem; --ed-fill-mt: 0.125rem;
+    --ed-info-size: 0.625rem; --ed-action-size: 0.875rem;
   }
   :root[data-density="comfortable"] {
-    --row-h: 40px; --pad-x: var(--sp-4);
-    --ed-pad-y: 8px; --ed-pad-x: 10px; --ed-gap: 4px;
-    --ed-row2-mt: 2px; --ed-fill-mt: 4px;
-    --ed-info-size: 11px; --ed-action-size: 16px;
+    --row-h: 2.5rem; --pad-x: var(--sp-4);
+    --ed-pad-y: 0.5rem; --ed-pad-x: 0.625rem; --ed-gap: 0.25rem;
+    --ed-row2-mt: 0.125rem; --ed-fill-mt: 0.25rem;
+    --ed-info-size: 0.6875rem; --ed-action-size: 1rem;
   }
   :root[data-density="spacious"] {
-    --row-h: 52px; --pad-x: var(--sp-5);
-    --ed-pad-y: 12px; --ed-pad-x: 15px; --ed-gap: 6px;
-    --ed-row2-mt: 3px; --ed-fill-mt: 6px;
-    --ed-info-size: 12px; --ed-action-size: 20px;
+    --row-h: 3.25rem; --pad-x: var(--sp-5);
+    --ed-pad-y: 0.75rem; --ed-pad-x: 0.9375rem; --ed-gap: 0.375rem;
+    --ed-row2-mt: 0.1875rem; --ed-fill-mt: 0.375rem;
+    --ed-info-size: 0.75rem; --ed-action-size: 1.25rem;
   }
   /* ADR-184 (Fix-16 v5.5): em viewport ≤1400px (notebook comum), spacious
      comprime canvas demais (sidebar + inspector + canvas competem por largura).
@@ -348,10 +356,10 @@
      Em viewport apertado, força os tokens de comfortable. */
   @media (max-width: 1400px) {
     :root[data-density="spacious"] {
-      --row-h: 40px; --pad-x: var(--sp-4);
-      --ed-pad-y: 10px; --ed-pad-x: 12px; --ed-gap: 5px;
-      --ed-row2-mt: 2px; --ed-fill-mt: 4px;
-      --ed-info-size: 11px; --ed-action-size: 16px;
+      --row-h: 2.5rem; --pad-x: var(--sp-4);
+      --ed-pad-y: 0.625rem; --ed-pad-x: 0.75rem; --ed-gap: 0.3125rem;
+      --ed-row2-mt: 0.125rem; --ed-fill-mt: 0.25rem;
+      --ed-info-size: 0.6875rem; --ed-action-size: 1rem;
     }
   }
 
@@ -6207,7 +6215,7 @@
      a compactação de chrome (paddings/grid) que faz sentido em tela apertada. */
   @media (max-width: 1400px) and (min-width: 1101px) {
     :root {
-      --row-h: 36px;
+      --row-h: 2.25rem;
     }
     .solstice__header { padding: 6px 12px; gap: 8px; }
     .solstice__header-ask { max-width: 360px; margin: 0 8px; }
@@ -6312,12 +6320,12 @@
   }
 
   /* 12) 4K e ultra-wide: aumenta levemente type scale, padding, max widths */
+  /* Auditoria 2026.6 (STD-TYPE): em telas grandes NÃO aumentamos a fonte (era
+     --fs-base:1.05rem) — fonte fixa é o padrão e mantém PDF/print consistente.
+     Mantemos só mais respiro de padding no canvas pra não esticar de borda a
+     borda num monitor largo (escolha de layout, não de tipografia). */
   @media (min-width: 2200px) {
-    :root {
-      --fs-base: 1.05rem;
-      --row-h: 44px;
-    }
-    .solstice__canvas { padding: 32px clamp(40px, 5vw, 96px); }
+    .solstice__canvas { padding: var(--sp-8) clamp(2.5rem, 5vw, 6rem); }
   }
 
   /* 13) Tabela virtualizada — wrapper + viewport com altura controlada */
