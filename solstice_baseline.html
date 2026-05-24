@@ -1098,6 +1098,12 @@
     transition: background var(--t-fast);
   }
   .solstice__accord-head:hover { background: var(--c-surface-3); }
+  /* Auditoria 2026.6 (UI-POLISH): seção aberta com cabeçalho em accent (coeso
+     com o item ativo da sidebar). */
+  .solstice__accord.is-open > .solstice__accord-head {
+    color: var(--c-accent);
+    border-bottom: 1px solid var(--c-border);
+  }
   .solstice__accord-head-label {
     /* Sprint 24 / F-21: antes este container tinha overflow:hidden + ellipsis,
      * o que cortava o count "(3)" e o ícone em títulos longos como
@@ -3720,9 +3726,14 @@
      via data-toast-position no <html>. Padrão bottom-right.
      Valores: 'bottom-right' (default) | 'top-right' | 'bottom-center' | 'top-center' */
   .solstice__toasts {
-    position: fixed; bottom: var(--sp-5); right: var(--sp-5);
+    position: fixed;
+    /* Auditoria 2026.6 (TOAST-FIX): sobe acima do botão de ajuda (mesmo canto,
+       evita sobreposição) e largura responsiva (não estoura em tela pequena). */
+    bottom: calc(var(--sp-5) + 56px); right: var(--sp-5);
     display: flex; flex-direction: column; gap: var(--sp-2);
-    z-index: var(--z-toast); max-width: 360px;
+    z-index: var(--z-toast);
+    width: max-content;
+    max-width: min(340px, calc(100vw - 2 * var(--sp-5)));
   }
   :root[data-toast-position="top-right"] .solstice__toasts {
     top: var(--sp-5); bottom: auto; right: var(--sp-5);
@@ -8395,9 +8406,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   const SolsticeToast = (function(){
     const container = () => document.getElementById('toasts');
 
+    // Auditoria 2026.6 (TOAST-CAP): limita toasts simultâneos. Antes empilhavam
+    // sem teto, cobrindo a tela e o botão de ajuda no mesmo canto. Mantém os N
+    // mais recentes, removendo os mais antigos.
+    const MAX_TOASTS = 3;
+    function _capStack(c){
+      const all = c.querySelectorAll('.solstice__toast');
+      for (let i = 0; i <= all.length - MAX_TOASTS; i++) all[i].remove();
+    }
+
     function show({ title, msg, kind='', duration=3500 }){
       const c = container();
       if (!c) return;
+      _capStack(c);
       // Auditoria 2026 (R-06 / A-606): cada toast tem role="status" e
       // aria-atomic="true" (WCAG 4.1.3). Erros usam aria-live="assertive"
       // para anúncio imediato; restante herda do container ("polite").
@@ -8426,6 +8447,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function action(opts){
       const c = container();
       if (!c) return;
+      _capStack(c);
       // Auditoria 2026 (R-06 / A-606): mesmas regras a11y de show().
       const t = SolsticeUtils.el('div',
         { class: 'solstice__toast' + (opts.kind ? ' solstice__toast--' + opts.kind : ''),
