@@ -8513,7 +8513,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     function list(){ return _load(); }
 
-    function create(name, color){
+    function create(name, color, opts){
       const n = String(name||'').trim();
       if (!n) { SolsticeErrors.show('PROFILE_NAME_EMPTY'); return null; }
       const all = _load();
@@ -8534,7 +8534,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Auditoria 2026 (AP-02): KEY_CUR é apontador — _save (acima) já avisa
       // se a escrita do array falhou; aqui silent pra não duplicar toast.
       SolsticeStorage.safeSet(KEY_CUR, profile.id, { silent: true });
-      SolsticeToast.success(SolsticeLocale.t('toast.profile.created'), profile.name);
+      // Auditoria 2026.6 (FIRST-IMPRESSION): o perfil "Visitante" auto-criado no
+      // boot não precisa de toast (era ruído na primeira impressão). Só avisa
+      // quando o usuário cria um perfil de propósito.
+      if (!(opts && opts.silent)) SolsticeToast.success(SolsticeLocale.t('toast.profile.created'), profile.name);
       return profile;
     }
 
@@ -8568,7 +8571,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (cur) return cur;
       let all = _load();
       if (all.length === 0){
-        cur = create('Visitante');
+        cur = create('Visitante', null, { silent: true });
         cur._isPlaceholder = true;
         // Persiste o flag
         const stored = _load();
@@ -11905,10 +11908,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     // 6b. Canvas (Bloco 3) — render inicial + assina paths reativos
     SolsticeCanvas.init();
 
-    // 7. Onboarding na primeira visita
-    if (SolsticeOnboarding.isFirstTime()){
-      setTimeout(() => SolsticeOnboarding.show(), 400);
-    }
+    // 7. Auditoria 2026.6 (FIRST-IMPRESSION): NÃO auto-abrimos mais o modal de
+    // onboarding por cima da tela de boas-vindas. Era redundante — a própria
+    // welcome já mostra os 3 caminhos (Importar · Express · Ver exemplo) + os
+    // links "tour interativo (1 min)" e "ver onboarding" — e o modal competindo
+    // com os toasts poluía os primeiros segundos. O onboarding/tour seguem a 1
+    // clique (links da welcome, menu "?" do header, Ctrl+K). Primeira tela limpa.
+    void SolsticeOnboarding.isFirstTime; // mantém referência (heurísticas futuras)
 
     // B8-04 (v6-autonomous / PM-06): aplica posição persistida dos toasts
     try {
@@ -40879,25 +40885,12 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         else if (e.key === 'Escape') close();
       });
 
-      // BR-04 (Sprint 1C): auto-start na primeiríssima visita. Flag em
-      // localStorage para não repetir. Atraso de 1.5s para deixar UI
-      // estabilizar (Hints, modals de boas-vindas etc).
-      try {
-        const FIRST_KEY = 'solstice.tour.firstVisit';
-        const done = (typeof SolsticeStorage !== 'undefined' ? SolsticeStorage.safeGet(FIRST_KEY) : localStorage.getItem(FIRST_KEY));
-        if (!done){
-          setTimeout(() => {
-            // Só dispara se não houver overlays bloqueantes
-            const blocking = document.querySelector('.solstice__modal, .solstice__ask-overlay, .solstice__tour-overlay');
-            if (blocking) return;
-            try { start(); } catch(_){}
-            try {
-              if (typeof SolsticeStorage !== 'undefined') SolsticeStorage.safeSet(FIRST_KEY, '1');
-              else localStorage.setItem(FIRST_KEY, '1');
-            } catch(_){}
-          }, 1500);
-        }
-      } catch(_){}
+      // Auditoria 2026.6 (FIRST-IMPRESSION): NÃO auto-iniciamos mais o tour de 9
+      // passos por cima da tela de boas-vindas. Forçar um tour de coachmarks no
+      // primeiro segundo é intrusivo (produtos modernos OFERECEM, não forçam) e
+      // redundante — a welcome já tem o botão "🧭 Tour interativo (9 passos)" e o
+      // link "ver onboarding" bem visíveis. Primeira impressão limpa; o tour
+      // segue a 1 clique (welcome, menu "?" do header, Ctrl+K).
     }
 
     return { start, close, next, prev, init, STEPS };
