@@ -11,6 +11,23 @@ Auditoria conduzida **dirigindo o app de verdade** (Chrome via Playwright) sobre
 um CSV de vendas pt-BR realista (`1.234,56`, datas `dd/mm/aaaa`, nulos, outlier).
 Três bugs de alto impacto no caso de uso central foram encontrados e corrigidos.
 
+### 🧩 ADAPT-TYPE + HEADER-ADAPT — App escala e header se adapta em qualquer resolução (parte 9)
+
+- **Pedido**: adaptar a TODAS as resoluções (nem pequeno, nem cortado); "a barra de
+  cima e o canvas têm que se adaptar".
+- **ADAPT-TYPE**: escala fluida do app inteiro via `html { font-size: clamp(15px,
+  0.4vw + 11px, 19px) }`. Como `--fs-*` e `--sp-*` são todos rem, esse clamp é um
+  **fator de escala único** — fonte + espaçamento + alturas crescem/encolhem juntos
+  com a janela, sem saltos. Calibrado: 911≈15px · 1366≈16,5 · 1920≈18,7 · 2560≈19
+  (teto). `@media print` fixa 16px → PDF/export consistente.
+- **HEADER-ADAPT**: `.solstice__header` ganhou `flex-wrap: wrap` e o campo de busca
+  `flex:1 1 160px; min-width:0`. Em telas estreitas (notebook com escala do Windows)
+  o header **quebra pra 2 linhas em vez de cortar** os botões à direita (o
+  "Exportar" sumia). Tudo continua acessível em qualquer largura.
+- Validado renderizando no **tamanho físico real** (device_scale_factor simulando
+  a escala do Windows) em 1366@100/125/150%, 1920 e 2560: header adapta, canvas
+  preenche, texto confortável, nada cortado. 20/20 componentes sem erro.
+
 ### 🖥️ WELCOME-FIT — Tela inicial cortada em notebooks com escala do Windows (parte 8)
 
 - **Sintoma** (foto real, notebook 1366 com escala 150%): título "Solstice"
