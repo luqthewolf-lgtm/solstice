@@ -29,11 +29,15 @@ const content = readFileSync(SRC, 'utf-8');
  * Padrão: `const NAME = (function(){ ...BODY... })();`
  */
 function extractIIFE(source, name) {
-  // Encontra início e equilibra parênteses/chaves
-  const re = new RegExp(`const\\s+${name}\\s*=\\s*\\(function\\s*\\(\\s*\\)\\s*\\{`);
+  // Ancora no início de linha (`\n` + indentação) pra casar a DECLARAÇÃO real
+  // e não o mesmo texto citado dentro de comentários de documentação.
+  // (ex.: o JSDoc de SolsticeStats cita literalmente "const SolsticeStats = (function(){".)
+  const re = new RegExp(`(?:^|\\n)[ \\t]*const\\s+${name}\\s*=\\s*\\(function\\s*\\(\\s*\\)\\s*\\{`);
   const match = re.exec(source);
   if (!match) throw new Error(`IIFE não encontrado: ${name}`);
-  let i = match.index + match[0].length;
+  // bodyStart = posição logo após o '{' de abertura do corpo da função
+  const bodyStart = match.index + match[0].length;
+  let i = bodyStart;
   let depth = 1;
   while (i < source.length && depth > 0) {
     const c = source[i];
@@ -43,7 +47,7 @@ function extractIIFE(source, name) {
   }
   // Agora i está depois do '}' final do function body.
   // O resto até `)();` é o invocation.
-  return source.slice(match.index + match[0].length, i - 1);
+  return source.slice(bodyStart, i - 1);
 }
 
 // ============================================================
@@ -89,6 +93,11 @@ writeFileSync(resolve(DIST, 'formula-core.mjs'), formulaCore);
 const statsBody = extractIIFE(content, 'SolsticeStats');
 const stats = `
 // Auto-extraído de solstice_baseline.html — NÃO EDITAR À MÃO.
+// SolsticeStats.parseNum delega a SolsticeBR.toNumber (BR-aware: "1.234,56").
+// Sem injetar o stub, parseNum cairia em parseFloat e os testes rodariam num
+// caminho DIFERENTE do app real. (Auditoria 2026.6)
+import { SolsticeBR } from './br.mjs';
+globalThis.SolsticeBR = SolsticeBR;
 export const SolsticeStats = (function(){
 ${statsBody}
 })();

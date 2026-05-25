@@ -61,9 +61,11 @@ jobs:
 
       - name: Check SRI hashes on CDN scripts
         run: |
-          # Garante que os 3 scripts CDN têm integrity= e crossorigin=
+          # Garante que os 3 scripts CDN têm integrity= e crossorigin=.
+          # As tags são multi-linha (src= numa linha, integrity= na seguinte),
+          # então olhamos a linha do URL + as 2 próximas (-A2). (Auditoria 2026.6)
           for lib in "chart.js" "papaparse" "xlsx"; do
-            if ! grep -E "cdn\.jsdelivr\.net.*${lib}" solstice_baseline.html | grep -q 'integrity="sha384-'; then
+            if ! grep -A2 -E "cdn\.jsdelivr\.net.*${lib}" solstice_baseline.html | grep -q 'integrity="sha384-'; then
               echo "::error::SRI ausente para $lib"
               exit 1
             fi

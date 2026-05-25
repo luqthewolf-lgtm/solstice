@@ -102,9 +102,11 @@ describe('SolsticeStats.min / max / minMax', () => {
     expect(SolsticeStats.max([3, 1, 2])).toBe(3);
   });
   it('minMax (1 pass) bate min+max separados', () => {
-    const mm = SolsticeStats.minMax([5, 2, 8, 1, 9, 3]);
-    expect(mm.min).toBe(1);
-    expect(mm.max).toBe(9);
+    // minMax retorna a tupla [min, max] — o app inteiro destrutura como array
+    // (`const [lo, hi] = minMax(...)`), então o contrato é posicional.
+    const [mn, mx] = SolsticeStats.minMax([5, 2, 8, 1, 9, 3]);
+    expect(mn).toBe(1);
+    expect(mx).toBe(9);
   });
   it('input grande não estoura stack', () => {
     // Math.min(...arr) com arr>~100k estoura RangeError.
@@ -121,9 +123,11 @@ describe('SolsticeStats.min / max / minMax', () => {
 });
 
 describe('SolsticeStats — desvio padrão', () => {
-  it('stdDev simples (população)', () => {
-    // dataset [2,4,4,4,5,5,7,9] tem stdDev populacional = 2
-    expect(Math.round(SolsticeStats.stdDev([2, 4, 4, 4, 5, 5, 7, 9]) * 100)).toBe(200);
+  it('stdDev simples (amostral, N-1)', () => {
+    // stdDev é AMOSTRAL (N-1) por contrato — confirmado pelo selftest inline do
+    // solstice_baseline.html. Para o desvio populacional (N) há variancePop.
+    // dataset [2,4,4,4,5,5,7,9]: variância amostral = 32/7 → stdDev ≈ 2.138
+    expect(Math.round(SolsticeStats.stdDev([2, 4, 4, 4, 5, 5, 7, 9]) * 100)).toBe(214);
   });
   it('vazio ou 1 elemento → null/0', () => {
     const r = SolsticeStats.stdDev([]);
@@ -211,5 +215,30 @@ describe('SolsticeStats — distinctCount', () => {
   });
   it('vazio → 0', () => {
     expect(SolsticeStats.distinctCount([])).toBe(0);
+  });
+  it('conta categóricas (strings) — regressão: clean() zerava cardinalidade', () => {
+    // Auditoria 2026.6 / Sprint 46: distinctCount rodava clean() (só números),
+    // então dimensões de texto retornavam 0. Cardinalidade de coluna categórica.
+    expect(SolsticeStats.distinctCount(['SP', 'RJ', 'SP', 'MG', 'RJ'])).toBe(3);
+    expect(SolsticeStats.distinctCount(['x', 'x', 'x'])).toBe(1); // coluna constante
+  });
+  it('ignora null/vazio', () => {
+    expect(SolsticeStats.distinctCount(['a', null, '', 'a', 'b', undefined])).toBe(2);
+  });
+});
+
+describe('SolsticeStats — parsing pt-BR em correlation/linearRegression (Auditoria 2026.6)', () => {
+  // Sprint 46: correlation/linearRegression usavam parseFloat, que trunca
+  // "1.234,56" → 1.234. Agora usam parseNum (BR-aware). Aceitam strings cruas.
+  it('correlation com strings pt-BR (separador de milhar + vírgula decimal)', () => {
+    const xs = ['1.000,0', '2.000,0', '3.000,0', '4.000,0'];
+    const ys = ['2.000,0', '4.000,0', '6.000,0', '8.000,0'];
+    expect(SolsticeStats.correlation(xs, ys)).toBeCloseTo(1, 6);
+  });
+  it('linearRegression com strings pt-BR mantém slope correto', () => {
+    // y = 2x sobre pares (0;0),(1;2000),(2;4000) formatados pt-BR
+    const reg = SolsticeStats.linearRegression([[0, '0'], [1, '2.000'], [2, '4.000']]);
+    expect(reg).not.toBe(null);
+    expect(reg.slope).toBeCloseTo(2000, 6);
   });
 });

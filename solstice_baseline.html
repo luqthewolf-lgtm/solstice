@@ -16564,7 +16564,18 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return [mn, mx];
     }
     function range(values){ const [lo, hi] = minMax(values); return (lo == null || hi == null) ? null : hi - lo; }
-    function distinctCount(values){ const c = clean(values); return new Set(c).size; }
+    function distinctCount(values){
+      // Cardinalidade de QUALQUER coluna (dimensões são strings) — NÃO usar clean(),
+      // que filtra não-números e zerava a contagem de colunas categóricas.
+      if (!values) return 0;
+      const set = new Set();
+      for (let i = 0; i < values.length; i++){
+        const v = values[i];
+        if (v == null || v === '') continue;
+        set.add(v);
+      }
+      return set.size;
+    }
 
     /* ---------- Dispersão ---------- */
 
@@ -16723,7 +16734,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (!points || points.length < 2) return null;
       let n = 0, sx = 0, sy = 0, sxy = 0, sxx = 0, syy = 0;
       for (const p of points){
-        const x = parseFloat(p[0]), y = parseFloat(p[1]);
+        const x = parseNum(p[0]), y = parseNum(p[1]);
         if (isNaN(x) || isNaN(y)) continue;
         n++; sx += x; sy += y; sxy += x*y; sxx += x*x; syy += y*y;
       }
@@ -16736,7 +16747,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const ssTot = syy - n * my * my;
       let ssRes = 0;
       for (const p of points){
-        const x = parseFloat(p[0]), y = parseFloat(p[1]);
+        const x = parseNum(p[0]), y = parseNum(p[1]);
         if (isNaN(x) || isNaN(y)) continue;
         const pred = slope*x + intercept;
         ssRes += (y - pred) * (y - pred);
@@ -16815,7 +16826,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const n = Math.min(xs.length, ys.length);
       let nn = 0, sx = 0, sy = 0, sxy = 0, sxx = 0, syy = 0;
       for (let i = 0; i < n; i++){
-        const x = parseFloat(xs[i]), y = parseFloat(ys[i]);
+        const x = parseNum(xs[i]), y = parseNum(ys[i]);
         if (isNaN(x) || isNaN(y)) continue;
         nn++; sx += x; sy += y; sxy += x*y; sxx += x*x; syy += y*y;
       }
@@ -16833,7 +16844,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const pairs = [];
       const n = Math.min(xs.length, ys.length);
       for (let i = 0; i < n; i++){
-        const x = parseFloat(xs[i]), y = parseFloat(ys[i]);
+        const x = parseNum(xs[i]), y = parseNum(ys[i]);
         if (!isNaN(x) && !isNaN(y)) pairs.push([x, y, i]);
       }
       if (pairs.length < 2) return null;
@@ -21163,11 +21174,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const fmt = (n) => n == null || isNaN(n) ? '—' : ctx.L.decimal(n, 2);
 
       function _agg(values){
-        const c = values.filter(v => v != null && !isNaN(parseFloat(v))).map(parseFloat);
+        // count opera sobre valores não-vazios (qualquer tipo) — antes caía no
+        // guard `!c.length` e retornava null em colunas de texto, além de incluir
+        // nulos via values.length. Demais aggs usam parseNum (BR-aware: "1.234,56").
+        if (agg === 'count') return values.filter(v => v != null && v !== '').length;
+        const c = values.filter(v => v != null && !isNaN(SolsticeStats.parseNum(v))).map(v => SolsticeStats.parseNum(v));
         if (!c.length) return null;
         if (agg === 'sum') return c.reduce((a,b)=>a+b,0);
         if (agg === 'avg') return c.reduce((a,b)=>a+b,0) / c.length;
-        if (agg === 'count') return values.length;
         if (agg === 'min') return SolsticeStats.min(c);
         if (agg === 'max') return SolsticeStats.max(c);
         return null;
