@@ -24468,6 +24468,15 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           // slot mudou → re-render cirúrgico (sem flash do canvas inteiro). Os
           // demais subscribers (autosave/dirty) disparam normalmente.
           try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.noteConfigOnly) SolsticeCanvas.noteConfigOnly(slotId); } catch(_){}
+          // Auditoria 2026.6 (SMOOTH-INSPECTOR): marca se a mudança REVELA/ESCONDE
+          // campos no inspector (precisa rebuild) ou é só VALOR (agg/bin/limite —
+          // o controle já reflete, então o inspector pula o rebuild e não pisca).
+          const _structuralKeys = ['column','xColumn','yColumn','y2Column','yColumns','groupBy','mode',
+            'xCompoundColumn','valueColumn','dateColumn','sourceColumn','targetColumn','comparison',
+            'showForecast','showDataLabels','showCompare','showTarget','sizeColumn','dataLabelFormat','clusters'];
+          const _isStructural = Object.keys(patch).some(k => _structuralKeys.indexOf(k) >= 0) ||
+            (sl.type === 'kpi' && Object.prototype.hasOwnProperty.call(patch, 'agg')); // agg no KPI troca a comparação
+          window.__solsticeConfigQuickUpdate = { slotId, ts: Date.now(), structural: _isStructural };
           SolsticeStore.set('canvas.sections', sections);
           SolsticeAudit.record({
             action:'update_config', target: slotId, componentId: slotId,
@@ -26410,6 +26419,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (selectedId) _markSelected(selectedId);
           return;
         }
+
+        // Auditoria 2026.6 (SMOOTH-INSPECTOR): mudança de DADOS só-valor (agg, bin,
+        // limite...) — o controle já mostra o novo valor; pula o rebuild do
+        // inspector pra não piscar/perder foco. Só reconstrói quando a mudança
+        // revela/esconde campos (estrutural) ou veio de fora do inspector.
+        const cq = window.__solsticeConfigQuickUpdate;
+        if (cq && cq.slotId === selectedId && (Date.now() - cq.ts) < 300){
+          window.__solsticeConfigQuickUpdate = null;
+          if (!cq.structural){ if (selectedId) _markSelected(selectedId); return; }
+        }
+        window.__solsticeConfigQuickUpdate = null;
 
         render();
         if (selectedId) _markSelected(selectedId);
