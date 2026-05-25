@@ -20854,6 +20854,54 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }),
       render(slot, host, ctx){
         const cfg = slot.config || {};
+        // Auditoria 2026.6 (MULTI-EIXO): várias colunas Y (multi-série) — usuário:
+        // "deixe customizavel para colocar quantos eixo y quiser". Caminho ISOLADO
+        // (early-return) — não toca o fluxo single-Y (forecast/compound/LTTB) abaixo,
+        // então zero risco de regressão no comportamento atual.
+        const _yCols = Array.isArray(cfg.yColumns) ? cfg.yColumns.filter(c => c && ctx.columns.indexOf(c) >= 0) : [];
+        if (cfg.xColumn && _yCols.length >= 2 && typeof Chart !== 'undefined'){
+          const _bk = (d) => {
+            if (cfg.bin === 'month') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+            if (cfg.bin === 'week'){ const oj = new Date(d.getFullYear(),0,1); const wk = Math.ceil(((( d - oj)/86400000) + oj.getDay()+1)/7); return d.getFullYear()+'-W'+String(wk).padStart(2,'0'); }
+            if (cfg.bin === 'year') return String(d.getFullYear());
+            return d.toISOString().slice(0,10);
+          };
+          const maps = _yCols.map(() => new Map());
+          const keySet = new Set();
+          for (const r of ctx.rows){
+            const d = SolsticeTypes.toDate(r[cfg.xColumn]); if (!d || isNaN(d)) continue;
+            const k = _bk(d); keySet.add(k);
+            _yCols.forEach((yc, j) => { const v = SolsticeStats.parseNum(r[yc]); if (isNaN(v)) return; maps[j].set(k, (maps[j].get(k)||0) + v); });
+          }
+          const labels = Array.from(keySet).sort();
+          const PAL = (typeof SolsticeStyle !== 'undefined' && SolsticeStyle.paletteColors) ? (SolsticeStyle.paletteColors('auto') || ['#4D9FFF','#F59E0B','#10B981','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316']) : ['#4D9FFF','#F59E0B','#10B981','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+          const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
+          const datasets = _yCols.map((yc, j) => {
+            const color = PAL[j % PAL.length];
+            const nm = (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[yc] && ctx.dictionary.columns[yc].friendlyName) || yc;
+            return { label: nm, data: labels.map(k => maps[j].get(k) || 0), borderColor: color, backgroundColor: cfg.kind === 'area' ? color + '33' : 'transparent', fill: cfg.kind === 'area', tension: 0.25, pointRadius: 2, borderWidth: 1.8 };
+          });
+          const wrap = SolsticeUtils.el('div', { class:'solstice__chart-wrap' });
+          const canvas = document.createElement('canvas'); wrap.appendChild(canvas); host.appendChild(wrap);
+          requestAnimationFrame(() => {
+            if (canvas._chart){ try { canvas._chart.destroy(); } catch(_){} }
+            canvas._chart = new Chart(canvas, {
+              type: cfg.kind === 'area' ? 'line' : (cfg.kind || 'line'),
+              data: { labels, datasets },
+              options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: true, position:'bottom', labels:{ font:{size:10}, boxWidth:14, padding:8 } } },
+                scales: {
+                  x: { grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10} } },
+                  y: { grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10} } }
+                },
+                onClick: (e, els, chart) => { if (!els || !els.length) return; const lab = chart.data.labels[els[0].index]; if (cfg.xColumn && lab != null && typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.activate(cfg.xColumn, lab); }
+              }
+            });
+          });
+          _observeResponsive(host, registry['time-series'], slot, ctx);
+          return;
+        }
         if (!cfg.xColumn || !cfg.yColumn){
           host.appendChild(SolsticeUtils.el('div', { class:'solstice__comp-empty' },
             'Selecione coluna temporal e numérica em ⚙️ Configurar.'));
@@ -24705,6 +24753,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       else if (def.id === 'time-series'){
         field('Eixo X (temporal)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })));
         field('Eixo Y (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })));
+        // Auditoria 2026.6 (MULTI-EIXO): séries Y adicionais — marque 2+ colunas
+        // numéricas pra desenhar uma linha por coluna (multi-série). Usuário:
+        // "colocar quantos eixo y quiser".
+        (function(){
+          const _numCols = ctx.columns.filter(c => SolsticeTypes.group(ctx.types[c] && ctx.types[c].type) === 'numeric');
+          if (_numCols.length < 2) return;
+          const _cur = new Set(Array.isArray(cfg.yColumns) && cfg.yColumns.length ? cfg.yColumns : (cfg.yColumn ? [cfg.yColumn] : []));
+          const box = SolsticeUtils.el('div', { style:'display:flex;flex-direction:column;gap:3px;max-height:150px;overflow:auto;border:1px solid var(--c-border);border-radius:6px;padding:6px;' });
+          _numCols.forEach(c => {
+            const lbl = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;' });
+            const cb = SolsticeUtils.el('input', { type:'checkbox' });
+            if (_cur.has(c)) cb.checked = true;
+            cb.addEventListener('change', () => {
+              const sel = SolsticeUtils.qsa('input[type=checkbox]', box).map((x, i) => x.checked ? _numCols[i] : null).filter(Boolean);
+              if (sel.length >= 2) _updateConfig(slot.id, { yColumns: sel });
+              else _updateConfig(slot.id, { yColumns: null, yColumn: sel[0] || cfg.yColumn });
+            });
+            lbl.appendChild(cb);
+            const _nm = (ctx.dictionary && ctx.dictionary.columns && ctx.dictionary.columns[c] && ctx.dictionary.columns[c].friendlyName) || c;
+            lbl.appendChild(SolsticeUtils.el('span', null, _nm));
+            box.appendChild(lbl);
+          });
+          field('Séries Y (marque 2+ p/ multi-linha)', box);
+        })();
         const bin = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { bin: e.target.value }) });
         [['day','Diário'],['week','Semanal'],['month','Mensal']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
