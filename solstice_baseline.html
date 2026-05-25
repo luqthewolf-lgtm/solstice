@@ -21619,6 +21619,38 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               svg.appendChild(t);
             }
           });
+          // Auditoria 2026.6 (DISTRIB-RICO): linhas de MÉDIA e MEDIANA sobre o
+          // histograma — marcam a tendência central (deixa a leitura mais rica).
+          // Clampadas à janela de binning; mediana só até 50k (evita sort pesado).
+          (function(){
+            let _sum = 0; for (let k = 0; k < values.length; k++) _sum += values[k];
+            const _mean = values.length ? _sum / values.length : null;
+            const _clampX = (v) => padL + Math.max(0, Math.min(1, (v - min) / ((max - min) || 1))) * innerW;
+            const _vline = (v, color, label) => {
+              if (v == null || isNaN(v)) return;
+              const x = _clampX(v);
+              const ln = document.createElementNS(NS, 'line');
+              ln.setAttribute('x1', x.toFixed(1)); ln.setAttribute('x2', x.toFixed(1));
+              ln.setAttribute('y1', padT); ln.setAttribute('y2', (padT + innerH).toFixed(1));
+              ln.setAttribute('stroke', color); ln.setAttribute('stroke-width', '1.4');
+              ln.setAttribute('stroke-dasharray', '4 3'); ln.style.opacity = '0.9';
+              const tt = document.createElementNS(NS, 'title'); tt.textContent = label + ': ' + ctx.L.decimal(v, 2); ln.appendChild(tt);
+              svg.appendChild(ln);
+              if (!tier.isCompact){
+                const t = document.createElementNS(NS, 'text');
+                t.setAttribute('x', (x + 2).toFixed(1)); t.setAttribute('y', (padT + 9).toFixed(1));
+                t.setAttribute('font-size', '8.5'); t.setAttribute('fill', color); t.style.fontFamily = 'var(--font-mono)';
+                t.textContent = label;
+                svg.appendChild(t);
+              }
+            };
+            _vline(_mean, 'var(--c-accent)', 'média');
+            if (values.length <= 50000){
+              const _s = values.slice().sort((a, b) => a - b);
+              const _med = _s.length % 2 ? _s[(_s.length - 1) / 2] : (_s[_s.length/2 - 1] + _s[_s.length/2]) / 2;
+              _vline(_med, 'var(--c-warn, #E8B339)', 'mediana');
+            }
+          })();
           // X-axis tick labels (min, intermediário, max)
           [[padL, min, 'start'], [padL + innerW/2, (min+max)/2, 'middle'], [W - padR, max, 'end']].forEach(([x, v, anchor]) => {
             const t = document.createElementNS(NS, 'text');
