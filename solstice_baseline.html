@@ -33009,8 +33009,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (!tok || !keywords || !keywords.length) return false;
       // exato primeiro (rápido)
       if (keywords.includes(tok)) return true;
-      // tolerância 1 para tokens curtos (≤5 letras), 2 para maiores
-      const d = (maxDist != null) ? maxDist : (tok.length <= 5 ? 1 : 2);
+      // Auditoria 2026.6 (ASK-FUZZY): tolerância 1 até 7 letras (era ≤5→1, >5→2).
+      // O ≤2 em palavras médias casava palavras DIFERENTES — ex: keyword "recente"
+      // batia no token "receita" (distância 2), fazendo "receita por região" cair
+      // em recent_change ("variação") em vez de group_sum (ranking por dimensão).
+      // Distância 2 só para palavras longas (≥8 letras), onde é mais seguro.
+      const d = (maxDist != null) ? maxDist : (tok.length <= 7 ? 1 : 2);
       for (const k of keywords){
         if (Math.abs(tok.length - k.length) > d) continue; // poda barata
         if (levenshtein(tok, k) <= d) return true;
@@ -33047,7 +33051,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         return { intent, score: kwScore + requireBonus };
       });
       scored.sort((a,b) => b.score - a.score);
-      return scored[0].score > _detectMin ? scored[0].intent : INTENTS.find(x => x.id === 'general');
+      let winner = scored[0].score > _detectMin ? scored[0].intent : INTENTS.find(x => x.id === 'general');
+      // Auditoria 2026.6 (ASK-BREAKDOWN): "X por <dimensão>" é o caso mais comum
+      // de pergunta. Como "por" é stopword (some na tokenização), o group_sum não
+      // casava por keyword e a pergunta caía em intents genéricos/temporais
+      // (count_total, recent_change, general…) que IGNORAM a dimensão. Quando há
+      // métrica E dimensão resolvidas e o vencedor é um desses, interpretamos como
+      // agrupamento (group_sum → ranking por dimensão) — o que o usuário quer.
+      if (resolved && resolved.metrics.length > 0 && resolved.dimensions.length > 0 &&
+          ['general','count_total','recent_change','aggregate','health','describe','seasonality'].includes(winner.id)){
+        const gs = INTENTS.find(x => x.id === 'group_sum');
+        if (gs) winner = gs;
+      }
+      return winner;
     }
 
     /* ===== CAMADA 4 — Handlers ===== */
