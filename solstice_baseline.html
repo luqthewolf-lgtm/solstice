@@ -4376,7 +4376,13 @@
 
   /* Catálogo de Componentes (Patch B5-r2) — substituiu a lista do canvas */
   .solstice__cat-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
+    /* Auditoria 2026.6 (SIDEBAR): era 1fr 1fr fixo → em 240px cada card ficava
+       ~88px e rótulos longos ("Big Number", "🔄 Substituir") quebravam/cortavam
+       desalinhados. Responsivo: 1 coluna na sidebar estreita (card full-width,
+       cabe qualquer rótulo numa linha), 2 colunas quando há largura (≥~320px).
+       O modal de templates usa grid próprio (inline) e não é afetado. */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: var(--sp-3);
   }
     .solstice__cat-card {
@@ -4437,6 +4443,7 @@
     text-align: center;
     transition: all var(--t-fast);
     letter-spacing: 0.02em;
+    white-space: nowrap; /* Auditoria 2026.6: "🔄 Substituir" numa linha só (card agora full-width) */
   }
   .solstice__cat-card:hover .solstice__cat-card-add {
     background: var(--c-accent);
