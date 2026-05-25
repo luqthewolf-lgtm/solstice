@@ -13791,7 +13791,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Abaixo disso, é INFO (suave) com sugestão de reclassificar.
       const flags = [];
       for (const c of columns){
-        const colIssue = issues.byColumn[c];
+        // Auditoria 2026.6 (EDIT-CRASH): ao renomear/transformar coluna, o ingest
+        // ganha o nome novo mas issues.byColumn ainda tem a chave antiga →
+        // issues.byColumn[novoNome] === undefined → "Cannot read 'nulls'" crashava
+        // o card de qualidade no fluxo de edição. Fallback neutro.
+        const colIssue = issues.byColumn[c] || { nulls: 0, invalid: 0, total: rows.length };
         const nullRatio = colIssue.nulls / rows.length;
         if (nullRatio > 0.5) flags.push({ col: c, level: 'warn', msg: `${Math.round(nullRatio*100)}% nulos` });
         else if (nullRatio > 0.2) flags.push({ col: c, level: 'info', msg: `${Math.round(nullRatio*100)}% nulos` });
