@@ -27553,7 +27553,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           // Sprint 42 / feedback do usuário: distrib-time promovido pra
           // Essenciais. User: "é o que mais é usado aqui na área. Está escondida".
           // Antes vivia em 'analise' com openByDefault:false → invisível na 1ª tela.
-          ids: ['kpi', 'bignum', 'time-series', 'table', 'bar', 'donut', 'distribution', 'distrib-time', 'area'] },
+          // Auditoria 2026.6: distrib-time ANTES de time-series — usuário: "a
+          // distribuição temporal é mais usada que série temporal".
+          ids: ['kpi', 'bignum', 'distrib-time', 'time-series', 'table', 'bar', 'donut', 'distribution', 'area'] },
         { key: 'analise',     title: 'Análise & Comparação', icon: '🔬',
           openByDefault: false,
           ids: ['scatter', 'boxplot', 'gauge', 'heatmap-cal', 'heatmap', 'radar'] },
@@ -37224,20 +37226,28 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         }
       },
       {
-        id: 'time-series',
-        label: 'Série Temporal: temporal × numérica',
+        id: 'distrib-time',
+        // Auditoria 2026.6: o auto-dashboard passa a preferir DISTRIBUIÇÃO TEMPORAL
+        // (barras por período + linha) em vez de Série Temporal pura — usuário:
+        // "a distribuição temporal é mais usada que série temporal". distrib-time
+        // mostra o volume por período E a tendência, cobrindo os dois casos.
+        label: 'Distribuição temporal: barras por período + linha',
         build(ctx){
           const tempCols = _byGroup(ctx, 'temporal');
           const numCols  = _byGroup(ctx, 'numeric');
           if (!tempCols.length || !numCols.length) return null;
           const ranked = SolsticeColumnScore.rank(ctx).filter(r => numCols.includes(r.col));
           const y = ranked.length ? ranked[0].col : numCols[0];
+          // Métrica de taxa (nota/índice/%) → média; senão soma (volume por período).
+          const _low = String(y).toLowerCase();
+          const yAgg = /nota|score|indice|índice|taxa|rate|percent|media|média|nps|csat|rating|avalia/.test(_low) ? 'avg' : 'sum';
           return {
-            componentType: 'time-series',
-            config: { xColumn: tempCols[0], yColumn: y, bin: 'month', kind: 'line' },
+            componentType: 'distrib-time',
+            config: { xColumn: tempCols[0], yColumn: y, yAgg: yAgg, bin: 'month', showDistribution: true, showLine: true },
             confidence: 85,
             reasoning: 'Há coluna temporal "' + SolsticeHumanize.column(tempCols[0], ctx.dictionary) +
-                       '" + numérica "' + SolsticeHumanize.column(y, ctx.dictionary) + '" — evolução no tempo é natural.'
+                       '" + numérica "' + SolsticeHumanize.column(y, ctx.dictionary) +
+                       '" — distribuição por período (' + (yAgg === 'avg' ? 'média' : 'soma') + ') + tendência.'
           };
         }
       },
