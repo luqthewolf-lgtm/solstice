@@ -12615,13 +12615,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      * Tipos especiais (sparse/constant) detectados primeiro por meta-análise.
      */
     function inferColumn(values, columnName, ctx){
-      const sample = values.filter(v => v != null && v !== '').slice(0, 200);
-      const total = values.length;
+      const nonEmpty = values.filter(v => v != null && v !== '');
+      const sample = nonEmpty.slice(0, 200);
+      const total = values.length || 1;
       const filled = sample.length;
+      // Auditoria 2026.6 (BIG-DATA-SPARSE): contagem REAL de não-vazios (não o
+      // sample capado em 200). ANTES, filled(≤200)/total fazia QUALQUER dataset
+      // >~4000 linhas ser classificado 'sparse' (vazio) → sem tipos, sem métricas,
+      // dashboard inútil em base grande. filledFull corrige o ratio de preenchimento.
+      const filledFull = nonEmpty.length;
 
       // 1) Especiais
-      if (filled === 0) return { type: 'sparse', confidence: 1, ratio: { nulls: 1 } };
-      if (filled / total < 0.05) return { type: 'sparse', confidence: 0.95, ratio: { nulls: 1 - filled/total } };
+      if (filledFull === 0) return { type: 'sparse', confidence: 1, ratio: { nulls: 1 } };
+      if (filledFull / total < 0.05) return { type: 'sparse', confidence: 0.95, ratio: { nulls: 1 - filledFull/total } };
       const unique = new Set(sample.map(String));
       if (unique.size === 1) return { type: 'constant', confidence: 1, ratio: { uniques: 1 } };
 
@@ -12632,7 +12638,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const _dateHits = sample.filter(v => { const s = String(v).trim(); return RX.BR_DATE.test(s) || RX.ISO_DATE.test(s) || RX.ISO_DT.test(s); }).length;
       if (_dateHits / filled >= 0.7){
         const onlyDate = sample.every(v => { const s = String(v).trim(); return RX.BR_DATE.test(s) || RX.ISO_DATE.test(s); });
-        return { type: onlyDate ? 'date_only' : 'temporal', confidence: _dateHits / filled, ratio: { nulls: 1 - filled/total, uniques: unique.size / filled } };
+        return { type: onlyDate ? 'date_only' : 'temporal', confidence: _dateHits / filled, ratio: { nulls: 1 - filledFull/total, uniques: unique.size / filled } };
       }
 
       // 0) ADR-176 (Onda 0): se nome da coluna foi passado E SolsticeInference
@@ -12655,7 +12661,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               type: infResult.type,
               confidence: infResult.confidence,
               concept: infResult.winner,
-              ratio: { nulls: 1 - filled/total, uniques: unique.size / filled },
+              ratio: { nulls: 1 - filledFull/total, uniques: unique.size / filled },
               source: 'inference',
               audit: infResult
             };
@@ -12745,7 +12751,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return {
         type: best,
         confidence: bestScore || (best === 'dimension' ? 0.5 : 0),
-        ratio: { nulls: 1 - filled/total, uniques: unique.size / filled },
+        ratio: { nulls: 1 - filledFull/total, uniques: unique.size / filled },
         alternatives: Object.entries(scores).filter(([,s]) => s >= 0.3).sort((a,b)=>b[1]-a[1]).slice(0,3)
       };
     }
@@ -13619,7 +13625,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       for (const c of columns){
         const counts = {};
         for (const r of rows){ const v = String(r[c]); counts[v] = (counts[v]||0) + 1; }
-        const max = Math.max(...Object.values(counts));
+        // Auditoria 2026.6 (BIG-DATA): Math.max(...array) estourava a pilha em
+        // colunas de alta cardinalidade (150k+ valores distintos → 150k args).
+        // Loop O(n) é seguro pra qualquer tamanho.
+        let max = 0;
+        for (const k in counts){ if (counts[k] > max) max = counts[k]; }
         if (max / rows.length > 0.95 && Object.keys(counts).length > 1) issues++;
       }
       return columns.length > 0 ? 1 - (issues / columns.length) : 1;
