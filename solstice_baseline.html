@@ -20957,6 +20957,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const compoundCol = cfg.xCompoundColumn || null;
 
         function _binKey(d){
+          if (cfg.bin === 'year') return String(d.getFullYear()); // Auditoria 2026.6: faltava 'year'
           if (cfg.bin === 'month') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
           if (cfg.bin === 'week'){
             const onejan = new Date(d.getFullYear(), 0, 1);
@@ -24884,9 +24885,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-hint', style:'margin-top:-4px;' },
           '💡 Meta e comparação (vs período anterior, meta fixa…) ficam na aba "Comparação".'));
       }
+      else if (def.id === 'bignum'){
+        // Auditoria 2026.6 (INSPECTOR): bignum nao tinha aba de Dados — nao dava
+        // pra escolher coluna/agregacao. Aggs casam com SolsticeStats (mean, nao avg).
+        group('🔢 Número');
+        field('Coluna (numérica)', colSelect(cfg.column, 'numeric', v => _updateConfig(slot.id, { column: v })), 'O valor exibido em destaque gigante.');
+        const ba = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { agg: e.target.value }) });
+        [['sum','Soma'],['mean','Média'],['median','Mediana'],['min','Mínimo'],['max','Máximo'],['count','Contagem']].forEach(([v,l]) => {
+          const o = SolsticeUtils.el('option', { value: v }, l);
+          if ((cfg.agg || 'sum') === v) o.selected = true;
+          ba.appendChild(o);
+        });
+        field('Como agregar', ba, 'Soma p/ totais · Média/Mediana p/ taxas e notas · Contagem p/ nº de registros.');
+      }
       else if (def.id === 'time-series'){
-        field('Eixo X (temporal)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })));
-        field('Eixo Y (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })));
+        group('📈 Eixos & séries');
+        field('Eixo X (temporal)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })), 'Coluna de data/tempo do eixo horizontal.');
+        field('Eixo Y (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })), 'Medida principal (1 linha). Marque várias abaixo p/ multi-série.');
         // Auditoria 2026.6 (MULTI-EIXO): séries Y adicionais — marque 2+ colunas
         // numéricas pra desenhar uma linha por coluna (multi-série). Usuário:
         // "colocar quantos eixo y quiser".
@@ -24909,22 +24924,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             lbl.appendChild(SolsticeUtils.el('span', null, _nm));
             box.appendChild(lbl);
           });
-          field('Séries Y (marque 2+ p/ multi-linha)', box);
+          field('Séries Y (marque 2+ p/ multi-linha)', box, 'Cada coluna marcada vira uma linha colorida.');
         })();
+        group('⏱️ Período & estilo');
         const bin = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { bin: e.target.value }) });
-        [['day','Diário'],['week','Semanal'],['month','Mensal']].forEach(([v,l]) => {
+        [['day','Diário'],['week','Semanal'],['month','Mensal'],['year','Anual']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.bin || 'day') === v) o.selected = true;
           bin.appendChild(o);
         });
-        field('Agregação temporal', bin);
+        field('Granularidade do período', bin, 'Agrupa as datas por dia, semana, mês ou ano.');
         const kind = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { kind: e.target.value }) });
         [['line','Linha'],['area','Área'],['bar','Barras']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.kind || 'line') === v) o.selected = true;
           kind.appendChild(o);
         });
-        field('Tipo de gráfico', kind);
+        field('Tipo de gráfico', kind, 'Linha, área preenchida ou barras.');
       }
       else if (def.id === 'distribution'){
         // Auditoria 2026.6 (INSPECTOR): grupo + dicas. Aceita qualquer coluna
