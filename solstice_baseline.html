@@ -20895,7 +20895,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                   x: { grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10} } },
                   y: { grid:{ color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' }, ticks:{ color: isDark ? '#B8C4E0' : '#334155', font:{size:10} } }
                 },
-                onClick: (e, els, chart) => { if (!els || !els.length) return; const lab = chart.data.labels[els[0].index]; if (cfg.xColumn && lab != null && typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.activate(cfg.xColumn, lab); }
+                onClick: (e, els, chart) => { if (!els || !els.length) return; const lab = chart.data.labels[els[0].index]; if (cfg.xColumn && lab != null && typeof SolsticeCrossFilter !== 'undefined') SolsticeCrossFilter.activate(cfg.xColumn, lab, { bin: cfg.bin }); }
               }
             });
           });
@@ -21222,7 +21222,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                 const label = chart.data.labels[el.index];
                 const xCol = cfg.xColumn || cfg.x || cfg.column;
                 if (xCol && label != null && typeof SolsticeCrossFilter !== 'undefined'){
-                  SolsticeCrossFilter.activate(xCol, label);
+                  SolsticeCrossFilter.activate(xCol, label, { bin: cfg.bin });
                 }
               },
               onHover: (event, elements, chart) => {
@@ -23512,7 +23512,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
                 const label = chart.data.labels[elements[0].index];
                 const xCol = cfg.xColumn || cfg.category || cfg.column;
                 if (xCol && label != null && typeof SolsticeCrossFilter !== 'undefined'){
-                  SolsticeCrossFilter.activate(xCol, label);
+                  SolsticeCrossFilter.activate(xCol, label, { bin: cfg.bin });
                 }
               },
               onHover: (event, elements) => {
@@ -36355,7 +36355,21 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
       // Cross-filter (B9): destaque temporário { column, value } — filtra também
       if (cross && cross.column && cross.value != null){
-        out = out.filter(r => String(r[cross.column]) === String(cross.value));
+        if (cross.bin){
+          // Auditoria 2026.6 (XFILTER-BIN): casa por período (mesma granularidade
+          // do bin clicado) em vez de match exato da data crua.
+          const _binKey = (d, bin) => {
+            if (!d || isNaN(d)) return null;
+            if (bin === 'month') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+            if (bin === 'year')  return String(d.getFullYear());
+            if (bin === 'week'){ const oj = new Date(d.getFullYear(),0,1); const wk = Math.ceil(((( d - oj)/86400000) + oj.getDay()+1)/7); return d.getFullYear()+'-W'+String(wk).padStart(2,'0'); }
+            return d.toISOString().slice(0,10); // day
+          };
+          const target = String(cross.value);
+          out = out.filter(r => _binKey(SolsticeTypes.toDate(r[cross.column]), cross.bin) === target);
+        } else {
+          out = out.filter(r => String(r[cross.column]) === String(cross.value));
+        }
       }
 
       return out;
@@ -37082,10 +37096,13 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
      ============================================================ */
   const SolsticeCrossFilter = (function(){
 
-    function activate(column, value){
-      SolsticeStore.set('crossfilter', { column, value });
+    function activate(column, value, opts){
+      // Auditoria 2026.6 (XFILTER-BIN): gráficos temporais (distrib-time/série)
+      // clicam num BIN ("2024-01"), mas a coluna tem datas completas. opts.bin
+      // (day/week/month/year) faz o filtro casar por PERÍODO, não match exato.
+      SolsticeStore.set('crossfilter', { column, value, bin: (opts && opts.bin) || null });
       SolsticeAudit && SolsticeAudit.record && SolsticeAudit.record({
-        action: 'crossfilter', target: column, details: { column, value }
+        action: 'crossfilter', target: column, details: { column, value, bin: (opts && opts.bin) || null }
       });
     }
     function clear(){ SolsticeStore.set('crossfilter', null); }
