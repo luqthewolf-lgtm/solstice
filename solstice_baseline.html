@@ -12643,7 +12643,14 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       if (columnName && typeof SolsticeInference !== 'undefined' && SolsticeInference.inferColumn){
         try {
           const infResult = SolsticeInference.inferColumn(columnName, sample, ctx || {});
-          if (!infResult.fallback_used && infResult.confidence >= 0.3){
+          // Auditoria 2026.6 (NUMERIC-NOT-ORDINAL): a inferência por NOME às vezes
+          // marca uma coluna NUMÉRICA como 'ordinal' (ex: "nota" 0-10 virava
+          // categórica e deixava de ser MÉTRICA — quebrava KPI e o Ask "nota por
+          // central"). Número é medida: se a amostra é majoritariamente numérica,
+          // ignora o resultado ordinal e cai na detecção por valor (→ integer/measure).
+          const _numRatio = sample.filter(v => _numLike(v)).length / filled;
+          const _badOrdinal = infResult.type === 'ordinal' && _numRatio >= 0.8;
+          if (!infResult.fallback_used && infResult.confidence >= 0.3 && !_badOrdinal){
             return {
               type: infResult.type,
               confidence: infResult.confidence,
@@ -12706,12 +12713,33 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         else { best = 'geo_lat'; }
       }
 
+      // 4b2) Auditoria 2026.6 (NUM-ID): coluna NUMÉRICA com nome de identificador/
+      // código (num_conta, agência, anomes, funcional, cpf, ddd…) NÃO é métrica.
+      // Reclassifica como 'identifier' AQUI, na fonte — assim nenhum lugar (KPI,
+      // sankey, boxplot, Ask, suggest* do Stats) a soma/grafica como medida. Em
+      // base bancária/CRM real isso eliminava dashboards como kpi[num_agencia:sum].
+      // (Se a cardinalidade for baixa, o passo 4c abaixo rebaixa pra dimensão.)
+      if (['integer','decimal','measure'].includes(best)){
+        const lc = String(columnName || '').toLowerCase();
+        if (/^id$|_id$|^id_|id_|^c[oó]d|c[oó]digo|^seq|matr[ií]cula|protocolo|cpf|cnpj|cep|^num|_num|n[uú]mero|ag[eê]ncia|^conta$|_conta$|^pv$|_pv$|carteira|dicom|funcional|chpras|anomes|anomesdia|telefone|^ddd|cod_|_cod/.test(lc)){
+          best = 'identifier';
+        }
+      }
+
       // 4c) Auditoria 2026.6 (ID-CARDINALITY): identificador é quase-único (CPF,
       // código). Texto curto repetido ("West", "Ativo", "Online") casava no detect
       // ganancioso de identifier (vinha antes de dimension na ordem). Se a coluna
       // repete muito (cardinalidade baixa), é dimensão, não identificador.
       if (best === 'identifier' && filled > 0 && (unique.size / filled) < 0.85){
         best = 'dimension';
+      }
+
+      // 4d) Auditoria 2026.6 (GEO-COUNTRY-FALSEPOS): geo_country casa qualquer
+      // string de 2-3 letras maiúsculas — ex: "PF"/"PJ" (tipo_pessoa) virava País.
+      // Só aceita país quando o NOME sugere (pais/country/nacion); senão dimensão.
+      if (best === 'geo_country'){
+        const ln = String(columnName || '').toLowerCase();
+        if (!/pa[ií]s|country|nacion|na[cç][aã]o/.test(ln)) best = 'dimension';
       }
 
       return {
@@ -36792,13 +36820,20 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       }
 
       // 10. Despromoção de identificadores (Auditoria 2026.6 / ID-NOT-METRIC).
-      // "id"/"_id"/"código"/"matrícula" são chaves, não métricas — somar/graficar
-      // não faz sentido (CSV sujo gerava kpi[id:sum]). Despromove por NOME (não por
-      // cardinalidade, que penalizaria medidas contínuas como receita).
+      // "id"/"código"/"num_conta"/"agência"/"anomes"/"telefone"/"funcional" são
+      // CHAVES/CÓDIGOS, não métricas — somar/graficar não faz sentido (em dado
+      // corporativo real o auto-dashboard fazia kpi[num_agencia:sum]). Despromove
+      // por NOME (lista ampliada com padrões de base bancária/CRM) e também
+      // inteiros de cardinalidade quase-única (id sequencial) — mas só inteiros,
+      // pra não penalizar medidas contínuas (receita/tempo) que têm muitos valores.
       if (group === 'numeric'){
         const low = col.toLowerCase();
-        if (/^id$|_id$|^id_|^c[oó]d|c[oó]digo|^seq|^chave$|^key$|matr[ií]cula|protocolo|cpf|cnpj|cep/.test(low)){
-          s *= 0.2;
+        const idName = /^id$|_id$|^id_|id_|^c[oó]d|c[oó]digo|^seq|^chave$|^key$|matr[ií]cula|protocolo|cpf|cnpj|cep|^num|_num|n[uú]mero|ag[eê]ncia|^conta$|_conta$|^pv$|_pv$|carteira|dicom|funcional|chpras|anomes|anomesdia|telefone|^ddd|cod_|_cod/.test(low);
+        const t0 = (types[col] || {}).type;
+        const cardRatio = rows.length ? (distinct / rows.length) : 0;
+        const seqIdInteger = (t0 === 'integer') && cardRatio > 0.92; // inteiro quase-único = id
+        if (idName || seqIdInteger){
+          s *= 0.15;
         }
       }
 
@@ -36831,10 +36866,28 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
 
     /** Helper: filtra colunas por grupo. */
     function _byGroup(ctx, group){
-      return (ctx.columns || []).filter(c => {
+      const cols = (ctx.columns || []).filter(c => {
         const t = (ctx.types || {})[c];
         return t && SolsticeTypes.group(t.type) === group;
       });
+      if (group !== 'numeric') return cols;
+      // Auditoria 2026.6 (METRIC-POOL): tira colunas numéricas tipo-identificador
+      // (num_conta, agência, anomes, funcional, id sequencial) do pool de MÉTRICAS
+      // — somar/graficar códigos não faz sentido. Em base bancária/CRM real o
+      // auto-dashboard fazia kpi[num_agencia:sum]. Assim só medidas de verdade
+      // (nota, tempo, receita) entram. Fallback: se zerar tudo, devolve o original.
+      const rows = ctx.rows || ctx.rowsAll || [];
+      const filtered = cols.filter(c => {
+        const low = String(c).toLowerCase();
+        if (/^id$|_id$|^id_|id_|^c[oó]d|c[oó]digo|^seq|^chave$|^key$|matr[ií]cula|protocolo|cpf|cnpj|cep|^num|_num|n[uú]mero|ag[eê]ncia|^conta$|_conta$|^pv$|_pv$|carteira|dicom|funcional|chpras|anomes|telefone|^ddd|cod_|_cod/.test(low)) return false;
+        const t = (ctx.types || {})[c];
+        if (t && t.type === 'integer' && rows.length){
+          const distinct = SolsticeStats.distinctCount(rows.map(r => r[c]));
+          if (distinct / rows.length > 0.92) return false;
+        }
+        return true;
+      });
+      return filtered.length ? filtered : cols;
     }
 
     /** Helper: distinct count seguro. */
