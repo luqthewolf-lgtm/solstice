@@ -102,9 +102,11 @@ describe('SolsticeStats.min / max / minMax', () => {
     expect(SolsticeStats.max([3, 1, 2])).toBe(3);
   });
   it('minMax (1 pass) bate min+max separados', () => {
-    const mm = SolsticeStats.minMax([5, 2, 8, 1, 9, 3]);
-    expect(mm.min).toBe(1);
-    expect(mm.max).toBe(9);
+    // minMax retorna a tupla [min, max] — o app inteiro destrutura como array
+    // (`const [lo, hi] = minMax(...)`), então o contrato é posicional.
+    const [mn, mx] = SolsticeStats.minMax([5, 2, 8, 1, 9, 3]);
+    expect(mn).toBe(1);
+    expect(mx).toBe(9);
   });
   it('input grande não estoura stack', () => {
     // Math.min(...arr) com arr>~100k estoura RangeError.
@@ -121,9 +123,11 @@ describe('SolsticeStats.min / max / minMax', () => {
 });
 
 describe('SolsticeStats — desvio padrão', () => {
-  it('stdDev simples (população)', () => {
-    // dataset [2,4,4,4,5,5,7,9] tem stdDev populacional = 2
-    expect(Math.round(SolsticeStats.stdDev([2, 4, 4, 4, 5, 5, 7, 9]) * 100)).toBe(200);
+  it('stdDev simples (amostral, N-1)', () => {
+    // stdDev é AMOSTRAL (N-1) por contrato — confirmado pelo selftest inline do
+    // solstice_baseline.html. Para o desvio populacional (N) há variancePop.
+    // dataset [2,4,4,4,5,5,7,9]: variância amostral = 32/7 → stdDev ≈ 2.138
+    expect(Math.round(SolsticeStats.stdDev([2, 4, 4, 4, 5, 5, 7, 9]) * 100)).toBe(214);
   });
   it('vazio ou 1 elemento → null/0', () => {
     const r = SolsticeStats.stdDev([]);

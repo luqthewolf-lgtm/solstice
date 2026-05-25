@@ -16564,7 +16564,18 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       return [mn, mx];
     }
     function range(values){ const [lo, hi] = minMax(values); return (lo == null || hi == null) ? null : hi - lo; }
-    function distinctCount(values){ const c = clean(values); return new Set(c).size; }
+    function distinctCount(values){
+      // Cardinalidade de QUALQUER coluna (dimensões são strings) — NÃO usar clean(),
+      // que filtra não-números e zerava a contagem de colunas categóricas.
+      if (!values) return 0;
+      const set = new Set();
+      for (let i = 0; i < values.length; i++){
+        const v = values[i];
+        if (v == null || v === '') continue;
+        set.add(v);
+      }
+      return set.size;
+    }
 
     /* ---------- Dispersão ---------- */
 
