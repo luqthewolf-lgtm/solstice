@@ -45691,78 +45691,121 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
         }
       },
 
-      async _capture(opts){
-        const canvasRoot = document.getElementById('canvas-root');
-        const rect = canvasRoot.getBoundingClientRect();
-        const scrollH = canvasRoot.scrollHeight;
-        const width = Math.ceil(rect.width);
-        const height = Math.ceil(Math.max(rect.height, scrollH));
-        const scale = opts.scale || 2;
+      _roundRect(cx, x, y, w, h, r){
+        r = Math.max(0, Math.min(r, w/2, h/2));
+        cx.beginPath();
+        cx.moveTo(x+r, y);
+        cx.arcTo(x+w, y,   x+w, y+h, r);
+        cx.arcTo(x+w, y+h, x,   y+h, r);
+        cx.arcTo(x,   y+h, x,   y,   r);
+        cx.arcTo(x,   y,   x+w, y,   r);
+        cx.closePath();
+      },
 
-        // 1) Re-renderiza charts em alta resolução
+      async _capture(opts){
+        // Auditoria 2026.6 (EXPORT-FIX): a estratégia antiga (foreignObject SVG →
+        // canvas) CONTAMINAVA o canvas no Chrome moderno ("Tainted canvases may
+        // not be exported") — toDataURL lançava SecurityError e NADA era baixado.
+        // foreignObject em SVG-como-imagem taint o canvas por política de
+        // segurança, sem como contornar. Reescrito como COMPOSITOR direto: desenha
+        // fundos, gráficos (canvas Chart.js, limpos) e textos na mão. Sem
+        // foreignObject → canvas limpo → toDataURL funciona. Offline, sem deps.
+        const canvasRoot = document.getElementById('canvas-root');
+        const width = Math.ceil(canvasRoot.scrollWidth || canvasRoot.getBoundingClientRect().width);
+        const height = Math.ceil(canvasRoot.scrollHeight || canvasRoot.getBoundingClientRect().height);
+        const scale = Math.max(1, Math.min(4, opts.scale || 2));
+
+        // Re-renderiza charts crisp antes de capturar
         if (window.Chart && Chart.instances) {
-          Object.values(Chart.instances).forEach(ch => {
-            try { ch.resize(); ch.update('none'); } catch(_){}
-          });
+          Object.values(Chart.instances).forEach(ch => { try { ch.resize(); ch.update('none'); } catch(_){} });
         }
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        // 2) Clona o nó com estado computado inline
-        const clone = ExportImage._inlineClone(canvasRoot);
-        // Define dimensões reais para o SVG saber medir
-        clone.style.width = width + 'px';
-        clone.style.height = height + 'px';
-        clone.style.boxSizing = 'border-box';
-        // CRÍTICO: <canvas> dentro do clone vira <img> da própria canvas
-        ExportImage._materializeCanvases(canvasRoot, clone);
+        const can = document.createElement('canvas');
+        can.width = Math.max(1, width * scale);
+        can.height = Math.max(1, height * scale);
+        const cx = can.getContext('2d');
+        cx.scale(scale, scale);
+        cx.textBaseline = 'top';
+        cx.imageSmoothingEnabled = true;
+        cx.imageSmoothingQuality = 'high';
 
-        // 3) Embrulha em foreignObject
-        const xmlns = 'http://www.w3.org/2000/svg';
-        const svg = document.createElementNS(xmlns, 'svg');
-        svg.setAttribute('xmlns', xmlns);
-        svg.setAttribute('width', String(width));
-        svg.setAttribute('height', String(height));
-        svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-        const fo = document.createElementNS(xmlns, 'foreignObject');
-        fo.setAttribute('width', '100%');
-        fo.setAttribute('height', '100%');
-        fo.setAttribute('x', '0');
-        fo.setAttribute('y', '0');
-        // Empacota em XHTML
-        const xhtml = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
-        xhtml.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-        xhtml.appendChild(clone);
-        fo.appendChild(xhtml);
-        svg.appendChild(fo);
-
-        const svgStr = new XMLSerializer().serializeToString(svg);
-        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-
-        try {
-          const img = await ExportImage._loadImage(url);
-          const can = document.createElement('canvas');
-          can.width = width * scale;
-          can.height = height * scale;
-          const cx = can.getContext('2d');
-          // Background
-          let bg = opts.bg;
-          if (bg === 'auto' || !bg){
-            const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
-            bg = isDark ? '#0B0F1A' : '#F8FAFC';
-          }
-          if (bg !== 'transparent'){
-            cx.fillStyle = bg;
-            cx.fillRect(0, 0, can.width, can.height);
-          }
-          cx.imageSmoothingEnabled = true;
-          cx.imageSmoothingQuality = 'high';
-          cx.drawImage(img, 0, 0, can.width, can.height);
-          const dataUrl = can.toDataURL(opts.mime || 'image/png', opts.quality || 0.95);
-          return dataUrl;
-        } finally {
-          URL.revokeObjectURL(url);
+        // Fundo
+        let bg = opts.bg;
+        if (bg === 'auto' || !bg){
+          const isDark = document.documentElement.getAttribute('data-mode') === 'dark';
+          bg = isDark ? '#0B0F1A' : '#FFFFFF';
         }
+        if (bg !== 'transparent'){ cx.fillStyle = bg; cx.fillRect(0, 0, width, height); }
+
+        // Offset pra converter coordenadas de viewport → conteúdo do canvas-root
+        const rootRect = canvasRoot.getBoundingClientRect();
+        const ox = rootRect.left - canvasRoot.scrollLeft;
+        const oy = rootRect.top - canvasRoot.scrollTop;
+        const visible = (cs) => cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0.01;
+
+        // Passe 1 — fundos e bordas dos boxes (ordem do documento = pais antes dos filhos)
+        const all = canvasRoot.querySelectorAll('*');
+        all.forEach(el => {
+          if (el.tagName === 'CANVAS') return;
+          const cs = getComputedStyle(el);
+          if (!visible(cs)) return;
+          const r = el.getBoundingClientRect();
+          if (r.width < 1 || r.height < 1) return;
+          const x = r.left - ox, y = r.top - oy;
+          const rad = Math.min(parseFloat(cs.borderTopLeftRadius) || 0, 24);
+          const bgc = cs.backgroundColor;
+          if (bgc && bgc !== 'rgba(0, 0, 0, 0)' && bgc !== 'transparent'){
+            cx.fillStyle = bgc; ExportImage._roundRect(cx, x, y, r.width, r.height, rad); cx.fill();
+          }
+          const bw = parseFloat(cs.borderTopWidth) || 0;
+          const bc = cs.borderTopColor;
+          if (bw > 0 && bc && bc !== 'rgba(0, 0, 0, 0)'){
+            cx.strokeStyle = bc; cx.lineWidth = bw;
+            ExportImage._roundRect(cx, x + bw/2, y + bw/2, r.width - bw, r.height - bw, rad); cx.stroke();
+          }
+        });
+
+        // Passe 2 — gráficos (canvases Chart.js — limpos, não contaminam)
+        canvasRoot.querySelectorAll('canvas').forEach(ch => {
+          const r = ch.getBoundingClientRect();
+          if (r.width < 1 || r.height < 1) return;
+          try { cx.drawImage(ch, r.left - ox, r.top - oy, r.width, r.height); } catch(_){}
+        });
+        // Passe 2b — <img>/<svg> rasterizáveis (ícones data-url etc.)
+        canvasRoot.querySelectorAll('img').forEach(im => {
+          const r = im.getBoundingClientRect();
+          if (r.width < 1 || r.height < 1 || !im.complete) return;
+          try { cx.drawImage(im, r.left - ox, r.top - oy, r.width, r.height); } catch(_){}
+        });
+
+        // Passe 3 — textos (cada nó de texto desenhado na sua posição/estilo)
+        const walker = document.createTreeWalker(canvasRoot, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())){
+          const txt = (node.nodeValue || '').replace(/\s+/g, ' ').trim();
+          if (!txt) continue;
+          const el = node.parentElement;
+          if (!el || el.tagName === 'CANVAS' || el.closest('canvas')) continue;
+          const cs = getComputedStyle(el);
+          if (!visible(cs)) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const r = range.getBoundingClientRect();
+          if (r.width < 1 || r.height < 1) continue;
+          cx.fillStyle = cs.color || '#111827';
+          cx.font = [cs.fontStyle, cs.fontWeight, cs.fontSize + '/' + cs.lineHeight, cs.fontFamily].join(' ');
+          let x = r.left - ox;
+          if (cs.textAlign === 'center') { cx.textAlign = 'center'; x = (r.left + r.width/2) - ox; }
+          else if (cs.textAlign === 'right' || cs.textAlign === 'end') { cx.textAlign = 'right'; x = (r.left + r.width) - ox; }
+          else cx.textAlign = 'left';
+          // centraliza verticalmente na linha
+          const y = r.top - oy + Math.max(0, (r.height - (parseFloat(cs.fontSize) || 12)) / 2) - 1;
+          cx.fillText(txt, x, y);
+        }
+        cx.textAlign = 'left';
+
+        return can.toDataURL(opts.mime || 'image/png', opts.quality || 0.95);
       },
 
       _loadImage(src){
