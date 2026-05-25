@@ -36060,7 +36060,7 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           const from = fv.from ? new Date(fv.from) : null;
           const to   = fv.to   ? new Date(fv.to)   : null;
           out = out.filter(r => {
-            const d = new Date(r[col]); if (isNaN(d)) return false;
+            const d = SolsticeTypes.toDate(r[col]); if (!d || isNaN(d)) return false; // DATA-1978: parser pt-BR
             if (from && d < from) return false;
             if (to && d > to) return false;
             return true;
@@ -36440,10 +36440,25 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const ing = _ingest();
       const dict = SolsticeStore.get('dictionary');
       const rows = ing.rows || [];
-      const dates = rows.map(r => new Date(r[col])).filter(d => !isNaN(d));
-      if (!dates.length) return null;
-      const dMin = new Date(SolsticeStats.min(dates));
-      const dMax = new Date(SolsticeStats.max(dates));
+      // Auditoria 2026.6 (DATA-1978): usa o parser pt-BR canônico (toDate) em vez
+      // de new Date cru (que misparseia dd/mm e mapeia ano de 2 dígitos pra 19xx),
+      // e calcula o range default por PERCENTIL (0,5%–99,5%) pra ignorar outliers
+      // de parse — uma linha malformada não puxa mais o "de" pra 1978. O usuário
+      // quer o min/max REAL da base, não o artefato.
+      const _ts = rows.map(r => SolsticeTypes.toDate(r[col]))
+        .map(d => d && d.getTime ? d.getTime() : NaN)
+        .filter(t => !isNaN(t))
+        .sort((a, b) => a - b);
+      if (!_ts.length) return null;
+      // Cerca de Tukey (3×IQR) pra ignorar datas-outlier de parse (ex: 1978 vindo
+      // de 1 linha malformada). Em base toda em 2024 o IQR≈0 → o 1978 cai fora e
+      // o range vira o real; em base espalhada (1990–2024) nada é cortado.
+      const _q = (p) => _ts[Math.min(_ts.length - 1, Math.max(0, Math.round(p * (_ts.length - 1))))];
+      const _iqr = _q(0.75) - _q(0.25);
+      const _lo = _q(0.25) - 3 * _iqr, _hi = _q(0.75) + 3 * _iqr;
+      const _trim = _ts.filter(t => t >= _lo && t <= _hi);
+      const dMin = new Date(_trim.length ? _trim[0] : _ts[0]);
+      const dMax = new Date(_trim.length ? _trim[_trim.length - 1] : _ts[_ts.length - 1]);
       const f = _filters()[col] || {};
 
       const wrap = SolsticeUtils.el('div', { class:'solstice__filter' });
