@@ -37719,25 +37719,65 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
           return def ? def.name : t;
         });
 
-        const introMarkdown = [
+        // Auditoria 2026.6 (SUMARIO-IA): enriquecido com DADOS REAIS — período
+        // coberto, métricas principais com valores, destaques (reasoning das recs)
+        // e qualidade. Antes só dizia nº de componentes/confiança/tipos (meta).
+        // Tudo em loop (sem Math.min(...arr)/spread) → seguro em base grande.
+        const _dict = ingest && ingest.dictionary || SolsticeStore.get('dictionary');
+        // Período coberto (1ª coluna temporal)
+        let _periodo = '';
+        try {
+          const _tcol = (ingest.columns || []).find(c => SolsticeTypes.group((ingest.types[c] || {}).type) === 'temporal');
+          if (_tcol && ingest.rows){
+            let _mn = Infinity, _mx = -Infinity;
+            for (const r of ingest.rows){ const d = SolsticeTypes.toDate(r[_tcol]); const t = d && d.getTime ? d.getTime() : NaN; if (isNaN(t)) continue; if (t < _mn) _mn = t; if (t > _mx) _mx = t; }
+            if (_mn !== Infinity){ const _f = ms => new Date(ms).toLocaleDateString('pt-BR'); _periodo = ' · período **' + _f(_mn) + '** → **' + _f(_mx) + '**'; }
+          }
+        } catch(_){}
+        // Métricas principais (recs escalares — kpi/bignum/gauge)
+        const _metricLines = [];
+        try {
+          const _scal = recs.filter(r => ['kpi','bignum','gauge'].indexOf(r.componentType) >= 0 && r.config && r.config.column).slice(0, 4);
+          const _aggL = { sum:'soma', avg:'média', min:'mínimo', max:'máximo', count:'contagem' };
+          for (const r of _scal){
+            const col = r.config.column, agg = r.config.agg || 'sum';
+            let s = 0, n = 0, mn = Infinity, mx = -Infinity;
+            for (const row of ingest.rows){ const v = SolsticeStats.parseNum(row[col]); if (isNaN(v)) continue; s += v; n++; if (v < mn) mn = v; if (v > mx) mx = v; }
+            if (!n) continue;
+            const val = agg === 'avg' ? s/n : agg === 'min' ? mn : agg === 'max' ? mx : agg === 'count' ? n : s;
+            const fmt = Math.abs(val) >= 1000 ? SolsticeLocale.integer(Math.round(val)) : SolsticeLocale.decimal(val, 2);
+            _metricLines.push('- **' + SolsticeHumanize.column(col, _dict) + '**: ' + fmt + ' _(' + (_aggL[agg] || agg) + ')_');
+          }
+        } catch(_){}
+        // Destaques (reasoning das principais recomendações)
+        const _destaques = recs.slice(0, 3).map(r => (r.reasoning || '').replace(/\s+/g, ' ').trim()).filter(s => s.length > 3);
+        // Qualidade
+        let _q = null; try { _q = SolsticeQuality.compute(ingest).score; } catch(_){}
+
+        const _md = [
           '## 🪄 Dashboard montado pela IA',
           '',
-          'A inteligência do Solstice analisou seu dataset (' +
-            SolsticeLocale.integer(nRows) + ' linhas × ' + nCols + ' colunas) ' +
-            'e selecionou **' + totalRecs + ' componente' + (totalRecs === 1 ? '' : 's') + '** ' +
-            'em **' + sections.length + ' seção' + (sections.length === 1 ? '' : 'ões') + '**' +
-            (totalAnalyzed > totalRecs ? ' (' + totalAnalyzed + ' regras avaliadas, ' + totalRecs + ' aprovadas)' : '') +
-            '.',
-          '',
-          '**Confiança média:** ' + avgConf + '%' +
-            (avgConf >= 75 ? ' — alta, dashboard pronto pra uso.' :
+          'Analisei **' + SolsticeLocale.integer(nRows) + ' linhas × ' + nCols + ' colunas**' + _periodo +
+            ' e montei **' + totalRecs + ' componente' + (totalRecs === 1 ? '' : 's') + '** em **' +
+            sections.length + ' seç' + (sections.length === 1 ? 'ão' : 'ões') + '**' +
+            (_q != null ? ' · qualidade da base **' + _q + '/100**' : '') + '.'
+        ];
+        if (_metricLines.length){
+          _md.push('', '### 🔢 Números principais', _metricLines.join('\n'));
+        }
+        if (_destaques.length){
+          _md.push('', '### 📌 O que olhar primeiro', _destaques.map(d => '- ' + d).join('\n'));
+        }
+        _md.push('',
+          '**Confiança média da montagem:** ' + avgConf + '%' +
+            (avgConf >= 75 ? ' — alta, pronto pra uso.' :
              avgConf >= 60 ? ' — boa, revise se algum bloco não fizer sentido.' :
-                             ' — moderada, ajuste fino recomendado.'),
+                             ' — moderada, ajuste fino recomendado.') +
+            (totalAnalyzed > totalRecs ? ' _(' + totalAnalyzed + ' regras avaliadas, ' + totalRecs + ' aprovadas)_' : ''),
           '',
-          '**Tipos escolhidos:** ' + compTypeLabels.join(' · ') + '.',
-          '',
-          '_Cada seção abaixo tem **✨ IA** no título. Tudo é editável — renomeie, mova, troque tipo, redimensione livremente._'
-        ].join('\n');
+          '_Cada seção tem **✨ IA** no título. Tudo é editável — renomeie, mova, troque tipo, redimensione, filtre, clique pra cruzar (cross-filter)._'
+        );
+        const introMarkdown = _md.join('\n');
 
         const intro = {
           id: SolsticeUtils.uuid(),
