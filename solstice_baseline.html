@@ -25313,35 +25313,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         'treemap','radar','polar','timeline','bubble','combo','area','bar','pie',
         'donut','stacked-bar'
       ].includes(def.id);
-      if (usesPalette){
-        coresBody.appendChild(_divider());
-        coresBody.appendChild(_subHeading('Paleta do gráfico', '🎨 11 paletas prontas — escolha o conjunto de cores das séries'));
-        coresBody.appendChild((function(){
-          const wrap = SolsticeUtils.el('div', { class:'solstice__style-palettes' });
-          SolsticeStyle.listPalettes().forEach(p => {
-            const card = SolsticeUtils.el('button', {
-              class:'solstice__style-palette' + (p.key === (style.palette || 'auto') ? ' is-active' : ''),
-              type:'button',
-              title: p.label,
-              'data-palette-key': p.key, // Polish v7: usado pelo _quickUpdateStyleState
-              onclick: () => _set('palette', p.key)
-            });
-            if (p.colors){
-              const swatch = SolsticeUtils.el('div', { class:'solstice__style-palette-swatch' });
-              p.colors.slice(0, 6).forEach(c => {
-                const sw = SolsticeUtils.el('span', { style:'background:' + c + ';' });
-                swatch.appendChild(sw);
-              });
-              card.appendChild(swatch);
-            } else {
-              card.appendChild(SolsticeUtils.el('div', { class:'solstice__style-palette-swatch-auto' }, 'auto'));
-            }
-            card.appendChild(SolsticeUtils.el('div', { class:'solstice__style-palette-label' }, p.label));
-            wrap.appendChild(card);
-          });
-          return wrap;
-        })());
-      }
+      // Auditoria 2026.6: "Paleta do gráfico" POR-COMPONENTE removida do tab Visual
+      // a pedido do usuário ("falta tirar a paleta de gráfico dos componentes em
+      // visual"). A cor das séries passa a seguir só a paleta GLOBAL (menu
+      // Aparência no header) — fonte única, sem conflito/duplicidade por componente.
+      void usesPalette;
 
       // ===== SEÇÃO 3: TEXTO =====
       // SOL-D6: "Tipografia" renomeada para "Texto" (junior-friendly).
