@@ -4389,6 +4389,8 @@
     cursor: pointer;
     transition: all var(--t-fast) var(--ease);
     box-shadow: var(--sh-1);
+    min-width: 0; /* Auditoria 2026.6: card encolhe no grid sem estourar/cortar */
+    overflow: hidden;
   }
   .solstice__cat-card:hover {
     border-color: var(--c-accent);
@@ -4411,6 +4413,11 @@
   .solstice__cat-card-name {
     font-size: var(--fs-sm); font-weight: var(--fw-semibold);
     color: var(--c-text); margin-bottom: var(--sp-1);
+    /* Auditoria 2026.6 (SIDEBAR): "Big Number" era cortado ("Big Numbe") no grid
+       2-col estreito de 240px. Permite quebra limpa de linha em vez de corte. */
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+    width: 100%;
   }
   .solstice__cat-card-desc {
     font-size: 10px; color: var(--c-muted);
@@ -5963,9 +5970,21 @@
   .solstice__editor-col-head {
     display: flex; align-items: center; gap: var(--sp-2);
     font-size: var(--fs-sm);
+    min-width: 0; /* Auditoria 2026.6: permite o nome (flex:1) encolher e elipsar */
   }
-  .solstice__editor-col-name { flex: 1; color: var(--c-text); font-weight: var(--fw-medium); cursor: text; }
-  .solstice__editor-col-name[contenteditable="true"] { outline: 1px solid var(--c-accent); padding: 0 var(--sp-1); border-radius: var(--rad-xs); }
+  /* Auditoria 2026.6 (SIDEBAR): nomes de coluna LONGOS eram cortados secos (sem
+     reticências) e invadiam os botões de ação. Agora elipsa com min-width:0 e
+     mostra o nome completo no tooltip. Ao editar (contenteditable), libera o
+     overflow pra digitar o nome inteiro. */
+  .solstice__editor-col-name {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    color: var(--c-text); font-weight: var(--fw-medium); cursor: text;
+  }
+  .solstice__editor-col-name[contenteditable="true"] {
+    outline: 1px solid var(--c-accent); padding: 0 var(--sp-1); border-radius: var(--rad-xs);
+    overflow: visible; text-overflow: clip; white-space: nowrap;
+  }
   
   .solstice__editor-col-actions {
     display: flex; gap: 2px; opacity: 0; transition: opacity var(--t-fast);
@@ -12667,15 +12686,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
      * Tipos especiais (sparse/constant) detectados primeiro por meta-análise.
      */
     function inferColumn(values, columnName, ctx){
-      const nonEmpty = values.filter(v => v != null && v !== '');
-      const sample = nonEmpty.slice(0, 200);
+      // Auditoria 2026.6 (BIG-DATA-PERF): passada ÚNICA. Antes:
+      //   values.filter(...) alocava um array de TODOS os não-vazios (até 500k)
+      //   por coluna × 50 colunas = churn de memória enorme em base grande.
+      // Agora: 1 loop conta filledFull (contagem REAL, p/ o ratio de sparse) e
+      // coleta só os 200 primeiros não-vazios pra amostra. Aloca um array de 200,
+      // não de 500k. Semântica idêntica.
       const total = values.length || 1;
+      const sample = [];
+      let filledFull = 0;
+      for (let i = 0; i < values.length; i++){
+        const v = values[i];
+        if (v == null || v === '') continue;
+        filledFull++;
+        if (sample.length < 200) sample.push(v);
+      }
       const filled = sample.length;
-      // Auditoria 2026.6 (BIG-DATA-SPARSE): contagem REAL de não-vazios (não o
-      // sample capado em 200). ANTES, filled(≤200)/total fazia QUALQUER dataset
-      // >~4000 linhas ser classificado 'sparse' (vazio) → sem tipos, sem métricas,
-      // dashboard inútil em base grande. filledFull corrige o ratio de preenchimento.
-      const filledFull = nonEmpty.length;
+      // Auditoria 2026.6 (BIG-DATA-SPARSE): filledFull é a contagem real de
+      // não-vazios. ANTES, filled(≤200)/total fazia QUALQUER dataset >~4000
+      // linhas ser classificado 'sparse' (vazio) → sem tipos, sem métricas.
 
       // 1) Especiais
       if (filledFull === 0) return { type: 'sparse', confidence: 1, ratio: { nulls: 1 } };
@@ -13287,16 +13316,27 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     /** Valida cada célula contra o tipo inferido. */
     function validate(rows, columns, types){
       const issues = { byColumn: {}, total: 0 };
+      const N = rows.length;
+      // Auditoria 2026.6 (BIG-DATA-PERF): validade é uma % estatística. Em base
+      // grande, validar TODAS as células (N×colunas; 500k×50 = 25M chamadas de
+      // regex) trava por segundos. Amostra uniforme de até 50k linhas e reescala
+      // as contagens pro total — erro desprezível (<0.5pp) e ~10× mais rápido.
+      // Base pequena (≤50k) continua exata (step=1, scale=1).
+      const CAP = 50000;
+      const sampledN = N > CAP ? CAP : N;
+      const step = N > CAP ? N / CAP : 1;
+      const scale = sampledN > 0 ? N / sampledN : 1;
       for (const col of columns){
         const def = SolsticeTypes.getType(types[col].type);
         if (!def || !def.validate) continue;
         let invalid = 0; let nulls = 0;
-        for (const r of rows){
-          const v = r[col];
+        for (let s = 0; s < sampledN; s++){
+          const v = rows[step === 1 ? s : Math.floor(s * step)][col];
           if (v == null || v === ''){ nulls++; continue; }
           try { if (!def.validate(v)) invalid++; } catch(e){ invalid++; }
         }
-        issues.byColumn[col] = { invalid, nulls, total: rows.length };
+        if (step !== 1){ invalid = Math.round(invalid * scale); nulls = Math.round(nulls * scale); }
+        issues.byColumn[col] = { invalid, nulls, total: N };
         issues.total += invalid;
       }
       return issues;
@@ -13649,10 +13689,17 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Apenas identificadores devem ser únicos
       const idCols = columns.filter(c => ['identifier','cpf','cnpj','hash'].indexOf(types[c].type) >= 0);
       if (!idCols.length) return 1;
+      // Auditoria 2026.6 (BIG-DATA-PERF): razão de unicidade estimada por amostra
+      // (Set de 500k por id-col estourava memória). 50k é preciso pro score.
+      const N = rows.length;
+      const CAP = 50000;
+      const sampledN = N > CAP ? CAP : N;
+      const step = N > CAP ? N / CAP : 1;
       let score = 0;
       for (const c of idCols){
-        const uniq = new Set(rows.map(r => r[c])).size;
-        score += uniq / rows.length;
+        const seen = new Set();
+        for (let s = 0; s < sampledN; s++){ seen.add(rows[step === 1 ? s : Math.floor(s * step)][c]); }
+        score += sampledN > 0 ? seen.size / sampledN : 0;
       }
       return score / idCols.length;
     }
@@ -13673,23 +13720,42 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     }
     function _distribution(rows, columns, types){
       // Penaliza colunas com 1 valor dominante > 95%
+      // Auditoria 2026.6 (BIG-DATA-PERF): amostra uniforme de até 50k. A razão de
+      // dominância (max/n) é precisa por amostra, e o mapa de contagem fica
+      // limitado a ≤50k chaves (antes uma id-col criava mapa de 500k chaves).
+      const N = rows.length;
+      const CAP = 50000;
+      const sampledN = N > CAP ? CAP : N;
+      const step = N > CAP ? N / CAP : 1;
       let issues = 0;
       for (const c of columns){
         const counts = {};
-        for (const r of rows){ const v = String(r[c]); counts[v] = (counts[v]||0) + 1; }
-        // Auditoria 2026.6 (BIG-DATA): Math.max(...array) estourava a pilha em
-        // colunas de alta cardinalidade (150k+ valores distintos → 150k args).
-        // Loop O(n) é seguro pra qualquer tamanho.
+        for (let s = 0; s < sampledN; s++){
+          const v = String(rows[step === 1 ? s : Math.floor(s * step)][c]);
+          counts[v] = (counts[v] || 0) + 1;
+        }
+        // Math.max(...array) estourava a pilha em alta cardinalidade → loop O(n).
         let max = 0;
         for (const k in counts){ if (counts[k] > max) max = counts[k]; }
-        if (max / rows.length > 0.95 && Object.keys(counts).length > 1) issues++;
+        if (max / sampledN > 0.95 && Object.keys(counts).length > 1) issues++;
       }
       return columns.length > 0 ? 1 - (issues / columns.length) : 1;
     }
 
+    let _memo = null;
+
     /** Calcula score 0-100 + breakdown + flags. */
     function compute(ingest){
       const { rows, columns, types, issues } = ingest;
+      // Auditoria 2026.6 (BIG-DATA-PERF): memoiza por ingestão. O card de
+      // qualidade chama compute() a CADA render — sem cache refazia toda a
+      // varredura (validade/distribuição/unicidade) de novo. Chave: referência
+      // do ingest + dimensões (nova base ou coluna calculada → objeto novo ou
+      // contagem diferente → invalida automaticamente).
+      if (_memo && _memo.ingest === ingest &&
+          _memo.nRows === rows.length && _memo.nCols === columns.length){
+        return _memo.result;
+      }
       const profile = SolsticeDatasetType.classify(columns, types, rows);
       const w = WEIGHTS[profile] || WEIGHTS.snapshot;
       const totalCells = rows.length * columns.length;
@@ -13767,7 +13833,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
       }
 
-      return { score, profile, weights: w, metrics, flags };
+      const result = { score, profile, weights: w, metrics, flags };
+      _memo = { ingest, nRows: rows.length, nCols: columns.length, result };
+      return result;
     }
 
     return { compute, WEIGHTS };
@@ -13881,7 +13949,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       const nameSpan = SolsticeUtils.el('span', {
         class:'solstice__editor-col-name',
-        title:'Clique para renomear',
+        title: col + ' · clique para renomear', // Auditoria 2026.6: nome completo no hover (elipsa quando longo)
         onclick: function(){ this.contentEditable = 'true'; this.focus(); }
       }, col);
       nameSpan.addEventListener('blur', function(){
@@ -15391,10 +15459,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // CALC1 v4 (Auditoria 2026.4): colunas calculadas com affordance forte.
        // CTA grande proeminente + lista visual das calculadas com fórmula
        // visível inline (antes só em tooltip — usuário não descobria a feature).
-      const wrap = SolsticeUtils.el('div', { style:'display:flex;gap:6px;' });
+      // Auditoria 2026.6 (SIDEBAR): empilhado na vertical. Lado a lado (flex:1) em
+      // 240px dava ~100px por botão e "∑ Nova coluna calculada" quebrava em 3
+      // linhas com o ∑ colado. Full-width cada um cabe o rótulo numa linha só.
+      const wrap = SolsticeUtils.el('div', { style:'display:flex;flex-direction:column;gap:6px;' });
       const tableBtn = SolsticeUtils.el('button', {
         class:'solstice__btn',
-        style:'flex:1;justify-content:center;font-size:12px;',
+        style:'width:100%;justify-content:center;font-size:12px;white-space:nowrap;',
         title:'Abrir tabela completa (alterar tipos · ⚡ transformar)',
         onclick: () => { if (SolsticeEditor && SolsticeEditor.openPreview) SolsticeEditor.openPreview(); }
       }, '📋 Tabela completa');
@@ -15402,7 +15473,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
       const calcBtn = SolsticeUtils.el('button', {
         class:'solstice__btn solstice__btn--primary',
-        style:'flex:1;justify-content:center;font-size:12px;font-weight:600;',
+        style:'width:100%;justify-content:center;font-size:12px;font-weight:600;white-space:nowrap;',
         title:'Criar coluna calculada por linha (margem, alerta, etc)',
         onclick: () => {
           if (typeof SolsticeSidebarTabs !== 'undefined' && SolsticeSidebarTabs.openCalculatedColumnModal){
