@@ -24464,6 +24464,10 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               });
             }
           }
+          // Auditoria 2026.6 (SMOOTH-UPDATE): avisa o canvas que só a config deste
+          // slot mudou → re-render cirúrgico (sem flash do canvas inteiro). Os
+          // demais subscribers (autosave/dirty) disparam normalmente.
+          try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.noteConfigOnly) SolsticeCanvas.noteConfigOnly(slotId); } catch(_){}
           SolsticeStore.set('canvas.sections', sections);
           SolsticeAudit.record({
             action:'update_config', target: slotId, componentId: slotId,
@@ -29961,10 +29965,37 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
     /* ===== RENDER ===== */
 
+    // Auditoria 2026.6 (SMOOTH-UPDATE): quando só a CONFIG de 1 componente muda
+    // (via inspector), _updateConfig marca o slot aqui — o render re-pinta SÓ
+    // aquele componente in place, sem o "mini refresh" (wipe+rebuild) do canvas
+    // inteiro. Estrutura (seções/linhas/slots/tipos/layout) não muda em config-only.
+    let _configOnlySlot = null;
+    function noteConfigOnly(slotId){ _configOnlySlot = slotId; }
+
     function render(){
       const canvas = document.querySelector('.solstice__canvas');
       if (!canvas) return;
       const sections = _get();
+      // Re-render cirúrgico de 1 slot (sem repintar toolbar/filtros/insights/outras seções)
+      if (_configOnlySlot){
+        const id = _configOnlySlot; _configOnlySlot = null;
+        const slotEl = canvas.querySelector('.solstice__slot[data-id="' + id + '"]');
+        if (slotEl){
+          let slot = null;
+          sections.forEach(s => (s.rows || []).forEach(r => (r.slots || []).forEach(sl => { if (sl.id === id) slot = sl; })));
+          if (slot && slot.type && slot.type !== 'empty'){
+            try {
+              SolsticeUtils.cleanupListeners(slotEl);
+              slotEl.innerHTML = '';
+              SolsticeComponents.render(slot, slotEl);
+              slotEl.style.display = 'block'; slotEl.style.padding = '0';
+              slotEl.style.background = 'transparent'; slotEl.style.border = '0'; slotEl.style.cursor = 'default';
+              return; // pronto — resto do canvas intacto
+            } catch(e){ /* erro → cai pro full render abaixo */ }
+          }
+        }
+        // não achou o slot no DOM → full render (ex: componente recém-adicionado)
+      }
       const dsReady = SolsticeStore.get('dataset.ready');
       // Auditoria 2026 (MC-01): cleanup defensivo antes de repintar canvas.
       // O canvas é o host mais repintado do app; sem cleanup, qualquer listener
@@ -31491,7 +31522,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       addSection, removeSection, duplicateSection, moveSection, setSectionTitle,
       addRow, removeRow, duplicateRow, moveRow, changeRowLayout,
       applyTemplate, clear,
-      render, init,
+      render, init, noteConfigOnly,
       _get: () => _get(),
       // Code Review 2026 (#2/#4): helpers expostos pra centralizar mutação de slot.
       withSlot, findSlot, editSections: _editSections
