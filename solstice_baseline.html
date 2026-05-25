@@ -23346,7 +23346,34 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (canvas._chart) { try { canvas._chart.destroy(); } catch(_){} canvas._chart = null; }
           // Sprint 43: stacked X+Y quando groupBy + groupStacked
           const isStacked = cfg.groupBy && groupTopCats && cfg.groupStacked !== false;
+          // Auditoria 2026.6 (RÓTULO-DADOS): rótulo de dados também no distrib-time
+          // (antes só time-series). Respeita style.dataLabelFormat/Decimals.
+          const _dlShow = !!(cfg.style && cfg.style.showDataLabels);
+          const _dlFmt = (cfg.style && cfg.style.dataLabelFormat) || 'integer';
+          const _dlDec = (cfg.style && cfg.style.dataLabelDecimals != null) ? cfg.style.dataLabelDecimals : 1;
+          const _dlLabel = (v) => {
+            if (v == null || isNaN(v)) return '';
+            if (_dlFmt === 'decimal') return SolsticeLocale.decimal(v, _dlDec);
+            if (_dlFmt === 'percent') return (v * 100).toFixed(_dlDec).replace('.', ',') + '%';
+            if (_dlFmt === 'compact'){ const a = Math.abs(v); if (a >= 1e6) return (v/1e6).toFixed(1).replace('.', ',') + 'M'; if (a >= 1e3) return (v/1e3).toFixed(1).replace('.', ',') + 'k'; return String(Math.round(v)); }
+            return SolsticeLocale.integer(Math.round(v));
+          };
+          const _dlPlugin = _dlShow ? {
+            id: 'solDataLabelsDT',
+            afterDatasetsDraw(chart){
+              const cc = chart.ctx; cc.save();
+              cc.font = '10px var(--font-mono, monospace)';
+              cc.fillStyle = isDark ? '#E7E9EE' : '#13161C';
+              cc.textAlign = 'center'; cc.textBaseline = 'bottom';
+              chart.data.datasets.forEach((ds, di) => {
+                const meta = chart.getDatasetMeta(di); if (!meta || meta.hidden) return;
+                meta.data.forEach((pt, i) => { const v = ds.data[i]; if (v == null || isNaN(v)) return; cc.fillText(_dlLabel(v), pt.x, pt.y - 4); });
+              });
+              cc.restore();
+            }
+          } : null;
           canvas._chart = new Chart(canvas, {
+            plugins: _dlPlugin ? [_dlPlugin] : [],
             data: { labels, datasets },
             options: {
               responsive: true, maintainAspectRatio: false,
@@ -25391,6 +25418,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           ['all','Todas'],['5','Top 5'],['10','Top 10'],['20','Top 20']
         ], String(style.limit || 'all'), v => _set('limit', v === 'all' ? null : parseInt(v)))));
         especBody.appendChild(field('Agrupar resto em "Outros"', makeToggle(style.groupOthers === true, v => _set('groupOthers', v))));
+      } else if (def.id === 'distrib-time'){
+        // Auditoria 2026.6 (RÓTULO-DADOS): controles de rótulo de dados no
+        // distrib-time (antes só no time-series). O renderer consulta
+        // style.showDataLabels/Format/Decimals.
+        especBody.appendChild(field('Rótulo de dados', makeToggle(style.showDataLabels === true, v => _set('showDataLabels', v)),
+          'Mostra o valor em cima de cada barra.'));
+        if (style.showDataLabels === true){
+          especBody.appendChild(field('Formato do rótulo', makeSelect([
+            ['integer','Inteiro (1.234)'],['decimal','Decimal (1.234,5)'],['percent','Percentual (12,3%)'],['compact','Compacto (1,2k · 3,4M)']
+          ], style.dataLabelFormat || 'integer', v => _set('dataLabelFormat', v))));
+          if ((style.dataLabelFormat || 'integer') === 'decimal' || style.dataLabelFormat === 'percent'){
+            especBody.appendChild(field('Casas decimais', makeSelect([
+              ['0','0'],['1','1'],['2','2'],['3','3']
+            ], String(style.dataLabelDecimals != null ? style.dataLabelDecimals : 1), v => _set('dataLabelDecimals', parseInt(v)))));
+          }
+        }
       } else if (def.id === 'table' || def.id === 'pivot'){
         especBody.appendChild(field('Linhas alternadas (zebra)', makeToggle(style.zebra !== false, v => _set('zebra', v))));
         especBody.appendChild(field('Cabeçalho sticky', makeToggle(style.stickyHeader !== false, v => _set('stickyHeader', v))));
