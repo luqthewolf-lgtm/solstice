@@ -29996,6 +29996,19 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const canvas = document.querySelector('.solstice__canvas');
       if (!canvas) return;
       const sections = _get();
+      // Auditoria 2026.6 (SCROLL-ANCHOR): preserva a posição de scroll do canvas
+      // através do re-render. ANTES, a cada mudança o conteúdo "subia de pouco em
+      // pouco" — porque os gráficos renderizam async (rAF) e o scroll era
+      // clampado ANTES da altura total existir, escorregando pra cima e acumulando.
+      // Restaura o scrollTop DEPOIS dos gráficos assentarem (rAF + timeout).
+      const _savedScroll = canvas.scrollTop;
+      const _restoreScroll = () => { if (canvas && _savedScroll > 0 && Math.abs(canvas.scrollTop - _savedScroll) > 1) { try { canvas.scrollTop = _savedScroll; } catch(_){} } };
+      const _restoreSoon = () => {
+        _restoreScroll();
+        requestAnimationFrame(() => { _restoreScroll(); requestAnimationFrame(_restoreScroll); });
+        setTimeout(_restoreScroll, 90);
+        setTimeout(_restoreScroll, 220);
+      };
       // Re-render cirúrgico de 1 slot (sem repintar toolbar/filtros/insights/outras seções)
       if (_configOnlySlot){
         const id = _configOnlySlot; _configOnlySlot = null;
@@ -30010,6 +30023,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
               SolsticeComponents.render(slot, slotEl);
               slotEl.style.display = 'block'; slotEl.style.padding = '0';
               slotEl.style.background = 'transparent'; slotEl.style.border = '0'; slotEl.style.cursor = 'default';
+              _restoreSoon(); // mantém o scroll exatamente onde estava
               return; // pronto — resto do canvas intacto
             } catch(e){ /* erro → cai pro full render abaixo */ }
           }
@@ -30056,6 +30070,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
 
       sections.forEach((sec, secIdx) => canvas.appendChild(_renderSection(sec, secIdx, sections.length)));
+      // Auditoria 2026.6 (SCROLL-ANCHOR): restaura o scroll DEPOIS dos componentes
+      // (charts assíncronos) terem altura — impede o "subir de pouco em pouco".
+      _restoreSoon();
     }
 
     function _renderToolbar(count){
