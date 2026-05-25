@@ -5676,7 +5676,59 @@
     overflow: hidden;
     flex: 1;
   }
-  
+
+  /* Auditoria 2026.6 — CTA "Auto / montar pra mim". Usado no topo do picker de
+     templates E no empty-state do canvas. Destaque (gradiente accent) porque é
+     o caminho mais rápido pro dashboard pronto. */
+  .solstice__auto-cta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    width: 100%;
+    padding: var(--sp-3) var(--sp-4);
+    border: none;
+    border-radius: var(--rad-md);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    color: #fff;
+    background: linear-gradient(135deg, var(--c-accent) 0%, #ff9a3c 100%);
+    box-shadow: 0 4px 14px rgba(236, 112, 0, 0.28);
+    transition: transform var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+  }
+  .solstice__auto-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(236, 112, 0, 0.38);
+  }
+  .solstice__auto-cta:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+  .solstice__auto-cta-icon {
+    font-size: 26px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .solstice__auto-cta-title {
+    font-weight: var(--fw-semibold);
+    font-size: 15px;
+    line-height: 1.2;
+  }
+  .solstice__auto-cta-desc {
+    font-size: 12px;
+    line-height: 1.35;
+    opacity: 0.92;
+    margin-top: 2px;
+  }
+  .solstice__auto-cta-arrow {
+    font-size: 20px;
+    flex-shrink: 0;
+    transition: transform var(--t-base) var(--ease);
+  }
+  .solstice__auto-cta:hover .solstice__auto-cta-arrow {
+    transform: translateX(3px);
+  }
+
   
 
   
@@ -29879,7 +29931,31 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           SolsticeLocale.integer(nRows) + ' linhas · ' + nCols + ' colunas')
       ));
       wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-brand', style:'font-size:24px;margin-bottom:8px;' },
-        'Escolha um template ou faça uma pergunta'));
+        'Monte automaticamente, escolha um template ou pergunte'));
+
+      // Auditoria 2026.6 — opção "Auto" em 1 clique já no começo (empty-state),
+      // espelhando o topo do picker de Templates. Pedido do usuário: pegar o
+      // Auto direto, sem criar template e apagar depois. Mais proeminente que
+      // os cards de template porque é o caminho mais rápido pro "wow".
+      const autoCta = SolsticeUtils.el('button', {
+        type:'button',
+        class:'solstice__auto-cta',
+        style:'max-width:640px;margin:0 auto var(--sp-3);',
+        title:'A IA analisa a base e monta o dashboard inteiro automaticamente',
+        onclick: () => {
+          try { if (typeof SolsticeAutoDashboard !== 'undefined') SolsticeAutoDashboard.run({ force: true }); }
+          catch(e){ SolsticeLog.warn('[empty-state] auto falhou', e); }
+        }
+      });
+      autoCta.appendChild(SolsticeUtils.el('span', { class:'solstice__auto-cta-icon', 'aria-hidden':'true' }, '🪄'));
+      const _autoTxt = SolsticeUtils.el('div', { style:'flex:1;min-width:0;' });
+      _autoTxt.appendChild(SolsticeUtils.el('div', { class:'solstice__auto-cta-title' }, 'Montar pra mim (Auto)'));
+      _autoTxt.appendChild(SolsticeUtils.el('div', { class:'solstice__auto-cta-desc' },
+        'A IA escolhe as melhores colunas e cria o dashboard inteiro. Você ajusta depois.'));
+      autoCta.appendChild(_autoTxt);
+      autoCta.appendChild(SolsticeUtils.el('span', { class:'solstice__auto-cta-arrow', 'aria-hidden':'true' }, '→'));
+      wrap.appendChild(autoCta);
+
       wrap.appendChild(_renderQueryChat());
       wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__welcome-divider' },
         SolsticeUtils.el('span', null, 'ou escolha um template de dashboard')));
@@ -31406,6 +31482,36 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         let closeFn = null;
         function _renderBody(){
           const body = SolsticeUtils.el('div', { style:'min-width:560px;' });
+
+          // Auditoria 2026.6 — opção "Auto" em 1 clique no TOPO do picker.
+          // Pedido do usuário: escolher o Auto direto, sem ter que aplicar um
+          // template e ficar apagando depois pra trocar por Auto. A IA monta o
+          // dashboard inteiro (KPIs + gráficos + seções) a partir da base.
+          const autoCta = SolsticeUtils.el('button', {
+            type:'button',
+            class:'solstice__auto-cta',
+            title:'A IA analisa a base e monta o dashboard inteiro automaticamente',
+            onclick: () => {
+              if (closeFn) closeFn();
+              resolve('__auto__');
+              setTimeout(() => {
+                try { if (typeof SolsticeAutoDashboard !== 'undefined') SolsticeAutoDashboard.run({ force: true }); }
+                catch(e){ SolsticeLog.warn('[Templates] auto falhou', e); }
+              }, 80);
+            }
+          });
+          autoCta.appendChild(SolsticeUtils.el('span', { class:'solstice__auto-cta-icon', 'aria-hidden':'true' }, '🪄'));
+          const autoTxt = SolsticeUtils.el('div', { style:'flex:1;min-width:0;' });
+          autoTxt.appendChild(SolsticeUtils.el('div', { class:'solstice__auto-cta-title' }, 'Montar pra mim (Auto)'));
+          autoTxt.appendChild(SolsticeUtils.el('div', { class:'solstice__auto-cta-desc' },
+            'A IA escolhe as melhores colunas e cria o dashboard inteiro. Você ajusta depois.'));
+          autoCta.appendChild(autoTxt);
+          autoCta.appendChild(SolsticeUtils.el('span', { class:'solstice__auto-cta-arrow', 'aria-hidden':'true' }, '→'));
+          body.appendChild(autoCta);
+          body.appendChild(SolsticeUtils.el('div', {
+            style:'text-align:center;font-size:11px;color:var(--c-muted);margin:-6px 0 14px;'
+          }, 'ou escolha um template abaixo'));
+
           // Tabs
           const tabs = SolsticeUtils.el('div', {
             role:'tablist',
