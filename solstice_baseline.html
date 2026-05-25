@@ -839,7 +839,8 @@
   .solstice__sidebar {
     grid-area: sidebar;
     background: var(--c-surface);
-    border-right: 1px solid var(--c-border);
+    /* Auditoria 2026.6: divisor entre painéis removido a pedido do usuário
+       ("tire a barra de divisor entre os paineis"). */
     padding: var(--sp-4);
     overflow-y: auto;
     overflow-x: hidden;
@@ -987,7 +988,7 @@
   .solstice__inspector {
     grid-area: inspector;
     background: var(--c-surface);
-    border-left: 1px solid var(--c-border);
+    /* Auditoria 2026.6: divisor entre painéis removido (ver .solstice__sidebar) */
     overflow: hidden;
     display: flex; flex-direction: column;
     min-width: 0;
