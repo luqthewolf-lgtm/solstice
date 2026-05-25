@@ -25023,55 +25023,56 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
       /* ===== Bloco 6 ===== */
       else if (def.id === 'scatter'){
-        field('Eixo X (numérico)', colSelect(cfg.xColumn, 'numeric', v => _updateConfig(slot.id, { xColumn: v })));
-        field('Eixo Y (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })));
-        field('Tamanho dos pontos (opcional)', colSelect(cfg.sizeColumn, 'numeric', v => _updateConfig(slot.id, { sizeColumn: v })));
-        const regr = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
-        const cb = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { showRegression: !!e.target.checked }) });
-        if (cfg.showRegression !== false) cb.checked = true;
-        regr.appendChild(cb);
-        regr.appendChild(SolsticeUtils.el('span', null, ' Mostrar linha de regressão (com r²)'));
-        host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, regr));
+        group('📈 Eixos');
+        field('Eixo X (numérico)', colSelect(cfg.xColumn, 'numeric', v => _updateConfig(slot.id, { xColumn: v })), 'Variável do eixo horizontal.');
+        field('Eixo Y (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })), 'Variável do eixo vertical.');
+        field('Tamanho dos pontos (opcional)', colSelect(cfg.sizeColumn, 'numeric', v => _updateConfig(slot.id, { sizeColumn: v })), 'Ponto maior = valor maior (bubble chart).');
+        group('🔬 Análise');
+        toggleRow('Linha de regressão (com r²)', cfg.showRegression !== false, v => _updateConfig(slot.id, { showRegression: v }), 'Tendência linear + coeficiente de determinação.');
         const clusters = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'0', max:'8',
           value: String(cfg.clusters || 0),
           onchange: e => _updateConfig(slot.id, { clusters: Math.max(0, Math.min(8, parseInt(e.target.value) || 0)) }) });
-        field('Clusters (k-means, 0 = sem agrupamento)', clusters);
+        field('Clusters (k-means)', clusters, '0 = sem agrupamento · 2–8 colore os pontos por proximidade.');
       }
       else if (def.id === 'heatmap-cal'){
-        field('Coluna temporal', colSelect(cfg.dateColumn, 'temporal', v => _updateConfig(slot.id, { dateColumn: v })));
-        field('Coluna de valor (opcional)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v, agg: v ? 'sum' : 'count' })));
+        group('📅 Dados');
+        field('Coluna de data', colSelect(cfg.dateColumn, 'temporal', v => _updateConfig(slot.id, { dateColumn: v })), 'Cada dia vira uma célula colorida pela intensidade.');
+        field('Coluna de valor (opcional)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v, agg: v ? 'sum' : 'count' })), 'Sem valor = conta os registros por dia.');
         const agg = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { agg: e.target.value }) });
         [['count','Contagem de registros'],['sum','Soma'],['avg','Média']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.agg || 'count') === v) o.selected = true;
           agg.appendChild(o);
         });
-        field('Agregação diária', agg);
+        field('Como agregar por dia', agg, 'Como combinar os valores caídos no mesmo dia.');
       }
       else if (def.id === 'gauge'){
-        field('Coluna (numérica)', colSelect(cfg.column, 'numeric', v => _updateConfig(slot.id, { column: v })));
+        group('🎯 Medida');
+        field('Coluna (numérica)', colSelect(cfg.column, 'numeric', v => _updateConfig(slot.id, { column: v })), 'Valor apontado pelo ponteiro.');
         const agg = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { agg: e.target.value }) });
         [['avg','Média'],['sum','Soma'],['min','Mínimo'],['max','Máximo']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.agg || 'avg') === v) o.selected = true;
           agg.appendChild(o);
         });
-        field('Agregação', agg);
+        field('Como agregar', agg, 'Média p/ taxas/notas · Soma p/ totais.');
+        group('📏 Escala');
         const minIn = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', step:'any',
           value: String(cfg.min == null ? 0 : cfg.min),
           onchange: e => _updateConfig(slot.id, { min: parseFloat(e.target.value) }) });
-        field('Mínimo do range', minIn);
+        field('Mínimo do range', minIn, 'Início da escala (vazio do arco).');
         const maxIn = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', step:'any',
           value: String(cfg.max == null ? 100 : cfg.max),
           onchange: e => _updateConfig(slot.id, { max: parseFloat(e.target.value) }) });
-        field('Máximo do range', maxIn);
+        field('Máximo do range', maxIn, 'Fim da escala (cheio do arco).');
         const tgtIn = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', step:'any',
           value: cfg.target == null ? '' : String(cfg.target),
-          placeholder:'opcional — destaca a meta no gauge',
+          placeholder:'opcional',
           onchange: e => _updateConfig(slot.id, { target: e.target.value === '' ? null : parseFloat(e.target.value) }) });
-        field('Meta (opcional)', tgtIn);
+        field('Meta (opcional)', tgtIn, 'Marca a meta como um traço no arco.');
       }
       else if (def.id === 'markdown'){
+        group('📝 Texto');
         const txt = SolsticeUtils.el('textarea', {
           class:'solstice__props-input',
           rows: '10',
@@ -25080,21 +25081,44 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           oninput: e => _updateConfig(slot.id, { text: e.target.value })
         });
         txt.value = cfg.text || '';
-        field('Texto (Markdown)', txt);
-        host.appendChild(SolsticeUtils.el('div', { style:'font-size:10px;color:var(--c-muted);margin-top:-4px;' },
+        field('Conteúdo (Markdown)', txt, 'Aceita # títulos, **negrito**, listas e placeholders {{...}}.');
+        host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-hint', style:'margin-top:-4px;' },
           'Placeholders: ' +
           SolsticeUtils.el('code', null, '{{dataset.name}}').outerHTML + ' · ' +
           SolsticeUtils.el('code', null, '{{ingest.meta.rowsCount}}').outerHTML + ' · ' +
           SolsticeUtils.el('code', null, '{{profile.name}}').outerHTML));
       }
       else if (def.id === 'boxplot'){
-        field('Coluna de valor (numérica)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v })));
-        field('Agrupar por (opcional)', colSelect(cfg.groupColumn, 'categorical', v => _updateConfig(slot.id, { groupColumn: v })));
+        group('📦 Dados');
+        field('Coluna de valor (numérica)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v })), 'A distribuição (quartis + média + outliers) dessa medida.');
+        field('Agrupar por (opcional)', colSelect(cfg.groupColumn, 'categorical', v => _updateConfig(slot.id, { groupColumn: v })), 'Um box por categoria, lado a lado (até 8 grupos).');
       }
       else if (def.id === 'sankey'){
-        field('Origem (categórica)', colSelect(cfg.sourceColumn, 'categorical', v => _updateConfig(slot.id, { sourceColumn: v })));
-        field('Destino (categórica)', colSelect(cfg.targetColumn, 'categorical', v => _updateConfig(slot.id, { targetColumn: v })));
-        field('Valor (numérico — opcional, default = contagem)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v })));
+        group('🌊 Fluxo');
+        field('Origem (categórica)', colSelect(cfg.sourceColumn, 'categorical', v => _updateConfig(slot.id, { sourceColumn: v })), 'Lado esquerdo do fluxo.');
+        field('Destino (categórica)', colSelect(cfg.targetColumn, 'categorical', v => _updateConfig(slot.id, { targetColumn: v })), 'Lado direito do fluxo.');
+        field('Valor (opcional)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v })), 'Espessura das ligações. Vazio = contagem de registros.');
+      }
+      else if (def.id === 'funnel'){
+        // Auditoria 2026.6 (INSPECTOR): funnel nao tinha aba de DADOS — so dava
+        // pra configurar pelo defaultConfig. Agora da pra trocar etapa/valor.
+        group('🔻 Funil');
+        field('Etapas (categórica)', colSelect(cfg.stageColumn, 'categorical', v => _updateConfig(slot.id, { stageColumn: v })), 'Cada valor distinto vira uma etapa do funil.');
+        field('Valor (opcional)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v })), 'Tamanho de cada etapa. Vazio = contagem de registros.');
+      }
+      else if (def.id === 'pivot'){
+        // Auditoria 2026.6 (INSPECTOR): pivot nao tinha aba de DADOS.
+        group('▦ Tabela dinâmica');
+        field('Linhas (categórica)', colSelect(cfg.rowColumn, 'categorical', v => _updateConfig(slot.id, { rowColumn: v })), 'Dimensão nas linhas.');
+        field('Colunas (categórica)', colSelect(cfg.colColumn, 'categorical', v => _updateConfig(slot.id, { colColumn: v })), 'Dimensão nas colunas (cruzamento).');
+        field('Valor (numérica)', colSelect(cfg.valueColumn, 'numeric', v => _updateConfig(slot.id, { valueColumn: v })), 'Medida agregada em cada célula.');
+        const pAgg = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { agg: e.target.value }) });
+        [['sum','Soma'],['avg','Média'],['count','Contagem']].forEach(([v,l]) => {
+          const o = SolsticeUtils.el('option', { value: v }, l);
+          if ((cfg.agg || 'sum') === v) o.selected = true;
+          pAgg.appendChild(o);
+        });
+        field('Como agregar', pAgg, 'Sem coluna de valor = contagem de registros.');
       }
     }
 
