@@ -1063,6 +1063,30 @@
   .solstice__inspector .solstice__props-field {
     margin-bottom: var(--sp-4);
   }
+  /* Auditoria 2026.6 (INSPECTOR): dica sob o controle + cabeçalho de grupo +
+     toggle em linha — organiza as opções e explica cada uma. */
+  .solstice__inspector .solstice__props-hint {
+    font-size: 10px; color: var(--c-muted); line-height: 1.4; margin-top: 4px;
+  }
+  .solstice__inspector .solstice__props-group {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    margin: var(--sp-4) 0 var(--sp-2);
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .solstice__inspector .solstice__props-group:first-child { margin-top: 0; }
+  .solstice__inspector .solstice__props-group-title {
+    font-size: var(--fs-xs); font-weight: var(--fw-bold);
+    color: var(--c-accent); text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .solstice__inspector .solstice__props-group-desc {
+    font-size: 10px; color: var(--c-muted); font-weight: var(--fw-regular);
+  }
+  .solstice__inspector .solstice__props-toggle {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--fs-sm); color: var(--c-text); cursor: pointer;
+  }
+  .solstice__inspector .solstice__props-toggle input { flex-shrink: 0; }
   .solstice__inspector .solstice__compare-radio {
     padding: 10px 12px;
     font-size: var(--fs-sm);
@@ -23321,6 +23345,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
         // Sprint 43: helper pra calcular o bin temporal de uma row.
         function _binKey(d){
+          if (cfg.bin === 'year') return String(d.getFullYear()); // Auditoria 2026.6: faltava 'year'
           if (cfg.bin === 'month') return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
           if (cfg.bin === 'week'){
             const onejan = new Date(d.getFullYear(), 0, 1);
@@ -24719,11 +24744,34 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const cfg = slot.config || {};
       // Auditoria 2026 (U-13): ctx do slot puxa do datasetId se houver.
       const ctx = _ctx(cfg.datasetId);
-      function field(label, ctrl){
+      // Auditoria 2026.6 (INSPECTOR): o field agora RENDERIZA a dica (3º arg) —
+      // antes era ignorada (varias chamadas ja passavam hint que nunca aparecia).
+      function field(label, ctrl, hint){
         const f = SolsticeUtils.el('div', { class:'solstice__props-field' });
         f.appendChild(SolsticeUtils.el('label', { class:'solstice__props-label' }, label));
         f.appendChild(ctrl);
+        if (hint) f.appendChild(SolsticeUtils.el('div', { class:'solstice__props-hint' }, hint));
         host.appendChild(f);
+      }
+      // Auditoria 2026.6 (INSPECTOR): cabeçalho de grupo — organiza opções soltas
+      // em seções claras (Eixos / Período / Exibição...).
+      function group(title, desc){
+        const g = SolsticeUtils.el('div', { class:'solstice__props-group' });
+        g.appendChild(SolsticeUtils.el('span', { class:'solstice__props-group-title' }, title));
+        if (desc) g.appendChild(SolsticeUtils.el('span', { class:'solstice__props-group-desc' }, desc));
+        host.appendChild(g);
+      }
+      // toggle helper p/ checkbox + label numa linha (com dica opcional)
+      function toggleRow(labelText, checked, onChange, hint){
+        const lbl = SolsticeUtils.el('label', { class:'solstice__props-toggle' });
+        const cb = SolsticeUtils.el('input', { type:'checkbox', onchange: e => onChange(!!e.target.checked) });
+        if (checked) cb.checked = true;
+        lbl.appendChild(cb);
+        lbl.appendChild(SolsticeUtils.el('span', null, labelText));
+        const wrap = SolsticeUtils.el('div', { class:'solstice__props-field' });
+        wrap.appendChild(lbl);
+        if (hint) wrap.appendChild(SolsticeUtils.el('div', { class:'solstice__props-hint' }, hint));
+        host.appendChild(wrap);
       }
 
       // Auditoria 2026 (U-13): seletor de Base. Primeiro campo da aba
@@ -24852,21 +24900,22 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         }
       }
       else if (def.id === 'distrib-time'){
-        // SOL-D4: campos X/Y + agregação + toggles. Antes só `defaultConfig`
-        // populava xColumn/yColumn auto-detectados; usuário não conseguia trocar.
-        // Sprint 42 / feedback do usuário ("não consegue 2 eixos"): agora
-        // expõe yAgg + y2Column (segunda métrica na linha) + y2Agg. Permite
-        // combo real (bar=metric A, line=metric B) com dual-axis.
-        field('Eixo X (temporal)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })));
-        field('Eixo Y — barras (numérico)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })));
+        // Auditoria 2026.6 (INSPECTOR): reorganizado em grupos claros (Eixos /
+        // Período / Exibição) com dica em cada opção. Handlers preservados.
+        group('📊 Eixos & medidas');
+        field('Eixo X — período (data)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })),
+          'Coluna de data/tempo do eixo horizontal (agrupada pela granularidade abaixo).');
+        field('Eixo Y — barras (medida)', colSelect(cfg.yColumn, 'numeric', v => _updateConfig(slot.id, { yColumn: v })),
+          'Valor numérico que vira a altura das barras.');
         const yAggSel = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { yAgg: e.target.value }) });
         [['sum','Soma'],['avg','Média'],['count','Contagem'],['max','Máximo'],['min','Mínimo']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.yAgg || 'sum') === v) o.selected = true;
           yAggSel.appendChild(o);
         });
-        field('Agregação da medida (barras)', yAggSel);
-        field('Eixo Y2 — linha (opcional, dual-axis)', colSelect(cfg.y2Column, 'numeric', v => _updateConfig(slot.id, { y2Column: v || null })));
+        field('Como agregar o Y', yAggSel, 'Soma p/ volumes · Média p/ taxas/notas · Contagem p/ nº de registros.');
+        field('Eixo Y2 — linha (opcional)', colSelect(cfg.y2Column, 'numeric', v => _updateConfig(slot.id, { y2Column: v || null })),
+          '2ª medida desenhada como LINHA num eixo à direita (combo barras + linha).');
         if (cfg.y2Column){
           const y2AggSel = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { y2Agg: e.target.value }) });
           [['sum','Soma'],['avg','Média'],['count','Contagem'],['max','Máximo'],['min','Mínimo']].forEach(([v,l]) => {
@@ -24874,42 +24923,32 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
             if ((cfg.y2Agg || 'sum') === v) o.selected = true;
             y2AggSel.appendChild(o);
           });
-          field('Agregação da medida (linha)', y2AggSel);
+          field('Como agregar a linha (Y2)', y2AggSel);
         }
+
+        group('⏱️ Período & agrupamento');
         const binDT = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { bin: e.target.value }) });
-        [['day','Diário'],['week','Semanal'],['month','Mensal']].forEach(([v,l]) => {
+        [['day','Diário'],['week','Semanal'],['month','Mensal'],['year','Anual']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.bin || 'month') === v) o.selected = true;
           binDT.appendChild(o);
         });
-        field('Agregação temporal', binDT);
-        // Sprint 43 / feedback do usuário ("não consegue agrupamento extra"):
-        // groupBy = 3ª dimensão. Splita barras em séries empilhadas por categoria.
-        field('Agrupar por (opcional, 3ª dimensão)', colSelect(cfg.groupBy, 'categorical', v => _updateConfig(slot.id, { groupBy: v || null })));
+        field('Granularidade do período', binDT, 'Agrupa as datas por dia, semana, mês ou ano.');
+        field('Quebrar por categoria (opcional)', colSelect(cfg.groupBy, 'categorical', v => _updateConfig(slot.id, { groupBy: v || null })),
+          'Divide cada período em séries por uma 3ª dimensão (ex: por região/canal).');
         if (cfg.groupBy){
-          const tgStack = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
-          const cbStack = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { groupStacked: !!e.target.checked }) });
-          if (cfg.groupStacked !== false) cbStack.checked = true;
-          tgStack.appendChild(cbStack);
-          tgStack.appendChild(SolsticeUtils.el('span', null, ' Empilhar barras (stacked) — senão agrupadas lado-a-lado'));
-          host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, tgStack));
+          toggleRow('Empilhar as séries (stacked)', cfg.groupStacked !== false, v => _updateConfig(slot.id, { groupStacked: v }),
+            'Desligado = barras lado a lado por categoria.');
           const topN = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'2', max:'12',
             value: String(cfg.groupTopN || 6),
             onchange: e => _updateConfig(slot.id, { groupTopN: Math.max(2, Math.min(12, parseInt(e.target.value) || 6)) }) });
-          field('Top N categorias do grupo', topN);
+          field('Máx. de categorias', topN, 'As demais são somadas em "Outros".');
         }
-        const tgDist = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
-        const cbDist = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { showDistribution: !!e.target.checked }) });
-        if (cfg.showDistribution !== false) cbDist.checked = true;
-        tgDist.appendChild(cbDist);
-        tgDist.appendChild(SolsticeUtils.el('span', null, ' Mostrar barras'));
-        host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, tgDist));
-        const tgLine = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);' });
-        const cbLine = SolsticeUtils.el('input', { type:'checkbox', onchange: e => _updateConfig(slot.id, { showLine: !!e.target.checked }) });
-        if (cfg.showLine !== false) cbLine.checked = true;
-        tgLine.appendChild(cbLine);
-        tgLine.appendChild(SolsticeUtils.el('span', null, ' Mostrar linha (2º eixo se y2 setado)'));
-        host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-field' }, tgLine));
+
+        group('👁️ Exibição');
+        toggleRow('Mostrar barras', cfg.showDistribution !== false, v => _updateConfig(slot.id, { showDistribution: v }));
+        toggleRow('Mostrar linha de tendência', cfg.showLine !== false, v => _updateConfig(slot.id, { showLine: v }),
+          'Usa o 2º eixo (direita) quando o Y2 está definido.');
       }
       else if (def.id === 'table'){
         const lim = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'10', max:'500', value: String(cfg.rowLimit || 50), onchange: e => _updateConfig(slot.id, { rowLimit: parseInt(e.target.value) || 50 }) });
