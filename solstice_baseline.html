@@ -20710,9 +20710,25 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const aggLabel = SolsticeHumanize.aggregation(agg);
 
         const def = SolsticeTypes.getType(ctx.types[col] && ctx.types[col].type);
-        const formatted = def && def.format
-          ? (function(){ try { return def.format(value, ctx.L); } catch(e){ return ctx.L.decimal(value, 2); }})()
-          : ctx.L.decimal(value, 2);
+        // Auditoria 2026.6 (KPI-FORMATO): formato de número configuravel pelo
+        // inspector (cfg.format + cfg.formatDecimals). 'auto' = formato do tipo
+        // da coluna (comportamento anterior).
+        const formatted = (function(){
+          const fmt = cfg.format || 'auto';
+          const dec = (cfg.formatDecimals != null) ? cfg.formatDecimals : 2;
+          try {
+            if (fmt === 'integer') return ctx.L.integer(Math.round(value));
+            if (fmt === 'decimal') return ctx.L.decimal(value, dec);
+            if (fmt === 'currency') return ctx.L.currency(value);
+            if (fmt === 'percent')  return ctx.L.decimal(value, dec) + '%';
+            if (fmt === 'compact'){ const a = Math.abs(value);
+              if (a >= 1e9) return ctx.L.decimal(value/1e9, 1) + 'B';
+              if (a >= 1e6) return ctx.L.decimal(value/1e6, 1) + 'M';
+              if (a >= 1e3) return ctx.L.decimal(value/1e3, 1) + 'k';
+              return ctx.L.integer(Math.round(value)); }
+            return def && def.format ? def.format(value, ctx.L) : ctx.L.decimal(value, 2);
+          } catch(e){ return ctx.L.decimal(value, 2); }
+        })();
 
         // Patch B5-r4: título migrou para o header da casca (esquerda) via def.getTitle.
         // Unidade ainda fica visível na meta abaixo do valor quando relevante.
@@ -24834,14 +24850,37 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       }
 
       if (def.id === 'kpi'){
-        field('Coluna (numérica)', colSelect(cfg.column, 'numeric', v => _updateConfig(slot.id, { column: v })));
+        // Auditoria 2026.6 (INSPECTOR): grupos + dicas + formato de número.
+        group('📊 Métrica');
+        field('Coluna (numérica)', colSelect(cfg.column, 'numeric', v => _updateConfig(slot.id, { column: v })),
+          'O número que o card vai destacar.');
         const agg = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { agg: e.target.value }) });
-        [['sum','SOMA'],['avg','MÉDIA'],['min','MÍNIMO'],['max','MÁXIMO'],['count','CONTAGEM']].forEach(([v,l]) => {
+        [['sum','Soma'],['avg','Média'],['median','Mediana'],['min','Mínimo'],['max','Máximo'],['count','Contagem']].forEach(([v,l]) => {
           const o = SolsticeUtils.el('option', { value: v }, l);
           if ((cfg.agg || 'sum') === v) o.selected = true;
           agg.appendChild(o);
         });
-        field('Agregação', agg);
+        field('Como agregar', agg, 'Soma p/ totais · Média/Mediana p/ taxas e notas · Contagem p/ nº de registros.');
+
+        group('🔢 Formato do número');
+        const fmtSel = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { format: e.target.value }) });
+        [['auto','Automático (do tipo da coluna)'],['integer','Inteiro (1.234)'],['decimal','Decimal (1.234,5)'],['currency','Moeda (R$)'],['percent','Percentual (%)'],['compact','Compacto (1,2k · 3,4M)']].forEach(([v,l]) => {
+          const o = SolsticeUtils.el('option', { value: v }, l);
+          if ((cfg.format || 'auto') === v) o.selected = true;
+          fmtSel.appendChild(o);
+        });
+        field('Formato', fmtSel, '"Automático" segue o tipo da coluna (moeda, %, etc.).');
+        if (['decimal','percent'].indexOf(cfg.format) >= 0){
+          const dec = SolsticeUtils.el('select', { class:'solstice__props-select', onchange: e => _updateConfig(slot.id, { formatDecimals: parseInt(e.target.value) }) });
+          [['0','0'],['1','1'],['2','2'],['3','3']].forEach(([v,l]) => {
+            const o = SolsticeUtils.el('option', { value: v }, l);
+            if (String(cfg.formatDecimals != null ? cfg.formatDecimals : 2) === v) o.selected = true;
+            dec.appendChild(o);
+          });
+          field('Casas decimais', dec);
+        }
+        host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-hint', style:'margin-top:-4px;' },
+          '💡 Meta e comparação (vs período anterior, meta fixa…) ficam na aba "Comparação".'));
       }
       else if (def.id === 'time-series'){
         field('Eixo X (temporal)', colSelect(cfg.xColumn, 'temporal', v => _updateConfig(slot.id, { xColumn: v })));
