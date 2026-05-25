@@ -25117,6 +25117,9 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           window.__solsticeStyleQuickUpdate = { slotId: slot.id, ts: Date.now() };
         } catch(_) {}
       }
+      // Auditoria 2026.6 (NO-FLASH): mudança de 1 slot (estilo/config) → re-render
+      // CIRÚRGICO double-buffered no canvas (sem repintar tudo, sem piscar).
+      function _noteSlot(){ try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.noteConfigOnly) SolsticeCanvas.noteConfigOnly(slot.id); } catch(_){} }
       function _set(key, value){
         _markQuickUpdate();
         const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
@@ -25125,6 +25128,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (sl){
             sl.config = sl.config || {};
             sl.config.style = Object.assign({}, sl.config.style || {}, { [key]: value });
+            _noteSlot();
             SolsticeStore.set('canvas.sections', sections);
             return;
           }
@@ -25138,6 +25142,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (sl){
             sl.config = sl.config || {};
             sl.config.style = Object.assign({}, sl.config.style || {}, patch);
+            _noteSlot();
             SolsticeStore.set('canvas.sections', sections);
             return;
           }
@@ -25152,6 +25157,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           if (sl){
             sl.config = sl.config || {};
             sl.config[key] = value;
+            _noteSlot();
             SolsticeStore.set('canvas.sections', sections);
             return;
           }
@@ -30018,13 +30024,24 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           sections.forEach(s => (s.rows || []).forEach(r => (r.slots || []).forEach(sl => { if (sl.id === id) slot = sl; })));
           if (slot && slot.type && slot.type !== 'empty'){
             try {
-              SolsticeUtils.cleanupListeners(slotEl);
-              slotEl.innerHTML = '';
-              SolsticeComponents.render(slot, slotEl);
               slotEl.style.display = 'block'; slotEl.style.padding = '0';
               slotEl.style.background = 'transparent'; slotEl.style.border = '0'; slotEl.style.cursor = 'default';
-              _restoreSoon(); // mantém o scroll exatamente onde estava
-              return; // pronto — resto do canvas intacto
+              // Auditoria 2026.6 (NO-FLASH): DOUBLE-BUFFER. Em vez de innerHTML=''
+              // (frame em branco → o canvas "pisca"), renderiza o novo componente
+              // POR CIMA (absolute, ocupando o mesmo box) e só remove o antigo no
+              // próximo frame, quando o novo já desenhou. Sem piscada no olho.
+              const _prev = Array.from(slotEl.childNodes);
+              slotEl.style.position = 'relative';
+              const _buf = document.createElement('div');
+              _buf.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;';
+              slotEl.appendChild(_buf);
+              SolsticeComponents.render(slot, _buf);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                try { _prev.forEach(n => { try { SolsticeUtils.cleanupListeners(n); } catch(_){} if (n.remove) n.remove(); }); } catch(_){}
+                _buf.style.position = ''; _buf.style.top = _buf.style.left = _buf.style.right = _buf.style.bottom = '';
+                _restoreScroll();
+              }));
+              return; // pronto — resto do canvas intacto, sem flash
             } catch(e){ /* erro → cai pro full render abaixo */ }
           }
         }
