@@ -5,6 +5,36 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), 
 
 ---
 
+## [Unreleased] — Sprint 46 — "Auditoria 2026.6: fundação + correção numérica" — 2026-05-25
+
+Revisão fim-a-fim focada em qualidade verificável. A suíte de testes estava
+**vermelha (48/149)** mascarando regressões reais. Detalhes em
+`docs/auditoria-2026-6/README.md`.
+
+- **A6-01 (🔴) — Harness de testes quebrado**: o extractor casava a regex do
+  IIFE na citação dentro de um comentário JSDoc, não na declaração real →
+  `SolsticeStats` extraído vazio → 48 falhas em cascata. Fix: ancorar a regex
+  no início de linha.
+- **A6-02 (🔴) — `distinctCount` zerava colunas categóricas**: rodava `clean()`
+  (só números) antes de contar → cardinalidade, coluna constante e KPI
+  "Distintos em X" retornavam 0 para qualquer dimensão de texto. Fix: contar
+  valores brutos não-nulos.
+- **A6-03 (🟠) — `parseFloat` pt-BR em stats**: `correlation`/`correlationSpearman`/
+  `linearRegression` truncavam `"1.234,56"` → `1.234`. Fix: `parseNum` BR-aware.
+- **A6-04 (🟠) — Matriz drill-down `_agg`**: `parseFloat` truncava decimais e
+  `count` retornava `null` em colunas de texto (caía no guard `!c.length`) e
+  contava nulos. Fix: `count` sobre não-vazios antes do filtro; demais via `parseNum`.
+- **A6-05 (🟡) — Fidelidade de teste**: extractor passa a injetar o stub
+  `SolsticeBR` em `stats.mjs` — antes `parseNum` caía em `parseFloat` e os testes
+  rodavam num caminho diferente do app real.
+- **Deferido**: D6-01 (Web Worker `SolsticeStatsAsync` é API pública porém morta
+  internamente, com bugs próprios) e D6-02 (CI sem runtime; propor smoke test
+  jsdom). Roadmap de paridade Power BI/QuickSight no doc da auditoria.
+
+**153/153 testes verdes** (4 novos: cardinalidade categórica + parsing pt-BR).
+
+---
+
 ## [Unreleased] — Sprints 23-31 — "Conselho de Evolução: UX/Organização/Componentes" — 2026-05-23
 
 9 sprints contínuos guiados por persona walkthrough (7 personas: Marina/SRE,
