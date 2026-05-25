@@ -1288,10 +1288,31 @@
     border-radius: var(--rad-md);
     margin-bottom: var(--sp-4);
     overflow: hidden;
-    position: sticky;
-    top: 0;
-    z-index: 8;
+    /* Auditoria 2026.6: era position:sticky;top:0 → o painel "flutuava" grudado
+       no topo ao rolar o canvas (o usuário pediu pra tirar). Agora rola junto
+       com o conteúdo. */
     box-shadow: 0 2px 8px color-mix(in srgb, var(--c-text) 4%, transparent);
+  }
+  /* Auditoria 2026.6: faixa fina pra reexibir insights quando ocultos */
+  .solstice__insights-restore {
+    width: 100%;
+    display: block;
+    text-align: left;
+    padding: var(--sp-2) var(--sp-4);
+    margin-bottom: var(--sp-4);
+    background: color-mix(in srgb, var(--c-accent) 6%, var(--c-surface));
+    border: 1px dashed var(--c-border);
+    border-radius: var(--rad-md);
+    color: var(--c-text-2);
+    font-size: var(--fs-sm);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--t-fast) var(--ease);
+  }
+  .solstice__insights-restore:hover {
+    border-color: var(--c-accent);
+    color: var(--c-accent);
+    border-style: solid;
   }
   .solstice__insights-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -11133,6 +11154,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       SolsticeStore.set('dataset.source', file.name === 'vendas_br_dummy.csv' ? 'dummy' : 'import');
     }, { except: ['ingest'] });
     SolsticeStore.set('dataset.ready', true);
+    // Auditoria 2026.6 (INSIGHT-VOLTA): ao importar uma base, traz os insights de
+    // volta. ANTES, esconder o painel (✕) setava ui.insights.hidden=true PERMANENTE
+    // — o usuário reimportava a base e os insights não voltavam. Importar = nova
+    // análise, então reabilita (a opção de esconder continua em Configurações).
+    try { if (SolsticeStore.get('ui.insights.hidden') === true) SolsticeStore.set('ui.insights.hidden', false); } catch(_){}
 
     document.getElementById('status-rows').textContent = SolsticeLocale.integer(result.rows.length);
     // BUG-02 v3: força refresh do status bar (cols) — mesmo path do subscribe.
@@ -32777,8 +32803,23 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function renderInto(parentEl){
       if (!parentEl) return;
       // S5-02 (Sprint 5 / Yuki Notion · YT-03): toggle global pra esconder TUDO.
-      // Setting persiste em localStorage; usuário pode reabilitar pela settings.
-      if (SolsticeStore.get('ui.insights.hidden') === true) return;
+      // Auditoria 2026.6 (INSIGHT-OPCAO): quando oculto, em vez de sumir por
+      // completo (deixando o usuário sem como reabilitar — não havia opção em
+      // Configurações de fato), mostra uma faixa fina pra reexibir. Resolve o
+      // "precisa de opções em algum lugar".
+      if (SolsticeStore.get('ui.insights.hidden') === true){
+        const restore = SolsticeUtils.el('button', {
+          type: 'button',
+          class: 'solstice__insights-restore',
+          title: 'Reexibir o painel de Insights',
+          onclick: () => {
+            SolsticeStore.set('ui.insights.hidden', false);
+            if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render();
+          }
+        }, '💡 Insights ocultos — clique para mostrar');
+        parentEl.appendChild(restore);
+        return;
+      }
       let insights = compute();
       // Sprint 23 / UX-01: usuário pediu pra tirar "O que dá pra construir"
       // do sidebar. Invertendo o default: agora overview fica OCULTO por padrão.
@@ -32821,7 +32862,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       // Click no X interno (não no collapse) → salva ui.insights.hidden=true.
       const hideBtn = SolsticeUtils.el('button', {
         type: 'button',
-        title: 'Esconder painel de insights · reabilita em Configurações',
+        title: 'Esconder painel de insights · clique na faixa pra reexibir',
         'aria-label': 'Esconder insights',
         style: 'background:transparent;border:none;color:var(--c-muted);font-size:14px;cursor:pointer;padding:2px 6px;margin-right:4px;border-radius:3px;',
         onclick: (e) => {
@@ -32829,7 +32870,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           SolsticeStore.set('ui.insights.hidden', true);
           // Re-renderiza o canvas (removerá esse painel)
           if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render();
-          SolsticeToast.info('Insights ocultos', 'Reabilite em Configurações → Insights.');
+          SolsticeToast.info('Insights ocultos', 'Clique na faixa "💡 Insights ocultos" pra reexibir.');
         }
       }, '✕');
       hideBtn.addEventListener('mouseenter', () => { hideBtn.style.color = 'var(--c-text)'; hideBtn.style.background = 'var(--c-surface-2)'; });
