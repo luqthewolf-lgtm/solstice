@@ -21816,9 +21816,11 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
         // === MODO FLAT (default — comportamento original) ===
         const limit = cfg.rowLimit || 50;
+        // Auditoria 2026.6 (TABELA): colunas selecionáveis (cfg.columns) — senão todas.
+        const cols = (Array.isArray(cfg.columns) && cfg.columns.length) ? ctx.columns.filter(c => cfg.columns.indexOf(c) >= 0) : ctx.columns;
         // Pre-calc heat range por coluna numérica
         const heats = {};
-        for (const c of ctx.columns){
+        for (const c of cols){
           if (SolsticeTypes.group(ctx.types[c] && ctx.types[c].type) === 'numeric'){
             const vs = ctx.rows.map(r => SolsticeStats.parseNum(r[c])).filter(v => !isNaN(v));
             if (vs.length) heats[c] = { min: SolsticeStats.min(vs), max: SolsticeStats.max(vs) };
@@ -21830,7 +21832,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const tbl = SolsticeUtils.el('table', { class:'solstice__data-table', style:'font-size:var(--fs-sm);' });
         const thead = SolsticeUtils.el('thead');
         const trh = SolsticeUtils.el('tr');
-        ctx.columns.forEach(c => {
+        cols.forEach(c => {
           const t = ctx.types[c];
           trh.appendChild(SolsticeUtils.el('th', null,
             SolsticeUtils.el('span', null, SolsticeTypes.icon(t.type) + ' ' + c),
@@ -21843,7 +21845,7 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         const tbody = SolsticeUtils.el('tbody');
         ctx.rows.slice(0, limit).forEach(r => {
           const tr = SolsticeUtils.el('tr');
-          ctx.columns.forEach(c => {
+          cols.forEach(c => {
             const v = r[c];
             const def = SolsticeTypes.getType(ctx.types[c] && ctx.types[c].type);
             const isNum = SolsticeTypes.group(ctx.types[c] && ctx.types[c].type) === 'numeric';
@@ -24925,17 +24927,21 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         field('Tipo de gráfico', kind);
       }
       else if (def.id === 'distribution'){
-        // Camada Polish v4: aceita qualquer coluna (numérica = histograma, outra = freq).
+        // Auditoria 2026.6 (INSPECTOR): grupo + dicas. Aceita qualquer coluna
+        // (numérica = histograma · categórica/texto = ranking de frequência).
+        group('📊 Dados');
         field('Coluna', colSelect(cfg.column, null, v => _updateConfig(slot.id, { column: v })),
-          'Numérica → histograma com bins · Categórica/texto → ranking de frequência');
+          'Numérica → histograma (faixas) com média/mediana · Categórica/texto → ranking de frequência (valor + %).');
         const colType = (ctx.types && ctx.types[cfg.column]) || {};
         const isNumeric = cfg.column && SolsticeTypes.group(colType.type) === 'numeric';
         if (isNumeric){
           const bins = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'5', max:'100', value: String(cfg.bins || 20), onchange: e => _updateConfig(slot.id, { bins: parseInt(e.target.value) || 20 }) });
-          field('Número de bins', bins);
+          field('Número de faixas (bins)', bins, 'Mais faixas = mais detalhe · menos = visão mais suave.');
         } else if (cfg.column) {
           const topN = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'3', max:'50', value: String(cfg.topN || 12), onchange: e => _updateConfig(slot.id, { topN: parseInt(e.target.value) || 12 }) });
-          field('Top N categorias', topN);
+          field('Top N categorias', topN, 'Mostra as N categorias mais frequentes (as demais ficam de fora).');
+        } else {
+          host.appendChild(SolsticeUtils.el('div', { class:'solstice__props-hint' }, 'Escolha uma coluna acima.'));
         }
       }
       else if (def.id === 'distrib-time'){
@@ -24990,8 +24996,30 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
           'Usa o 2º eixo (direita) quando o Y2 está definido.');
       }
       else if (def.id === 'table'){
+        // Auditoria 2026.6 (INSPECTOR/TABELA): grupo + dicas + SELEÇÃO DE COLUNAS
+        // (customização que faltava — antes mostrava sempre todas).
+        group('📋 Tabela');
         const lim = SolsticeUtils.el('input', { class:'solstice__props-input', type:'number', min:'10', max:'500', value: String(cfg.rowLimit || 50), onchange: e => _updateConfig(slot.id, { rowLimit: parseInt(e.target.value) || 50 }) });
-        field('Linhas exibidas', lim);
+        field('Linhas exibidas', lim, 'Quantas linhas mostrar (10–500).');
+        const allCols = ctx.columns || [];
+        if (allCols.length){
+          const curSel = (Array.isArray(cfg.columns) && cfg.columns.length) ? new Set(cfg.columns) : new Set(allCols);
+          const box = SolsticeUtils.el('div', { style:'display:flex;flex-direction:column;gap:3px;max-height:200px;overflow:auto;border:1px solid var(--c-border);border-radius:6px;padding:6px;' });
+          allCols.forEach(c => {
+            const lbl = SolsticeUtils.el('label', { style:'display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;' });
+            const cb = SolsticeUtils.el('input', { type:'checkbox' });
+            if (curSel.has(c)) cb.checked = true;
+            cb.addEventListener('change', () => {
+              const sel = SolsticeUtils.qsa('input[type=checkbox]', box).map((x, i) => x.checked ? allCols[i] : null).filter(Boolean);
+              // todas marcadas → null (= todas); subconjunto → array; nenhuma → mantém ao menos 1 (volta a todas)
+              _updateConfig(slot.id, { columns: (sel.length === 0 || sel.length === allCols.length) ? null : sel });
+            });
+            lbl.appendChild(cb);
+            lbl.appendChild(SolsticeUtils.el('span', null, c));
+            box.appendChild(lbl);
+          });
+          field('Colunas a exibir', box, 'Marque só as colunas que quer na tabela (todas marcadas = mostra todas).');
+        }
       }
       /* ===== Bloco 6 ===== */
       else if (def.id === 'scatter'){
