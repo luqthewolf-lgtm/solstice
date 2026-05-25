@@ -37106,6 +37106,12 @@ Se faz sentido visualizar, sugira componente Solstice em bloco \`\`\`json\`\`\` 
       const filtered = cols.filter(c => {
         const low = String(c).toLowerCase();
         if (/^id$|_id$|^id_|id_|^c[oó]d|c[oó]digo|^seq|^chave$|^key$|matr[ií]cula|protocolo|cpf|cnpj|cep|^num|_num|n[uú]mero|ag[eê]ncia|^conta$|_conta$|^pv$|_pv$|carteira|dicom|funcional|chpras|anomes|telefone|^ddd|cod_|_cod/.test(low)) return false;
+        // Auditoria 2026.6 (METRIC-POOL · texto-livre): nomes de coluna de TEXTO
+        // (comentário, observação, descrição...) nunca são MÉTRICA — somar não faz
+        // sentido. Defesa extra: mesmo se o tipo vier mal-inferido como número
+        // (ex: coluna esparsa com poucos valores numéricos), fica fora do pool.
+        // Reportado: auto-dashboard montava "soma de comentário".
+        if (/coment|observ|descri|^obs$|_obs$|texto|motivo|justif|mensagem|^msg|feedback|relato|parecer|narrativ/.test(low)) return false;
         const t = (ctx.types || {})[c];
         if (t && t.type === 'integer' && rows.length){
           const distinct = SolsticeStats.distinctCount(rows.map(r => r[c]));
