@@ -216,4 +216,29 @@ describe('SolsticeStats — distinctCount', () => {
   it('vazio → 0', () => {
     expect(SolsticeStats.distinctCount([])).toBe(0);
   });
+  it('conta categóricas (strings) — regressão: clean() zerava cardinalidade', () => {
+    // Auditoria 2026.6 / Sprint 46: distinctCount rodava clean() (só números),
+    // então dimensões de texto retornavam 0. Cardinalidade de coluna categórica.
+    expect(SolsticeStats.distinctCount(['SP', 'RJ', 'SP', 'MG', 'RJ'])).toBe(3);
+    expect(SolsticeStats.distinctCount(['x', 'x', 'x'])).toBe(1); // coluna constante
+  });
+  it('ignora null/vazio', () => {
+    expect(SolsticeStats.distinctCount(['a', null, '', 'a', 'b', undefined])).toBe(2);
+  });
+});
+
+describe('SolsticeStats — parsing pt-BR em correlation/linearRegression (Auditoria 2026.6)', () => {
+  // Sprint 46: correlation/linearRegression usavam parseFloat, que trunca
+  // "1.234,56" → 1.234. Agora usam parseNum (BR-aware). Aceitam strings cruas.
+  it('correlation com strings pt-BR (separador de milhar + vírgula decimal)', () => {
+    const xs = ['1.000,0', '2.000,0', '3.000,0', '4.000,0'];
+    const ys = ['2.000,0', '4.000,0', '6.000,0', '8.000,0'];
+    expect(SolsticeStats.correlation(xs, ys)).toBeCloseTo(1, 6);
+  });
+  it('linearRegression com strings pt-BR mantém slope correto', () => {
+    // y = 2x sobre pares (0;0),(1;2000),(2;4000) formatados pt-BR
+    const reg = SolsticeStats.linearRegression([[0, '0'], [1, '2.000'], [2, '4.000']]);
+    expect(reg).not.toBe(null);
+    expect(reg.slope).toBeCloseTo(2000, 6);
+  });
 });

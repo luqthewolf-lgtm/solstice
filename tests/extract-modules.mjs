@@ -93,6 +93,11 @@ writeFileSync(resolve(DIST, 'formula-core.mjs'), formulaCore);
 const statsBody = extractIIFE(content, 'SolsticeStats');
 const stats = `
 // Auto-extraído de solstice_baseline.html — NÃO EDITAR À MÃO.
+// SolsticeStats.parseNum delega a SolsticeBR.toNumber (BR-aware: "1.234,56").
+// Sem injetar o stub, parseNum cairia em parseFloat e os testes rodariam num
+// caminho DIFERENTE do app real. (Auditoria 2026.6)
+import { SolsticeBR } from './br.mjs';
+globalThis.SolsticeBR = SolsticeBR;
 export const SolsticeStats = (function(){
 ${statsBody}
 })();
