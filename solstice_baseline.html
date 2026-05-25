@@ -14014,20 +14014,39 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
       const _group = SolsticeTypes.group(t.type);
       let _rightSummary = null;
       if (_group === 'numeric'){
-        const _vals = rows.map(r => SolsticeStats.parseNum(r[col])).filter(v => !isNaN(v));
-        if (_vals.length){
-          const _avg = _vals.reduce((a,b) => a+b, 0) / _vals.length;
+        // Auditoria 2026.6 (BIG-DATA): passada única (sem alocar array de N
+        // valores por render) — reduz o custo do re-render em base grande.
+        let _sum = 0, _vcount = 0;
+        for (let i = 0; i < rows.length; i++){
+          const n = SolsticeStats.parseNum(rows[i][col]);
+          if (isNaN(n)) continue;
+          _sum += n; _vcount++;
+        }
+        if (_vcount){
+          const _avg = _sum / _vcount;
           const _fmt = (n) => Math.abs(n) >= 1000 ? SolsticeLocale.integer(Math.round(n)) : SolsticeLocale.decimal(n, 2);
           _rightSummary = {
             text: 'média ' + _fmt(_avg) + (unit ? ' ' + unit : ''),
-            title: 'Média: ' + _fmt(_avg) + (unit ? ' ' + unit : '') + ' · sobre ' + _vals.length + ' valores válidos'
+            title: 'Média: ' + _fmt(_avg) + (unit ? ' ' + unit : '') + ' · sobre ' + _vcount + ' valores válidos'
           };
         }
       } else if (_group === 'temporal'){
-        const _dates = rows.map(r => new Date(r[col])).filter(d => !isNaN(d));
+        // Auditoria 2026.6 (BIG-DATA): loop em vez de Math.min/max.apply(null, arr)
+        // — o spread estourava a pilha (RangeError) com 100k+ datas. Acumula em
+        // 1 passada sem alocar array de timestamps.
+        let _minT = Infinity, _maxT = -Infinity, _dcount = 0;
+        for (let i = 0; i < rows.length; i++){
+          const d = new Date(rows[i][col]);
+          const ts = d.getTime();
+          if (isNaN(ts)) continue;
+          _dcount++;
+          if (ts < _minT) _minT = ts;
+          if (ts > _maxT) _maxT = ts;
+        }
+        const _dates = { length: _dcount };
         if (_dates.length){
-          const _min = new Date(Math.min.apply(null, _dates));
-          const _max = new Date(Math.max.apply(null, _dates));
+          const _min = new Date(_minT);
+          const _max = new Date(_maxT);
           const _fmtD = (d) => d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' });
           _rightSummary = {
             text: _fmtD(_min) + ' → ' + _fmtD(_max),
@@ -14072,6 +14091,12 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     function render(){
       const panel = document.getElementById('editor-panel');
       if (!panel) return;
+      // Auditoria 2026.6 (UX — "parece que reseta"): preserva a posição de scroll
+      // da sidebar através do re-render. ANTES, qualquer edit (renomear coluna,
+      // mudar tipo, criar medida...) fazia panel.innerHTML='' e a sidebar pulava
+      // pro topo — o usuário perdia o lugar. Restaurado no fim de render().
+      const _scroller = panel.closest('.solstice__sidebar') || panel.parentElement;
+      const _savedScroll = _scroller ? _scroller.scrollTop : 0;
       const ingest = SolsticeStore.get('ingest');
       if (!ingest || !ingest.columns){
         // Auditoria 2026 (MC-01): cleanup defensivo antes de descartar conteúdo.
@@ -14234,6 +14259,13 @@ var LZString=function(){var o=String.fromCharCode,r="ABCDEFGHIJKLMNOPQRSTUVWXYZa
         otherFolder.appendChild(body);
         panel.appendChild(otherFolder);
       });
+
+      // Auditoria 2026.6 (UX): restaura o scroll da sidebar (capturado no topo)
+      // pra não "pular pro topo" a cada edit. Dois frames pra vencer o relayout.
+      if (_scroller && _savedScroll){
+        _scroller.scrollTop = _savedScroll;
+        requestAnimationFrame(() => { try { _scroller.scrollTop = _savedScroll; } catch(_){} });
+      }
     }
 
     async function _confirmDrop(col){
