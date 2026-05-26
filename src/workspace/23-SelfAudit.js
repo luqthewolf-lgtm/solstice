@@ -460,6 +460,10 @@
     MultiCSV:    SolsticeV56.MultiCSV,
     // === SOLSTICE_SELF_AUDIT v2 (Briefing v2 · Seção 4) ===
     SelfAudit:   SolsticeSelfAudit,
+    // === Fase 5 (refactor-modular-v1) — LLM Adapter pluggable ===
+    // Exposto pra configuração via console (Solstice.LLMAdapter.configure(...))
+    // ou via Settings UI futura. Suporta provider mock/openai/fetch + custom register.
+    LLMAdapter:  SolsticeLLMAdapter,
     // Auditoria 2026.2 (MC-M3): expor _runIngestFile no namespace público para
     // o SolsticeFolderAttach.refresh poder chamá-lo como fallback robusto.
     // Antes a função vivia no closure do boot e o fallback `window.Solstice._runIngestFile`

@@ -95,7 +95,8 @@
       "features/14-Recommender.js",
       "features/15-AutoDashboard.js",
       "features/16-Wizard.js",
-      "features/17-Annotations.js"
+      "features/17-Annotations.js",
+      "features/18-LLMAdapter.js"
     ],
     "persistence-modules": [
       "persistence/01-MultiTab.js",
