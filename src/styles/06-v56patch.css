@@ -2048,4 +2048,27 @@
     padding-left: 0;
     padding-right: 0;
   }
+
+  /* ============================================================
+     A11y (audit 2026.6) — prefers-reduced-motion blanket.
+     Polish 22/24/28/29/49/+ não tinham fallback individual. Em vez
+     de adicionar @media em cada @keyframes, um bloco único desliga
+     todas as animações nomeadas com prefixo solstice-* pra usuários
+     que pediram movimento reduzido. WCAG 2.3.3.
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce) {
+    [class*="solstice"]:not(input):not(textarea) {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .solstice__comp.is-flash-focus,
+    .solstice__editor-col.is-in-use::after,
+    .solstice__comp.is-highlighted,
+    .solstice__section.is-using-hovered-col > .solstice__section-head::before,
+    .solstice__loader-overlay,
+    .solstice__skeleton {
+      animation: none !important;
+    }
+  }
   }

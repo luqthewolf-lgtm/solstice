@@ -1439,6 +1439,12 @@
     // Polish 17 (solstice-modular-v1): Chart.js defaults globais pro tema.
     // Aplica em todos os charts automaticamente. Roda quando Chart está
     // disponível (CDN carregada com defer). Se ainda não, retry em 200ms.
+    //
+    // Audit 2026.6: REPLACE de subconfigs (animation, scales.linear.grid,
+    // tooltip.titleFont) com objeto literal CORROMPE o proxy interno do
+    // Chart.js 4.4 e dispara "this._fn is not a function" no Animator.tick
+    // (em loop, dezenas por segundo). Restrito agora SÓ a campos folha
+    // (string/number/boolean) que são seguros.
     (function _initChartDefaults(){
       function applyDefaults(){
         if (typeof Chart === 'undefined' || !Chart.defaults) {
@@ -1448,48 +1454,29 @@
         const rs = getComputedStyle(document.documentElement);
         const cText  = rs.getPropertyValue('--c-text').trim()  || '#F4F7FF';
         const cMuted = rs.getPropertyValue('--c-muted').trim() || '#8C99B8';
-        const cBorder = rs.getPropertyValue('--c-border').trim() || '#1F2A47';
-        // Fonte global pra todos os charts
+        // Fonte global (seguro — só campos folha)
         Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
         Chart.defaults.font.size = 11;
         Chart.defaults.color = cMuted;
-        // Animação suave
-        Chart.defaults.animation = {
-          duration: 600,
-          easing: 'easeOutQuart',
-        };
-        // Tooltips com style tema
+        // Tooltips — só campos folha; NÃO setar .titleFont/.bodyFont como
+        // objeto, isso quebra o proxy. Pra customizar font use as defaults
+        // globais Chart.defaults.font.* acima.
         Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(20, 32, 58, 0.96)';
         Chart.defaults.plugins.tooltip.titleColor = cText;
         Chart.defaults.plugins.tooltip.bodyColor = cText;
-        Chart.defaults.plugins.tooltip.borderColor = cBorder;
         Chart.defaults.plugins.tooltip.borderWidth = 1;
         Chart.defaults.plugins.tooltip.padding = 10;
-        Chart.defaults.plugins.tooltip.titleFont = { weight: 600, size: 12 };
-        Chart.defaults.plugins.tooltip.bodyFont = { size: 11 };
         Chart.defaults.plugins.tooltip.cornerRadius = 6;
         Chart.defaults.plugins.tooltip.boxPadding = 4;
         Chart.defaults.plugins.tooltip.usePointStyle = true;
-        // Legend mais discreta
+        // Legend mais discreta — campos folha
         Chart.defaults.plugins.legend.labels.usePointStyle = true;
         Chart.defaults.plugins.legend.labels.padding = 12;
         Chart.defaults.plugins.legend.labels.boxWidth = 8;
         Chart.defaults.plugins.legend.labels.boxHeight = 8;
-        // Grid com cor da borda (sutil)
-        if (Chart.defaults.scales){
-          if (Chart.defaults.scales.linear){
-            Chart.defaults.scales.linear.grid = {
-              color: cBorder + '40',  // 40 = ~25% opacity em hex
-              drawBorder: false,
-            };
-          }
-          if (Chart.defaults.scales.category){
-            Chart.defaults.scales.category.grid = {
-              display: false,
-            };
-          }
-        }
-        SolsticeLog.debug('[ChartDefaults] aplicados');
+        // NÃO mexer em Chart.defaults.scales.linear.grid — qualquer replace
+        // do objeto .grid quebra o proxy. Grid customizado fica por chart.
+        if (SolsticeLog && SolsticeLog.debug) SolsticeLog.debug('[ChartDefaults] aplicados (modo seguro)');
       }
       applyDefaults();
     })();

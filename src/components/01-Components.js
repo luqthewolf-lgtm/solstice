@@ -1616,7 +1616,10 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              animation: animate ? undefined : false,
+              // Fix audit 2026.6: `animation: undefined` (v3 syntax) deixa
+              // o Animator com _fn vazio em Chart.js 4.4. Use {} pra herdar
+              // defaults limpos ou false pra desligar.
+              animation: animate ? {} : false,
               plugins: { legend: { display: showLegend && datasets.length > 1, position:'bottom', labels:{ font:{size:10}, boxWidth:14, padding:8 } } },
               scales: {
                 x: {
