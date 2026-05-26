@@ -10,6 +10,51 @@
 
 ---
 
+## 🏗️ Arquitetura modular (refactor v1)
+
+Esta branch (`solstice-modular`) é o resultado do refactor que separou o monolito histórico de ~47k linhas em **122 arquivos por área**. O artefato final continua sendo um único `solstice.html`, mas o desenvolvimento agora acontece em arquivos pequenos:
+
+```
+src/
+├── build/        pipeline (build.py + manifest.json)
+├── styles/       CSS por @layer (reset, tokens, themes, components, v56patch)
+├── core/         18 utilitários (LZ, Utils, Storage, Store, Log, Locale, BR-fmt, Errors, Toast, Profiles, Theme, …)
+├── data/         18 módulos (Dictionary, Domain, Tokenizer, Inference, Types, Ingest, Quality, Editor, …)
+├── ui/           18 módulos (Header, Sidebar, Canvas, Inspector, Modal, Stats, DnD, Resize, …)
+├── components/   2 monolitos (Components — 20 tipos de viz — e Props)
+├── features/     18 módulos (Templates, Insights, Ask, Filters, AutoDashboard, Recommender, LLMAdapter, …)
+├── persistence/  8 módulos (Snapshots, AutoSave, IDB, FolderAttach, …)
+├── export/       8 módulos (Export, Slides, Presenter, CommandPalette, Tour, …)
+└── workspace/   23 módulos (Pages, Formula, Settings, V56, SelfAudit, …)
+```
+
+### Build
+
+```bash
+python src/build/build.py
+# Saída: dist/solstice.html  (artefato distribuível)
+```
+
+Stdlib-only — funciona em qualquer máquina com Python 3.8+ (sem npm, sem CDN exigida pelo build, ideal pra ambientes corporativos como Itaú). Detalhes em [`src/build/README.md`](src/build/README.md).
+
+### Deploy
+
+CI automática em `.github/workflows/build.yml` gera o artefato a cada push e o anexa ao release em tags `v*`. Guia operacional pra deploy interno (SharePoint, intranet, plugar Eva) em [`docs/DEPLOY-ITAU.md`](docs/DEPLOY-ITAU.md).
+
+### Integração com LLM corporativo
+
+`Solstice.LLMAdapter` plugga qualquer endpoint compatível (Eva, OpenAI, ChatGPT corporativo). Configuração em uma linha:
+
+```javascript
+Solstice.LLMAdapter.configure({
+  provider: 'fetch',
+  endpoint: 'https://eva.intranet.empresa/v1/chat',
+  credentials: 'include',                // usa SSO da intranet
+});
+```
+
+---
+
 ## ⚡ Por que existe
 
 Ferramentas de BI tradicionais (Power BI, Tableau, Metabase, Hex…) são poderosas, mas todas exigem **instalar algo, criar conta, ou depender de servidor**. Em muitas situações reais — análise rápida de um CSV, dashboard interno sem orçamento, mostrar dados pra um cliente sem expor um produto SaaS — você só precisa de uma página estática que renderize charts e seja **portável como um PDF**.
@@ -64,7 +109,7 @@ Ferramentas de BI tradicionais (Power BI, Tableau, Metabase, Hex…) são podero
 ## 🚀 Como usar
 
 ### Opção 1 — Local (mais simples)
-1. Baixe `solstice_baseline.html`
+1. Baixe `dist/solstice.html` (gerado por `python src/build/build.py`, ou pegue do release mais recente)
 2. Abra direto no Chrome / Edge / Firefox / Safari
 3. Drag-and-drop um CSV no canvas
 4. Pronto.
@@ -80,7 +125,7 @@ npx serve
 # qualquer servidor estático
 ```
 
-Abra `http://localhost:8765/solstice_baseline.html`.
+Abra `http://localhost:8765/dist/solstice.html`.
 
 ---
 
@@ -148,7 +193,7 @@ Veja [SECURITY.md](#-security-policy) para detalhes.
 ```bash
 # Smoke test manual (recomendado)
 python -m http.server 8765
-# Abra solstice_baseline.html, verifique que [Solstice] boot OK aparece no console
+# Rode `python src/build/build.py`, abra dist/solstice.html, verifique que [Solstice] boot OK aparece no console
 
 # Suite de testes automatizada (em desenvolvimento)
 npm test
