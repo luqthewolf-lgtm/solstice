@@ -439,6 +439,52 @@
        Inspector agora vive DENTRO da sidebar — coluna direita = 0. */
     grid-template-columns: 280px 1fr 0px;
   }
+  /* ============================================================
+     Fase 7E (solstice-modular-v1) — Polish global dos componentes/tiles.
+     Pequenas melhorias visuais que afetam TODOS os tipos de visualização
+     (KPI, bar, line, scatter, tabela, etc.):
+       - shadow elevado no hover (feedback claro de interatividade)
+       - estado selecionado com border + ring sutil
+       - empty state mais polido
+       - animação fade-in suave quando tile aparece
+     ============================================================ */
+  .solstice__comp {
+    /* Override do components.css: shadow base + transição mais suave */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  }
+  .solstice__comp:hover {
+    /* Override mais expressivo do hover (era só border-color) */
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12),
+                0 1px 2px rgba(0,0,0,0.04);
+  }
+  .solstice__comp.is-selected {
+    /* Tile selecionado ganha ring forte + sombra accent */
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 1px var(--c-accent),
+                0 4px 14px rgba(0,0,0,0.12);
+  }
+  /* Empty state mais elegante: ícone com pulse sutil, texto melhor hierarquizado */
+  .solstice__comp-empty {
+    animation: solstice-fade-in 280ms ease both;
+  }
+  .solstice__comp-empty > div:first-child {
+    /* Ícone do empty state ganha leve pulse pra parecer "à espera" */
+    animation: solstice-pulse-soft 2.4s ease-in-out infinite;
+  }
+  @keyframes solstice-pulse-soft {
+    0%, 100% { opacity: 0.45; }
+    50%      { opacity: 0.7; }
+  }
+  /* Animação de entrada quando tile é adicionado ao canvas */
+  .solstice__comp:not(.solstice__comp--no-data) {
+    animation: solstice-tile-in 320ms ease-out both;
+  }
+  @keyframes solstice-tile-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   /* Inspector quando alojado dentro da sidebar */
   .solstice__sidebar .solstice__inspector {
     /* Sai do grid; vira block normal dentro da sidebar */
