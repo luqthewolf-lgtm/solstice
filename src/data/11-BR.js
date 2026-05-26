@@ -821,24 +821,44 @@
       try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render(); } catch(_){}
     });
 
-    // Polish 49 (solstice-modular-v1): marca colunas em uso no dashboard
-    // com dot accent na sidebar. Re-roda quando canvas.sections muda.
+    // Polish 49 + 52 (solstice-modular-v1):
+    //  - Marca colunas em uso no dashboard com dot accent na sidebar
+    //  - Annotates cada .solstice__comp com data-uses-cols (lista de
+    //    colunas em uso por aquele tile), pra hover-highlight (Polish 52)
+    //  - Hover num card de coluna na sidebar → todos os tiles do canvas
+    //    que usam aquela coluna ganham .is-highlighted (ring accent)
     (function _initInUseIndicator(){
+      const COL_KEYS = ['column','valueColumn','value','x','y','xColumn','yColumn',
+                        'dimension','measure','metric','series','group','color',
+                        'sourceColumn','targetColumn'];
+      function _columnsUsedBy(slot){
+        const cfg = (slot && slot.config) || {};
+        const out = new Set();
+        for (const k of COL_KEYS){
+          const v = cfg[k];
+          if (typeof v === 'string' && v) out.add(v);
+          if (Array.isArray(v)) v.forEach(x => { if (typeof x === 'string') out.add(x); });
+        }
+        return out;
+      }
       function _columnsInUse(){
         const sections = SolsticeStore.get('canvas.sections') || [];
         const used = new Set();
-        const COL_KEYS = ['column','valueColumn','value','x','y','xColumn','yColumn',
-                          'dimension','measure','metric','series','group','color',
-                          'sourceColumn','targetColumn'];
         for (const s of sections) for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
-          const cfg = sl.config || {};
-          for (const k of COL_KEYS){
-            const v = cfg[k];
-            if (typeof v === 'string' && v) used.add(v);
-            if (Array.isArray(v)) v.forEach(x => { if (typeof x === 'string') used.add(x); });
-          }
+          _columnsUsedBy(sl).forEach(c => used.add(c));
         }
         return used;
+      }
+      function _annotateTiles(){
+        try {
+          const sections = SolsticeStore.get('canvas.sections') || [];
+          for (const s of sections) for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
+            const tile = document.querySelector('[data-comp-id="' + sl.id + '"]');
+            if (!tile) continue;
+            const cols = Array.from(_columnsUsedBy(sl)).join(',');
+            tile.setAttribute('data-uses-cols', cols);
+          }
+        } catch(_){}
       }
       function _apply(){
         try {
@@ -847,11 +867,10 @@
             const col = card.getAttribute('data-column-name');
             card.classList.toggle('is-in-use', used.has(col));
           });
+          _annotateTiles();
         } catch(_){}
       }
-      // Re-aplica quando sections mudam ou quando Editor re-renderiza
       SolsticeStore.subscribe('canvas.sections', _apply);
-      // Observa mudanças no DOM (Editor re-renderiza cards)
       const obs = new MutationObserver(() => {
         if (obs._scheduled) return;
         obs._scheduled = requestAnimationFrame(() => {
@@ -861,7 +880,50 @@
       });
       const dataPanel = document.getElementById('data-panel');
       if (dataPanel) obs.observe(dataPanel, { childList: true, subtree: true });
+      // Observa canvas tb (tiles renderizam dinâmico)
+      const canvas = document.querySelector('.solstice__canvas');
+      if (canvas){
+        const obs2 = new MutationObserver(() => {
+          if (obs2._scheduled) return;
+          obs2._scheduled = requestAnimationFrame(() => {
+            obs2._scheduled = null;
+            _annotateTiles();
+          });
+        });
+        obs2.observe(canvas, { childList: true, subtree: true });
+      }
       _apply();
+
+      // Polish 52: hover-highlight de tiles que usam a coluna.
+      // Delega no body (cards podem ser recriados).
+      // Marca canvas com .is-dimming-others (mais confiável que :has() em
+      // alguns navegadores quando o seletor é complexo).
+      document.body.addEventListener('mouseover', function(e){
+        const card = e.target.closest && e.target.closest('.solstice__editor-col[data-column-name]');
+        if (!card) return;
+        const col = card.getAttribute('data-column-name');
+        if (!col) return;
+        let anyHighlighted = false;
+        document.querySelectorAll('.solstice__comp[data-uses-cols]').forEach(tile => {
+          const cols = (tile.getAttribute('data-uses-cols') || '').split(',');
+          const match = cols.indexOf(col) >= 0;
+          tile.classList.toggle('is-highlighted', match);
+          if (match) anyHighlighted = true;
+        });
+        document.querySelectorAll('.solstice__canvas').forEach(c => {
+          c.classList.toggle('is-dimming-others', anyHighlighted);
+        });
+      });
+      document.body.addEventListener('mouseout', function(e){
+        const card = e.target.closest && e.target.closest('.solstice__editor-col[data-column-name]');
+        if (!card) return;
+        document.querySelectorAll('.solstice__comp.is-highlighted').forEach(t => {
+          t.classList.remove('is-highlighted');
+        });
+        document.querySelectorAll('.solstice__canvas.is-dimming-others').forEach(c => {
+          c.classList.remove('is-dimming-others');
+        });
+      });
     })();
 
     // Polish 35: Scroll-top FAB no canvas. Aparece quando user rola

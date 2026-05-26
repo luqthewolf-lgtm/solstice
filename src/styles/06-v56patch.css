@@ -1118,6 +1118,31 @@
   }
 
   /* ============================================================
+     Polish 52 (solstice-modular-v1) — Hover coluna highlight tiles.
+     Quando user passa o mouse num card de coluna na sidebar, todos os
+     tiles do canvas que usam aquela coluna ganham ring accent + leve
+     scale. Os que NÃO usam ficam levemente dim pra reforçar contraste.
+     ============================================================ */
+  .solstice__comp.is-highlighted {
+    box-shadow: 0 0 0 2px var(--c-accent),
+                0 10px 28px -6px color-mix(in srgb, var(--c-accent) 40%, transparent) !important;
+    transform: scale(1.012);
+    z-index: 2;
+    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Quando há AO MENOS um is-highlighted no canvas, os outros tiles
+     ficam dim (opacity menor) pra reforçar o contraste.
+     Usamos classe explícita .is-dimming-others (aplicada via JS) em vez
+     de :has() porque o cascade dentro de @layer + :has() complexo é
+     inconsistente em alguns navegadores. !important garante que vença
+     a especificidade default de opacity:1 herdado do user-agent. */
+  .solstice__canvas.is-dimming-others
+    .solstice__comp:not(.is-highlighted) {
+    opacity: 0.45 !important;
+    transition: opacity 200ms ease;
+  }
+
+  /* ============================================================
      Polish 49 (solstice-modular-v1) — Indicador "em uso" na sidebar.
      Colunas usadas em tiles do dashboard ganham um dot accent na lateral
      do card (`.is-in-use`). Aplicado via JS observando canvas.sections.
