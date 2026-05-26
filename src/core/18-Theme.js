@@ -5,7 +5,9 @@
      ============================================================ */
   const SolsticeTheme = (function(){
     // SOL-H4 v2: 'itau' adicionada como paleta global. Cores definidas no @layer theme.
-    const PALETTES = ['ocean','sunset','forest','vineyard','coffee','slate','itau'];
+    // Sprint Solstice 2026.6: 'solstice' adicionada como 8ª paleta + default boot.
+    // 'solstice' fica no início pra ser o primeiro do cycle e identidade do produto.
+    const PALETTES = ['solstice','ocean','sunset','forest','vineyard','coffee','slate','itau'];
     const MODES = ['dark','light'];
     const DENSITIES = ['compact','comfortable','spacious'];
 

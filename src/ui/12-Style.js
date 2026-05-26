@@ -92,6 +92,12 @@
     // 'auto' agora aponta pra paleta 'friendly' (colorblind-safe, alta legibilidade,
     // boa em dark E light) — antes era null que não pintava nada.
     const PALETTES = {
+      // Sprint Solstice 2026.6: paleta de charts pareada com o tema "solstice".
+      // Núcleo coral-dourado (accent quente) + violeta IA (frio/secundário,
+      // a coroa) + verde-mar/azul-violeta apoiando. 12 cores espaçadas em
+      // tom pra dar contraste numa série larga, todas mantendo a metáfora
+      // de horizonte/eclipse.
+      'solstice':   { label:'🌗 Solstice', colors: ['#FF9D5C','#A78BFA','#FFB983','#7BA8FF','#F2B441','#45D98A','#E07B3C','#C7B5FD','#FF8364','#5BA8FF','#F472B6','#2DD4BF'] },
       'auto':       { label:'Automática (Amigável)', colors: ['#4D9FFF','#4ADE80','#FBBF24','#A78BFA','#F87171','#22D3EE','#FB923C','#F472B6','#34D399','#818CF8','#FACC15','#2DD4BF'] },
       'friendly':   { label:'Amigável (cliente)', colors: ['#4D9FFF','#4ADE80','#FBBF24','#A78BFA','#F87171','#22D3EE','#FB923C','#F472B6','#34D399','#818CF8','#FACC15','#2DD4BF'] },
       'colorblind': { label:'Acessível (CB-safe)', colors: ['#0173B2','#DE8F05','#029E73','#CC78BC','#ECE133','#56B4E9','#D55E00','#CC79A7','#F0E442','#009E73','#0072B2','#E69F00'] },

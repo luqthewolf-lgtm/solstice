@@ -39,6 +39,56 @@
     --sh-1: 0 2px 4px rgba(15,30,80,.10); --sh-2: 0 6px 14px rgba(15,30,80,.14); --sh-3: 0 14px 28px rgba(15,30,80,.18);
   }
 
+  /* === SOLSTICE (signature — sprint 2026.6) ===========================
+     A identidade autoral do produto. Metáfora: eclipse + horizonte.
+     - Profundidade vem de LUZ (corona/glow quente), não de sombra preta.
+     - Accent quente (coral-dourado, nascer do sol) com o violeta de
+       --c-ai-accent funcionando como frio/secundário (a coroa).
+     - Brand-only tokens: --solstice-horizon (gradiente identidade),
+       --solstice-corona (glow radial quente), --solstice-arc (cor do arco).
+     Espelha o conjunto exato de tokens de ocean (incluindo *-text e sh-glow).
+     ==================================================================== */
+  :root[data-palette="solstice"][data-mode="dark"] {
+    --c-bg: #0A0D1A; --c-surface: #14172B; --c-surface-2: #1D2138; --c-surface-3: #282C49;
+    --c-text: #F4F1FA; --c-text-2: #C6C3DE; --c-muted: #837FA2; --c-border: #343855;
+    --c-accent: #FF9D5C; --c-accent-hi: #FFB983; --c-accent-lo: #E07B3C;
+    --c-success: #45D98A; --c-warn: #F2B441; --c-error: #F47272; --c-info: #7BA8FF;
+    /* Text variantes seguem o padrão de ocean dark (herdam base — já passam AA em surface escura) */
+    --c-warn-text: #F2B441;
+    --c-success-text: #45D98A;
+    --c-error-text: #F47272;
+    --c-info-text: #7BA8FF;
+    /* Sombras com tinte coral em vez de pretas — "profundidade vem de luz" */
+    --sh-1: 0 2px 4px rgba(255,157,92,.10), 0 1px 2px rgba(0,0,0,.4);
+    --sh-2: 0 6px 16px rgba(255,157,92,.14), 0 4px 10px rgba(0,0,0,.5);
+    --sh-3: 0 14px 32px rgba(255,157,92,.18), 0 8px 20px rgba(0,0,0,.55);
+    --sh-glow: 0 0 24px rgba(255,157,92,.30), 0 0 0 2px color-mix(in srgb, var(--c-accent) 50%, transparent);
+    /* Brand-only — só vivos no tema Solstice */
+    --solstice-horizon: linear-gradient(135deg, #8B6FCC 0%, #C77488 40%, #FF9D5C 100%);
+    --solstice-corona: radial-gradient(circle at center, color-mix(in srgb, var(--c-accent) 35%, transparent) 0%, transparent 70%);
+    --solstice-arc: var(--c-accent);
+  }
+  :root[data-palette="solstice"][data-mode="light"] {
+    /* Golden hour — branco com toque âmbar do nascer */
+    --c-bg: #FBF4EC; --c-surface: #FFFFFF; --c-surface-2: #FBF1E6; --c-surface-3: #F3E4D3;
+    --c-text: #211B2E; --c-text-2: #4A4060; --c-muted: #6E6582; --c-border: #E7D8C6;
+    --c-accent: #DC7430; --c-accent-hi: #FF9D5C; --c-accent-lo: #B45E20;
+    --c-success: #16A34A; --c-warn: #C77A14; --c-error: #DC2626; --c-info: #2563EB;
+    /* Text variantes ajustadas pra AA sobre branco */
+    --c-warn-text: #854500;
+    --c-success-text: #15803D;
+    --c-error-text: #B91C1C;
+    --c-info-text: #1D4ED8;
+    /* Sombras quentes (golden hour) — coral diluído */
+    --sh-1: 0 1px 2px rgba(220,116,48,.10), 0 1px 2px rgba(40,30,15,.05);
+    --sh-2: 0 4px 12px rgba(220,116,48,.12), 0 4px 10px rgba(40,30,15,.06);
+    --sh-3: 0 12px 28px rgba(220,116,48,.16), 0 8px 20px rgba(40,30,15,.08);
+    /* Brand-only — mesmo gradient, mas tons claros */
+    --solstice-horizon: linear-gradient(135deg, #B59AE2 0%, #E59E9C 40%, #DC7430 100%);
+    --solstice-corona: radial-gradient(circle at center, color-mix(in srgb, var(--c-accent) 25%, transparent) 0%, transparent 70%);
+    --solstice-arc: var(--c-accent);
+  }
+
   /* === SUNSET === */
   :root[data-palette="sunset"][data-mode="dark"] {
     --c-bg: #1A0F1F; --c-surface: #1E1322; --c-surface-2: #28182C; --c-surface-3: #36213B;

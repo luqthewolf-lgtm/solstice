@@ -97,7 +97,7 @@
   Ver achados RT-06, RT-07, HV-04 na Auditoria 2026.3.
   ============================================================
 -->
-<html lang="pt-BR" data-mode="dark" data-palette="solstice" data-density="comfortable">
+<html lang="pt-BR" data-mode="dark" data-palette="ocean" data-density="comfortable">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -179,9 +179,7 @@
       var t = saved ? JSON.parse(saved) : {};
       var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       root.setAttribute('data-mode',    t.mode    || (prefersDark ? 'dark' : 'light'));
-      // Sprint Solstice 2026.6: 'solstice' é o novo default. Usuários com
-      // paleta salva mantêm a escolha (t.palette preservado).
-      root.setAttribute('data-palette', t.palette || 'solstice');
+      root.setAttribute('data-palette', t.palette || 'ocean');
       root.setAttribute('data-density', t.density || 'comfortable');
     } catch(e){ /* localStorage indisponível — usa defaults do HTML */ }
   })();
@@ -390,7 +388,6 @@
             <label class="solstice__menu-row" title="Paleta de cores">
               <span class="solstice__menu-row-label">🎨 Paleta</span>
               <select id="palette-select" aria-label="Selecionar paleta de cores">
-                <option value="solstice">🌗 Solstice</option>
                 <option value="ocean">Ocean</option>
                 <option value="sunset">Sunset</option>
                 <option value="forest">Forest</option>
