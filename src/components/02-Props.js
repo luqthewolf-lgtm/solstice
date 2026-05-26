@@ -141,8 +141,39 @@
         return;
       }
 
-      // 1) Abre inspector e configura header
-      SolsticeInspector.setTitle(def.icon || '⚙️', (def.name || 'Propriedades').toUpperCase());
+      // 1) Abre inspector e configura header.
+      // Sprint Solstice S7: passa contexto completo — type chip + breadcrumb
+      // da seção pai. Descobre o título da seção walking canvas.sections.
+      let sectionLabel = null;
+      try {
+        const sections = (SolsticeStore.get('canvas.sections')) || [];
+        outer: for (let si = 0; si < sections.length; si++){
+          const s = sections[si];
+          for (const r of (s.rows || [])){
+            for (const sl of (r.slots || [])){
+              if (sl.id === slot.id){
+                const t = s.title || 'Seção';
+                // Se o título já começa com número e ponto (ex: "1. Visão
+                // executiva") usa direto. Senão prefixa com índice.
+                sectionLabel = /^\s*\d+\./.test(t) ? t : ((si + 1) + '. ' + t);
+                break outer;
+              }
+            }
+          }
+        }
+      } catch(_){}
+      // typeChip: nome curto do tipo (ex: "KPI", "TABELA"). Label: rótulo customizado
+      // ou nome formal do tipo.
+      const typeName = (def.name || 'Componente').toUpperCase();
+      // Se o slot tem um título custom (ex: "Receita por região"), usa como label
+      // e o typeName vai pro chip. Senão, label = typeName e chip = null.
+      const customTitle = (slot.config && slot.config.title) || null;
+      SolsticeInspector.setTitle({
+        icon: def.icon || '⚙️',
+        label: customTitle || typeName,
+        typeChip: customTitle ? typeName : null,
+        sectionLabel: sectionLabel
+      });
       SolsticeInspector.open();
       const host = SolsticeInspector.getBody();
       if (!host) return;

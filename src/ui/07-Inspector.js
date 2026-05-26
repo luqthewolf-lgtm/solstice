@@ -105,12 +105,49 @@
       SolsticeStore.set('ui.inspector.open', false);
       SolsticeStore.set('ui.inspector.slotId', null);
     }
-    function setTitle(iconText, label){
+    // Sprint Solstice S7: header repensado.
+    // Backward compat: setTitle(icon, label) ainda funciona.
+    // Novo: setTitle({ icon, label, typeChip, sectionLabel })
+    //   icon: emoji/char
+    //   label: nome curto (ex: nome da coluna alvo)
+    //   typeChip: tipo do componente (ex: "KPI", "Tabela") — vai como pill accent
+    //   sectionLabel: breadcrumb da seção pai (ex: "1. Visão executiva")
+    function setTitle(iconOrConfig, labelArg){
       const t = title();
       if (!t) return;
       t.innerHTML = '';
-      t.appendChild(SolsticeUtils.el('span', { class:'solstice__inspector-title-icon' }, iconText || '⚙️'));
-      t.appendChild(SolsticeUtils.el('span', null, label || 'Propriedades'));
+      let icon, label, typeChip, sectionLabel;
+      if (iconOrConfig && typeof iconOrConfig === 'object'){
+        icon = iconOrConfig.icon;
+        label = iconOrConfig.label;
+        typeChip = iconOrConfig.typeChip;
+        sectionLabel = iconOrConfig.sectionLabel;
+      } else {
+        icon = iconOrConfig;
+        label = labelArg;
+      }
+      icon = icon || '⚙️';
+      label = label || 'Propriedades';
+      // Breadcrumb da seção pai (acima do título)
+      if (sectionLabel){
+        t.appendChild(SolsticeUtils.el('span',
+          { class: 'solstice__inspector-title-breadcrumb' },
+          '↳ ' + sectionLabel));
+      }
+      // Linha principal: ícone + label + (opcional) chip do tipo
+      const main = SolsticeUtils.el('span', { class: 'solstice__inspector-title-main' });
+      main.appendChild(SolsticeUtils.el('span',
+        { class: 'solstice__inspector-title-icon' },
+        icon));
+      main.appendChild(SolsticeUtils.el('span',
+        { class: 'solstice__inspector-title-label' },
+        label));
+      if (typeChip){
+        main.appendChild(SolsticeUtils.el('span',
+          { class: 'solstice__inspector-title-chip' },
+          typeChip));
+      }
+      t.appendChild(main);
     }
     function setFooter(buttonEl){
       const f = foot();

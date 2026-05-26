@@ -2071,6 +2071,64 @@
   }
 
   /* ============================================================
+     Sprint Solstice S7 — Inspector header repensado.
+     Header agora tem 2 linhas: breadcrumb (seção pai, sutil) + main
+     (ícone grande + label + chip do tipo). Spotlight visual de o que
+     está sendo editado.
+     ============================================================ */
+  .solstice__inspector-head {
+    align-items: flex-start;
+  }
+  .solstice__inspector-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+  }
+  .solstice__inspector-title-breadcrumb {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--c-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    opacity: 0.85;
+  }
+  .solstice__inspector-title-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .solstice__inspector-title-icon {
+    font-size: 1.15rem !important;
+    /* coroa quente sutil atrás do ícone */
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c-accent) 28%, transparent));
+  }
+  .solstice__inspector-title-label {
+    font-family: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--c-text);
+    letter-spacing: -0.01em;
+    text-transform: none;
+  }
+  .solstice__inspector-title-chip {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--c-accent) 16%, transparent);
+    color: var(--c-accent);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 35%, transparent);
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
      Sprint Solstice S6 — Eclipse wipe na troca de tema.
      View Transitions API: clip-path circle de raio 0 pro ponto do
      clique cresce até cobrir a tela inteira. A nova paleta surge
