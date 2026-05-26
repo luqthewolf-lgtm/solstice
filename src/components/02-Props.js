@@ -187,8 +187,73 @@
       _buildInspectorAvisos(host, slot);
       _buildInspectorAccordions(host, slot, def);
 
+      // Sprint Solstice S8: search incremental no topo do inspector — só
+      // aparece quando há muitos controles (>6 fields). Filtra accordions
+      // por nome e fields por label. Esc limpa, Enter abre o primeiro
+      // accordion com match.
+      _maybeAddInspectorSearch(host);
+
       // 3) Footer — Auditoria 2026 (RT-02): extraído em _buildInspectorFooter.
       SolsticeInspector.setFooter(_buildInspectorFooter(slot, def));
+    }
+
+    function _maybeAddInspectorSearch(host){
+      try {
+        const allFields = host.querySelectorAll('.solstice__props-field');
+        if (allFields.length < 7) return; // threshold — só pra tiles "ricos"
+        if (host.querySelector(':scope > .solstice__inspector-search')) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'solstice__inspector-search';
+        const input = document.createElement('input');
+        input.type = 'search';
+        input.placeholder = '🔎 Buscar controle…';
+        input.setAttribute('aria-label', 'Filtrar controles do Inspector');
+        input.className = 'solstice__inspector-search-input';
+        wrap.appendChild(input);
+        // Insere ANTES dos accordions (após avisos se existir)
+        const firstAccord = host.querySelector('.solstice__accord');
+        if (firstAccord) host.insertBefore(wrap, firstAccord);
+        else host.insertBefore(wrap, host.firstChild);
+
+        function _filter(query){
+          const q = (query || '').trim().toLowerCase();
+          const accords = host.querySelectorAll('.solstice__accord');
+          accords.forEach(acc => {
+            const headText = ((acc.querySelector('.solstice__accord-head-label')?.textContent) || '').toLowerCase();
+            const fields = acc.querySelectorAll('.solstice__props-field');
+            let visibleFields = 0;
+            fields.forEach(f => {
+              const labelText = ((f.querySelector('.solstice__props-label')?.textContent) || f.textContent || '').toLowerCase();
+              const match = !q || labelText.indexOf(q) >= 0;
+              f.style.display = match ? '' : 'none';
+              if (match) visibleFields++;
+            });
+            // Mostra accordion se: sem query OU label do accord match OU algum field visível
+            const accMatch = !q || headText.indexOf(q) >= 0 || visibleFields > 0;
+            acc.style.display = accMatch ? '' : 'none';
+            // Auto-abre accordions com match quando há query
+            if (q && accMatch && visibleFields > 0){
+              acc.classList.add('is-open');
+              const body = acc.querySelector('.solstice__accord-body');
+              if (body) body.style.display = 'block';
+            }
+          });
+        }
+        input.addEventListener('input', () => _filter(input.value));
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape'){
+            input.value = '';
+            _filter('');
+            e.stopPropagation();
+          } else if (e.key === 'Enter'){
+            const firstVisible = host.querySelector('.solstice__accord:not([style*="display: none"])');
+            if (firstVisible){
+              const head = firstVisible.querySelector('.solstice__accord-head');
+              if (head) head.click();
+            }
+          }
+        });
+      } catch(_){}
     }
 
     /** Auditoria 2026 (RT-02): accordion ⚠️ Avisos — só aparece se há inconsistências. */

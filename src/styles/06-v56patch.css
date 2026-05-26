@@ -2071,6 +2071,42 @@
   }
 
   /* ============================================================
+     Sprint Solstice S8 — Search incremental no Inspector.
+     Aparece só quando o tile tem >6 controles. Filtra accordions e
+     fields por nome.
+     ============================================================ */
+  .solstice__inspector-search {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 8px 0 10px;
+    margin-bottom: 6px;
+    background: linear-gradient(to bottom,
+      var(--c-surface) 80%,
+      color-mix(in srgb, var(--c-surface) 60%, transparent));
+  }
+  .solstice__inspector-search-input {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: var(--rad-sm);
+    background: color-mix(in srgb, var(--c-bg) 60%, var(--c-surface));
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: border-color var(--t-mid), box-shadow var(--t-mid);
+  }
+  .solstice__inspector-search-input::placeholder {
+    color: var(--c-muted);
+    opacity: 0.7;
+  }
+  .solstice__inspector-search-input:focus {
+    outline: none;
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 24%, transparent);
+  }
+
+  /* ============================================================
      Sprint Solstice S7 — Inspector header repensado.
      Header agora tem 2 linhas: breadcrumb (seção pai, sutil) + main
      (ícone grande + label + chip do tipo). Spotlight visual de o que
