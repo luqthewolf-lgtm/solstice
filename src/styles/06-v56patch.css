@@ -1200,6 +1200,42 @@
   /* Polish 55: indica que o card é clicável quando há tile pra focar */
   .solstice__editor-col.is-in-use { cursor: pointer; }
 
+  /* ============================================================
+     Polish 56 (solstice-modular-v1) — Search box pra filtrar colunas.
+     Aparece no topo do .solstice__editor quando há cards. Estilo
+     idêntico ao Ask bar do header pra coerência visual.
+     ============================================================ */
+  .solstice__editor-search {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 8px 0 10px;
+    background: linear-gradient(to bottom,
+      var(--c-surface) 80%,
+      color-mix(in srgb, var(--c-surface) 60%, transparent));
+    margin-bottom: 4px;
+  }
+  .solstice__editor-search-input {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--c-bg) 60%, var(--c-surface));
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .solstice__editor-search-input::placeholder {
+    color: var(--c-text-muted);
+    opacity: 0.7;
+  }
+  .solstice__editor-search-input:focus {
+    outline: none;
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 24%, transparent);
+  }
+
   /* Polish 55: flash de foco aplicado ao tile depois que o user
      clica num card de coluna na sidebar — pulse rápido na borda accent
      pra reforçar "este é o tile que estava procurando". */

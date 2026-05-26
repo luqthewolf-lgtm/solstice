@@ -1008,6 +1008,83 @@
       update();
     })();
 
+    // Polish 56 (solstice-modular-v1): Search box pra filtrar colunas
+    // na sidebar. Útil pra datasets com 20+ colunas onde scroll é lento.
+    // - Injeta input no topo do .solstice__editor (idempotente).
+    // - filtro = case-insensitive includes no nome da coluna.
+    // - Esconde cards que não combinam via display:none.
+    // - 'Esc' limpa o filtro; 'Enter' foca o primeiro card visível.
+    (function _initColumnSearch(){
+      function _filterCards(query){
+        const q = (query || '').trim().toLowerCase();
+        let visible = 0;
+        document.querySelectorAll('.solstice__editor-col[data-column-name]').forEach(card => {
+          const name = (card.getAttribute('data-column-name') || '').toLowerCase();
+          const match = !q || name.indexOf(q) >= 0;
+          card.style.display = match ? '' : 'none';
+          if (match) visible++;
+        });
+        // Atualiza folder summary com contagem visível (se existe)
+        const summary = document.querySelector('.solstice__editor-folder-summary');
+        if (summary){
+          const counter = summary.querySelector('.solstice__editor-search-count');
+          if (q){
+            if (!counter){
+              const c = document.createElement('span');
+              c.className = 'solstice__editor-search-count';
+              c.style.cssText = 'margin-left:6px;font-size:0.72rem;color:var(--c-text-muted);font-weight:500;';
+              summary.appendChild(c);
+            }
+            const total = document.querySelectorAll('.solstice__editor-col[data-column-name]').length;
+            summary.querySelector('.solstice__editor-search-count').textContent = '(' + visible + ' de ' + total + ')';
+          } else if (counter){
+            counter.remove();
+          }
+        }
+      }
+      function _ensureSearch(){
+        try {
+          const editor = document.querySelector('.solstice__editor');
+          if (!editor) return;
+          if (editor.querySelector(':scope > .solstice__editor-search')) return;
+          // Só injeta se tem cards (não polui editor vazio)
+          if (!editor.querySelector('.solstice__editor-col[data-column-name]')) return;
+
+          const wrap = document.createElement('div');
+          wrap.className = 'solstice__editor-search';
+          const input = document.createElement('input');
+          input.type = 'search';
+          input.placeholder = '🔎 Buscar coluna…';
+          input.setAttribute('aria-label', 'Filtrar colunas por nome');
+          input.className = 'solstice__editor-search-input';
+          input.addEventListener('input', () => _filterCards(input.value));
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape'){
+              input.value = '';
+              _filterCards('');
+              e.stopPropagation();
+            } else if (e.key === 'Enter'){
+              const first = document.querySelector('.solstice__editor-col[data-column-name]:not([style*="display: none"])');
+              if (first) first.click();
+            }
+          });
+          wrap.appendChild(input);
+          editor.insertBefore(wrap, editor.firstChild);
+        } catch(_){}
+      }
+      // Observa o editor pra (re)injetar depois de cada Editor.render()
+      const root = document.getElementById('data-panel') || document.body;
+      const obs = new MutationObserver(() => {
+        if (obs._scheduled) return;
+        obs._scheduled = requestAnimationFrame(() => {
+          obs._scheduled = null;
+          _ensureSearch();
+        });
+      });
+      obs.observe(root, { childList: true, subtree: true });
+      _ensureSearch();
+    })();
+
     // Fase 7B + Polish 41 (solstice-modular-v1) — Drag-and-drop QuickSight.
     // Cards de coluna na aba "Dados" arrastáveis. Selects de coluna do
     // Inspector ganham WRAP visual em "column zone" com chip removível
