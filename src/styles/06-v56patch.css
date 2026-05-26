@@ -440,6 +440,55 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 31 (solstice-modular-v1) — Help FAB (botão ? flutuante).
+     - Sombra elevada permanente
+     - Hover scale + glow accent forte
+     - Active scale-down spring
+     ============================================================ */
+  .solstice__help-fab {
+    box-shadow:
+      0 4px 12px color-mix(in srgb, var(--c-accent) 35%, transparent),
+      0 2px 4px rgba(0,0,0,0.15);
+    transition: transform 240ms cubic-bezier(0.34, 1.5, 0.5, 1),
+                box-shadow 240ms ease,
+                background 180ms ease;
+  }
+  .solstice__help-fab:hover {
+    transform: scale(1.12) translateY(-3px);
+    box-shadow:
+      0 10px 24px color-mix(in srgb, var(--c-accent) 50%, transparent),
+      0 4px 8px rgba(0,0,0,0.18);
+  }
+  .solstice__help-fab:active {
+    transform: scale(0.95);
+  }
+
+  /* ============================================================
+     Polish 30 (solstice-modular-v1) — Botões de ação da seção (↑↓+Linha×).
+     Hover ganha cor accent, scale spring sutil no active.
+     ============================================================ */
+  .solstice__section-btn {
+    transition: background 180ms ease,
+                color 180ms ease,
+                transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .solstice__section-btn:hover:not([disabled]):not(.is-disabled) {
+    color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 10%, transparent);
+  }
+  .solstice__section-btn:active:not([disabled]):not(.is-disabled) {
+    transform: scale(0.9);
+  }
+  /* "+ Linha" botão tem texto - aplica o mesmo padrão */
+  .solstice__section-add-row-btn {
+    transition: all 180ms ease;
+  }
+  .solstice__section-add-row-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--c-accent) 30%, transparent);
+  }
+
+  /* ============================================================
      Polish 29 (solstice-modular-v1) — Brand area + privacy badge.
      Logo com glow accent sutil quando hover. Privacy badge com pulse
      verde discreto pra sinalizar "rodando local".
