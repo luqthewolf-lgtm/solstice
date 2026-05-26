@@ -20,11 +20,13 @@
       dateFixed: null,
       dateColumn: null,
       dateFunction: 'max',
-      // Sprint 41 / feedback do usuário: default era azul Itaú → laranja Itaú
-      // (mistura institucional). Usuário pediu "gradiente laranja Itaú" puro
-      // — duas tonalidades de laranja em vez de mistura azul+laranja.
-      // #EC7000 é o laranja primário Itaú; #B85800 é o tom escuro pra contraste.
-      gradient: { from: '#EC7000', to: '#B85800', direction: 'to right' },
+      // Sprint 41: default era laranja Itaú gritante (#EC7000→#B85800).
+      // Solstice-modular-v1 / 7D: default mais sutil que segue a paleta ativa.
+      // O laranja Itaú vira opção (preset) pra quem quiser identidade Itaú —
+      // não domina mais a tela pra todos os users por padrão.
+      // Usa CSS vars: o gradient muda automaticamente quando o user troca de
+      // paleta (Ocean/Sunset/Forest/etc).
+      gradient: { from: 'var(--c-surface-2)', to: 'var(--c-accent)', direction: 'to right' },
       textColor: 'auto-white',
       height: 'compact'
     };
@@ -42,6 +44,15 @@
 
     function get(){
       const stored = SolsticeStore.get('canvas.header');
+      // Migração suave (solstice-modular-v1 / 7D): se o user tem o velho
+      // default laranja Itaú salvo, troca pelo novo default sutil que segue
+      // a paleta. Mantém todas as outras props customizadas. User pode voltar
+      // ao laranja Itaú via menu de tema do dashboard se quiser.
+      if (stored && stored.gradient
+          && stored.gradient.from === '#EC7000'
+          && stored.gradient.to === '#B85800'){
+        return { ...DEFAULT, ...stored, gradient: DEFAULT.gradient };
+      }
       return { ...DEFAULT, ...(stored || {}) };
     }
     function set(patch){
@@ -115,8 +126,8 @@
       const gradient = cfg.gradient && cfg.gradient.direction === 'radial'
         ? 'radial-gradient(circle, ' + cfg.gradient.from + ', ' + cfg.gradient.to + ')'
         : 'linear-gradient(' + (cfg.gradient && cfg.gradient.direction || 'to right') +
-          ', ' + (cfg.gradient && cfg.gradient.from || '#003D7A') +
-          ', ' + (cfg.gradient && cfg.gradient.to || '#FF6B00') + ')';
+          ', ' + (cfg.gradient && cfg.gradient.from || 'var(--c-surface-2)') +
+          ', ' + (cfg.gradient && cfg.gradient.to || 'var(--c-accent)') + ')';
       const el = SolsticeUtils.el('div', {
         class: cls,
         style: 'background:' + gradient + ';color:' + textColor + ';'
