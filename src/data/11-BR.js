@@ -2453,7 +2453,9 @@
     let gPending = false;
     let gTimer = null;
     document.addEventListener('keydown', (e) => {
-      if (e.target.matches('input, textarea, [contenteditable="true"]')) return;
+      // Audit 2026.6: guard e.target.matches — document/window podem ser target
+      // e não implementam .matches(). Sem guard, TypeError em CADA keydown.
+      if (e.target && e.target.matches && e.target.matches('input, textarea, [contenteditable="true"]')) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key.toLowerCase();
       if (k === 'g'){
@@ -2603,7 +2605,8 @@
     (function initGlobalScrollKeys(){
       const canvas = document.getElementById('canvas-root');
       document.addEventListener('keydown', (e) => {
-        if (e.target.matches('input, textarea, [contenteditable="true"]')) return;
+        // Audit 2026.6: guard e.target.matches (mesmo motivo)
+        if (e.target && e.target.matches && e.target.matches('input, textarea, [contenteditable="true"]')) return;
         if (e.key === 'Home' && !e.ctrlKey && !e.metaKey){
           canvas && canvas.scrollTo({ top: 0, behavior: 'smooth' });
           e.preventDefault();
