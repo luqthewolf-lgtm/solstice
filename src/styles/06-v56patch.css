@@ -440,6 +440,87 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 27 (solstice-modular-v1) — Hint tooltips polidos.
+     - Backdrop-filter glass moderno
+     - Border accent sutil
+     - Border-radius 12px (mais arredondado)
+     - Box-shadow elevado com glow accent
+     - Animação de entrada mais elegante
+     ============================================================ */
+  .solstice__hint-tooltip {
+    background: linear-gradient(135deg,
+      var(--c-accent),
+      color-mix(in srgb, var(--c-accent) 75%, #a78bfa));
+    border-radius: 12px !important;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 50%, #fff 10%);
+    padding: 14px 18px !important;
+    box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--c-accent) 50%, transparent),
+                0 0 0 1px rgba(255,255,255,0.06) inset;
+    backdrop-filter: blur(8px);
+    font-weight: var(--fw-medium);
+    letter-spacing: 0.005em;
+    animation: solstice-hint-spring 320ms cubic-bezier(0.34, 1.4, 0.5, 1) both !important;
+  }
+  @keyframes solstice-hint-spring {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -8px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+  }
+
+  /* ============================================================
+     Polish 25 (solstice-modular-v1) — Pages tabbar polish.
+     Quando há múltiplas páginas, tabs estilo browser com ring no ativo.
+     ============================================================ */
+  .solstice__page-tab {
+    transition: background 180ms ease,
+                color 180ms ease,
+                border-color 180ms ease,
+                transform 120ms ease;
+    position: relative;
+  }
+  .solstice__page-tab:hover:not(.is-active) {
+    transform: translateY(-1px);
+  }
+  .solstice__page-tab.is-active {
+    /* Underline accent na aba ativa */
+    box-shadow: inset 0 -2px 0 var(--c-accent);
+    border-color: color-mix(in srgb, var(--c-accent) 30%, var(--c-border));
+  }
+
+  /* ============================================================
+     Polish 24 (solstice-modular-v1) — Filterbar polish.
+     Hover sutil no head, badge has-active com glow pulse,
+     animação suave no expand/collapse.
+     ============================================================ */
+  .solstice__filterbar {
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .solstice__filterbar:hover {
+    border-color: color-mix(in srgb, var(--c-accent) 30%, var(--c-border));
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .solstice__filterbar-head {
+    transition: background 180ms ease;
+  }
+  .solstice__filterbar-head:hover {
+    background: color-mix(in srgb, var(--c-accent) 4%, var(--c-surface-2));
+  }
+  .solstice__filterbar-count.has-active {
+    /* Glow pulse pra chamar atenção que há filtros aplicados */
+    animation: solstice-filter-pulse 2.4s ease-in-out infinite;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 25%, transparent);
+  }
+  @keyframes solstice-filter-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 25%, transparent); }
+    50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accent) 35%, transparent); }
+  }
+
+  /* ============================================================
      Polish 23 (solstice-modular-v1) — Quality card refinado.
      Background com gradient sutil tonal por score (success/warn/error),
      border-left colorido como insight cards. Score com tabular-nums.
