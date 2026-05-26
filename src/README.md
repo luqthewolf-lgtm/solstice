@@ -11,7 +11,8 @@ responsabilidade única.
 | `core/` | 18 módulos: LZ, Config, ErrorBoundary, Utils, Storage, Store, StoreContract, Log, IngestState, Ids, Boot, Locale, I18n, Fmt, Errors, Toast, Profiles, Theme | ✅ Fase 3 onda A |
 | `data/` | 18 módulos de dados: Dictionary, Domain, Tokenizer, Concepts, Inference, GoldenTest, Learning, Dummy, Onboarding, Debug, BR, Types, Compat, CompCache, Ingest, DatasetType, Quality, Editor | ✅ Fase 3 onda B |
 | `ui/` | 18 módulos: 9 shell+análise (Undo, Resize, DnD, Minimap, Audit, Stats, Inspector, Analysis, Relationships) + 9 structure (DashHeader, Dataset, Style, KPI, Humanize, SidebarTabs, Modal, Layouts, Canvas) | ✅ Fases 3 C+D |
-| `features/` | Filtros, Params, AutoDashboard, Insights, Ask, Export, etc. | ⏳ Fase 3 ondas D/E/F |
+| `components/` | 2 módulos gigantes: Components (20 tipos de viz) + Props (painel direito) | ✅ Fase 3 onda E |
+| `features/` | Filtros, Params, AutoDashboard, Insights, Ask, Export, etc. | ⏳ Fases 3 F→J |
 
 A ordem de extração e os slots correspondentes estão em
 [`build/manifest.json`](build/manifest.json).

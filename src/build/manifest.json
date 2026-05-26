@@ -71,6 +71,10 @@
       "ui/16-Modal.js",
       "ui/17-Layouts.js",
       "ui/18-Canvas.js"
+    ],
+    "components-modules": [
+      "components/01-Components.js",
+      "components/02-Props.js"
     ]
   }
 }
