@@ -10,7 +10,7 @@ responsabilidade única.
 | `styles/` | CSS dividido em 6 arquivos por `@layer` (shell, reset, tokens, theme, components, v56patch) | ✅ Fase 2 |
 | `core/` | 18 módulos: LZ, Config, ErrorBoundary, Utils, Storage, Store, StoreContract, Log, IngestState, Ids, Boot, Locale, I18n, Fmt, Errors, Toast, Profiles, Theme | ✅ Fase 3 onda A |
 | `data/` | 18 módulos de dados: Dictionary, Domain, Tokenizer, Concepts, Inference, GoldenTest, Learning, Dummy, Onboarding, Debug, BR, Types, Compat, CompCache, Ingest, DatasetType, Quality, Editor | ✅ Fase 3 onda B |
-| `ui/` | Header, Sidebar, Canvas, Inspector, Modal — shell visual | ⏳ Fase 3 onda C |
+| `ui/` | 9 módulos shell+análise: Undo, Resize, DnD, Minimap, Audit, Stats, Inspector, Analysis, Relationships (Header/Sidebar/Canvas/Modal virão na Onda D) | ✅ Fase 3 onda C parcial |
 | `features/` | Filtros, Params, AutoDashboard, Insights, Ask, Export, etc. | ⏳ Fase 3 ondas D/E/F |
 
 A ordem de extração e os slots correspondentes estão em

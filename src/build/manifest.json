@@ -49,6 +49,17 @@
       "data/16-DatasetType.js",
       "data/17-Quality.js",
       "data/18-Editor.js"
+    ],
+    "ui-shell-modules": [
+      "ui/01-Undo.js",
+      "ui/02-Resize.js",
+      "ui/03-DnD.js",
+      "ui/04-Minimap.js",
+      "ui/05-Audit.js",
+      "ui/06-Stats.js",
+      "ui/07-Inspector.js",
+      "ui/08-Analysis.js",
+      "ui/09-Relationships.js"
     ]
   }
 }
