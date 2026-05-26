@@ -1032,6 +1032,42 @@
       });
     })();
 
+    // Sprint Solstice S5 (solstice-modular-v1): entrada escalonada de tiles.
+    //
+    // Quando um tile entra no DOM pela primeira vez, set --solstice-stagger
+    // (índice dentro do canvas, dividido por 1 = 60ms cada). O CSS pega
+    // esse custom property e atrasa a animação de entrada.
+    //
+    // data-staggered=1 garante que re-renders (clique em config, etc) não
+    // re-aplicam stagger — só a primeira aparição do tile leva o atraso.
+    (function _initTileStagger(){
+      const canvas = document.querySelector('.solstice__canvas');
+      if (!canvas) return;
+      let pending = false;
+      let visibleCounter = 0; // Reset quando o canvas é totalmente refeito
+      function _apply(){
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(() => {
+          pending = false;
+          // Snapshot todos os tiles não-staggered AINDA renderizando
+          const tiles = Array.from(canvas.querySelectorAll('.solstice__comp:not([data-staggered])'));
+          if (tiles.length === 0) return;
+          tiles.forEach((t, localIdx) => {
+            t.style.setProperty('--solstice-stagger', String(visibleCounter + localIdx));
+            t.setAttribute('data-staggered', '1');
+          });
+          visibleCounter += tiles.length;
+          // Reset counter depois que essa onda termina (evita acumular pra
+          // sempre quando user adiciona novos tiles meses depois)
+          setTimeout(() => { if (visibleCounter > 100) visibleCounter = 0; }, 2000);
+        });
+      }
+      _apply();
+      const obs = new MutationObserver(_apply);
+      obs.observe(canvas, { childList: true, subtree: true });
+    })();
+
     // Sprint Solstice S4 (solstice-modular-v1): count-up nos valores de KPI.
     //
     // Cada .solstice__kpi-value pode carregar data-anim-target (valor bruto)

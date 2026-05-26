@@ -2011,12 +2011,33 @@
     50%      { opacity: 0.7; }
   }
   /* Animação de entrada quando tile é adicionado ao canvas */
+  /* Sprint Solstice S5: entrada escalonada — "o dashboard se monta".
+     Cada tile pega seu --solstice-stagger via JS (índice dentro do canvas).
+     Stagger 60ms entre tiles + rise mais perceptível (12px) + cubic-bezier
+     mais snappy. Ao final do AutoDashboard, ~10 tiles × 60ms = 600ms da
+     primeira até a última aparição. */
   .solstice__comp:not(.solstice__comp--no-data) {
-    animation: solstice-tile-in 320ms ease-out both;
+    animation: solstice-tile-in 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--solstice-stagger, 0) * 60ms);
   }
   @keyframes solstice-tile-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.985);
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+  /* prefers-reduced-motion: zerar delay e duration (entram instantâneos) */
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__comp:not(.solstice__comp--no-data) {
+      animation-delay: 0 !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 
   /* Inspector quando alojado dentro da sidebar */
