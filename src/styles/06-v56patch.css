@@ -2071,6 +2071,112 @@
   }
 
   /* ============================================================
+     Sprint Solstice S12 — Section scrollspy.
+     Pill flutuante no canto superior-direito do canvas.
+     ============================================================ */
+  .solstice__scrollspy {
+    position: fixed;
+    top: 90px;
+    right: 16px;
+    z-index: 50;
+    font-family: var(--font-base, system-ui);
+  }
+  .solstice__scrollspy-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: color-mix(in srgb, var(--c-surface-2) 92%, transparent);
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--c-accent) 22%, transparent);
+    transition: border-color var(--t-mid), transform var(--t-mid);
+  }
+  .solstice__scrollspy-btn:hover {
+    border-color: var(--c-accent);
+    transform: translateY(-1px);
+  }
+  .solstice__scrollspy-num {
+    padding: 2px 7px;
+    background: var(--c-accent);
+    color: var(--c-bg);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .solstice__scrollspy-title {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .solstice__scrollspy-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    max-height: 360px;
+    overflow-y: auto;
+    background: color-mix(in srgb, var(--c-surface-2) 98%, transparent);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    padding: 6px;
+    box-shadow: 0 14px 32px -6px color-mix(in srgb, #000 50%, transparent);
+    backdrop-filter: blur(10px);
+    animation: solstice-scrollspy-menu-in 220ms ease-out;
+  }
+  .solstice__scrollspy-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    background: none;
+    border: none;
+    color: var(--c-text);
+    text-align: left;
+    border-radius: var(--rad-sm);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: inherit;
+    transition: background var(--t-faster);
+  }
+  .solstice__scrollspy-item:hover {
+    background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+  }
+  .solstice__scrollspy-item-idx {
+    flex: 0 0 22px;
+    text-align: center;
+    color: var(--c-muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .solstice__scrollspy-item-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @keyframes solstice-scrollspy-menu-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__scrollspy-menu { animation: none; }
+    .solstice__scrollspy-btn:hover { transform: none; }
+  }
+  /* Esconde quando modo foco está ativo — pra não poluir */
+  body.solstice-focus-mode-active .solstice__scrollspy { display: none; }
+
+  /* ============================================================
      Sprint Solstice S11 — Split sidebar (Dados + Inspector co-visíveis).
      Quando Inspector ativa, body ganha .solstice-sidebar-split. Os dois
      paineis (#data-panel + #inspector-panel) ficam EMPILHADOS:

@@ -1147,6 +1147,112 @@
       }, true);
     })();
 
+    // Sprint Solstice S12 (solstice-modular-v1): section scrollspy.
+    //
+    // Pill flutuante no canto superior-direito do canvas exibe "Seção X
+    // de Y · Título" enquanto o user scrolla. Click no pill abre menu
+    // popover pra jump pra qualquer seção. Útil em dashboards de 5+
+    // seções onde scroll perde orientação.
+    (function _initScrollspy(){
+      const canvas = document.querySelector('.solstice__canvas');
+      if (!canvas) return;
+      // Injeta o pill no body (fixed positioning relativa ao canvas via JS)
+      const pill = document.createElement('div');
+      pill.className = 'solstice__scrollspy solstice__hidden';
+      pill.innerHTML =
+        '<button type="button" class="solstice__scrollspy-btn" aria-label="Pular para seção">' +
+          '<span class="solstice__scrollspy-num">0/0</span>' +
+          '<span class="solstice__scrollspy-title">Seção</span>' +
+          '<span aria-hidden="true" style="opacity:0.5">▾</span>' +
+        '</button>' +
+        '<div class="solstice__scrollspy-menu solstice__hidden"></div>';
+      document.body.appendChild(pill);
+
+      let menuOpen = false;
+      const btn = pill.querySelector('.solstice__scrollspy-btn');
+      const menu = pill.querySelector('.solstice__scrollspy-menu');
+      const numEl = pill.querySelector('.solstice__scrollspy-num');
+      const titleEl = pill.querySelector('.solstice__scrollspy-title');
+
+      function _getSections(){
+        return Array.from(canvas.querySelectorAll('.solstice__section'));
+      }
+      function _currentIdx(){
+        const secs = _getSections();
+        if (secs.length === 0) return -1;
+        const canvasTop = canvas.getBoundingClientRect().top;
+        // Mais próxima do topo cujo bottom ainda está abaixo do topo
+        for (let i = secs.length - 1; i >= 0; i--){
+          const r = secs[i].getBoundingClientRect();
+          if (r.top <= canvasTop + 40) return i;
+        }
+        return 0;
+      }
+      function _updatePill(){
+        const secs = _getSections();
+        if (secs.length < 2){
+          pill.classList.add('solstice__hidden');
+          return;
+        }
+        pill.classList.remove('solstice__hidden');
+        const idx = _currentIdx();
+        if (idx < 0) return;
+        const total = secs.length;
+        numEl.textContent = (idx + 1) + '/' + total;
+        const titleNode = secs[idx].querySelector('.solstice__section-title');
+        const text = (titleNode?.textContent || 'Seção').trim();
+        titleEl.textContent = text.length > 24 ? text.slice(0, 22) + '…' : text;
+      }
+      function _renderMenu(){
+        const secs = _getSections();
+        menu.innerHTML = '';
+        secs.forEach((s, i) => {
+          const t = (s.querySelector('.solstice__section-title')?.textContent || ('Seção ' + (i+1))).trim();
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'solstice__scrollspy-item';
+          item.innerHTML = '<span class="solstice__scrollspy-item-idx">' + (i+1) + '</span>' +
+                           '<span class="solstice__scrollspy-item-title"></span>';
+          item.querySelector('.solstice__scrollspy-item-title').textContent = t.length > 32 ? t.slice(0,30)+'…' : t;
+          item.addEventListener('click', () => {
+            s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            _closeMenu();
+          });
+          menu.appendChild(item);
+        });
+      }
+      function _openMenu(){
+        _renderMenu();
+        menu.classList.remove('solstice__hidden');
+        menuOpen = true;
+      }
+      function _closeMenu(){
+        menu.classList.add('solstice__hidden');
+        menuOpen = false;
+      }
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (menuOpen) _closeMenu(); else _openMenu();
+      });
+      document.addEventListener('click', (e) => {
+        if (menuOpen && !pill.contains(e.target)) _closeMenu();
+      });
+
+      // Atualiza no scroll do canvas (rAF throttle)
+      let raf = null;
+      canvas.addEventListener('scroll', () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => { raf = null; _updatePill(); });
+      }, { passive: true });
+      // Atualiza quando sections aparecem/somem
+      const obs = new MutationObserver(() => {
+        if (obs._sched) return;
+        obs._sched = requestAnimationFrame(() => { obs._sched = null; _updatePill(); });
+      });
+      obs.observe(canvas, { childList: true, subtree: true });
+      _updatePill();
+    })();
+
     // Sprint Solstice S5 (solstice-modular-v1): entrada escalonada de tiles.
     //
     // Quando um tile entra no DOM pela primeira vez, set --solstice-stagger
