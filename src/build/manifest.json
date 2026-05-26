@@ -60,6 +60,17 @@
       "ui/07-Inspector.js",
       "ui/08-Analysis.js",
       "ui/09-Relationships.js"
+    ],
+    "ui-structure-modules": [
+      "ui/10-DashHeader.js",
+      "ui/11-Dataset.js",
+      "ui/12-Style.js",
+      "ui/13-KPI.js",
+      "ui/14-Humanize.js",
+      "ui/15-SidebarTabs.js",
+      "ui/16-Modal.js",
+      "ui/17-Layouts.js",
+      "ui/18-Canvas.js"
     ]
   }
 }
