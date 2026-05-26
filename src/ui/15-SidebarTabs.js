@@ -312,13 +312,15 @@
     function activate(which){
       active = which;
       SolsticeStore.set('ui.activeTab', which);
-      // Sprint 29: tab Templates removida — user já acessa via canvas toolbar.
+      // Fase 7A (refactor-modular-v1): aba "inspector" adicionada — o painel
+      // de propriedades vive aqui agora (era um <aside> à direita).
       const tabs = {
         dados:        document.getElementById('tab-dados'),
         modelo:       document.getElementById('tab-modelo'),
         componentes:  document.getElementById('tab-componentes'),
         snapshots:    document.getElementById('tab-snapshots'),
-        dicionarios:  document.getElementById('tab-dicionarios')
+        dicionarios:  document.getElementById('tab-dicionarios'),
+        inspector:    document.getElementById('tab-inspector')
       };
       Object.keys(tabs).forEach(id => {
         const el = tabs[id];
@@ -333,7 +335,8 @@
         modelo:      document.getElementById('modelo-panel'),
         componentes: document.getElementById('components-panel'),
         snapshots:   document.getElementById('snapshots-panel'),
-        dicionarios: document.getElementById('dicionarios-panel')
+        dicionarios: document.getElementById('dicionarios-panel'),
+        inspector:   document.getElementById('inspector-panel')
       };
       Object.values(panels).forEach(p => p && p.classList.add('solstice__hidden'));
       const renderers = {
@@ -341,13 +344,46 @@
         modelo:      _renderModeloPanel,
         componentes: _renderComponentsPanel,
         snapshots:   _renderSnapsPanel,
-        dicionarios: _renderDictsPanel
+        dicionarios: _renderDictsPanel,
+        inspector:   _renderInspectorPanel
       };
       const p = panels[which];
       const r = renderers[which];
       if (p && r){
         p.classList.remove('solstice__hidden');
         try { r(); } catch(e){ SolsticeLog.warn('[SidebarTabs] render', which, e); }
+      }
+    }
+
+    /** Fase 7A: garante que o <aside id="inspector"> está dentro do
+     *  inspector-panel (reparent idempotente) e mostra placeholder se
+     *  nenhum tile foi selecionado ainda. */
+    function _renderInspectorPanel(){
+      const aside = document.getElementById('inspector');
+      const panel = document.getElementById('inspector-panel');
+      if (aside && panel && aside.parentElement !== panel){
+        panel.appendChild(aside);
+      }
+      if (aside) aside.style.display = '';
+      const body = document.getElementById('inspector-body');
+      // children.length === 0 distingue body sem tile selecionado (só
+      // tem comentários HTML / texto) do body com props renderizadas.
+      if (body && body.children.length === 0){
+        body.innerHTML = '';
+        const empty = SolsticeUtils.el('div',
+          { class: 'solstice__inspector-empty', style:
+            'padding:var(--sp-5) var(--sp-3);color:var(--c-muted);'+
+            'font-size:var(--fs-sm);text-align:center;line-height:1.6;' },
+          SolsticeUtils.el('div',
+            { style: 'font-size:40px;margin-bottom:var(--sp-3);opacity:0.5;' },
+            '⚙️'),
+          SolsticeUtils.el('div',
+            { style: 'font-weight:var(--fw-medium);margin-bottom:var(--sp-2);color:var(--c-text);' },
+            'Inspector vazio'),
+          SolsticeUtils.el('div', null,
+            'Clique num componente do canvas pra ver e editar suas propriedades aqui.')
+        );
+        body.appendChild(empty);
       }
     }
 
@@ -1318,11 +1354,22 @@
       const tC  = document.getElementById('tab-componentes');
       const tSn = document.getElementById('tab-snapshots');
       const tDi = document.getElementById('tab-dicionarios');
+      const tIn = document.getElementById('tab-inspector');
       if (tD)  tD.addEventListener('click',  () => activate('dados'));
       if (tM)  tM.addEventListener('click',  () => activate('modelo'));
       if (tC)  tC.addEventListener('click',  () => activate('componentes'));
       if (tSn) tSn.addEventListener('click', () => activate('snapshots'));
       if (tDi) tDi.addEventListener('click', () => activate('dicionarios'));
+      if (tIn) tIn.addEventListener('click', () => activate('inspector'));
+
+      // Fase 7A: reparenta o <aside id="inspector"> pra dentro do
+      // inspector-panel da sidebar (logo no boot). O painel à direita
+      // não existe mais como coluna; vira filho da sidebar.
+      const aside = document.getElementById('inspector');
+      const insPanel = document.getElementById('inspector-panel');
+      if (aside && insPanel && aside.parentElement !== insPanel){
+        insPanel.appendChild(aside);
+      }
       const tabList = [
         { el: tD,  id: 'dados' },
         { el: tM,  id: 'modelo' },

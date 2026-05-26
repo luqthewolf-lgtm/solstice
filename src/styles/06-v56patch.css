@@ -420,35 +420,52 @@
   }
 
   /* ============================================================
-     Fase 4A (UX-MIRROR / 2026.6) — Layout espelhado opcional.
-     Default: sidebar à esquerda, inspector à direita (BI clássico).
-     Mirror:  sidebar à direita, inspector à esquerda.
-     Toggle no menu Aparência (#layout-select).
+     Fase 7A (refactor-modular-v1) — Inspector como aba da sidebar.
+     O <aside class="solstice__inspector"> originalmente fica como
+     coluna à direita (grid-area: inspector). Aqui ele perde o grid
+     area E vira filho de .solstice__sidebar via JS no boot, ficando
+     visível somente quando a aba "Inspector" está ativa.
+
+     Estratégia:
+     - .solstice__app.has-inspector NÃO ABRE MAIS a coluna direita
+       (grid-template-columns: 280px 1fr 0px sempre).
+     - O <aside> dentro da sidebar: width 100%, sem borda, scroll
+       herda do parent. Esconde com `solstice__hidden`.
+     - A aba "Inspector" no sidebar usa o mesmo padrão de mostrar/
+       esconder das outras (#inspector-aside-panel).
      ============================================================ */
-  html[data-layout="mirror"] .solstice__app {
-    grid-template-areas:
-      "header    header  header"
-      "inspector canvas  sidebar"
-      "status    status  status";
-    /* Inspector colapsado por padrão (0px). Sidebar 280px à direita. */
-    grid-template-columns: 0px 1fr 280px;
+  .solstice__app.has-inspector {
+    /* Override do v5 components.css que abria coluna direita.
+       Inspector agora vive DENTRO da sidebar — coluna direita = 0. */
+    grid-template-columns: 280px 1fr 0px;
   }
-  html[data-layout="mirror"] .solstice__app.has-inspector {
-    /* Inspector aberto à esquerda: 340px. Sidebar 280px à direita. */
-    grid-template-columns: 340px 1fr 280px;
-  }
-  /* Estados has-analysis: replicar pra mirror */
-  html[data-layout="mirror"] .solstice__app.has-analysis {
-    grid-template-columns: 0px 1fr 280px;
-  }
-  /* Bordas: no mirror, inspector ganha borda direita (separa do canvas
-     do lado oposto), sidebar ganha borda esquerda */
-  html[data-layout="mirror"] .solstice__inspector {
-    border-right: 1px solid var(--c-border);
+  /* Inspector quando alojado dentro da sidebar */
+  .solstice__sidebar .solstice__inspector {
+    /* Sai do grid; vira block normal dentro da sidebar */
+    grid-area: auto;
+    position: static;
+    width: 100%;
     border-left: none;
-  }
-  html[data-layout="mirror"] .solstice__sidebar {
-    border-left: 1px solid var(--c-border);
     border-right: none;
+    /* Tira altura fixa e overflow próprio - herda da sidebar */
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    margin-top: var(--sp-4);
+  }
+  /* Cabeçalho do inspector na sidebar: mais discreto (não precisa do X de fechar,
+     já tem aba pra trocar) */
+  .solstice__sidebar .solstice__inspector .solstice__inspector-head {
+    padding: 0 0 var(--sp-2) 0;
+    border-bottom: 1px solid var(--c-border);
+  }
+  .solstice__sidebar .solstice__inspector #inspector-close {
+    display: none;  /* Não precisa de X — basta trocar de aba */
+  }
+  .solstice__sidebar .solstice__inspector .solstice__inspector-body,
+  .solstice__sidebar .solstice__inspector .solstice__inspector-footer {
+    padding-left: 0;
+    padding-right: 0;
   }
   }

@@ -62,13 +62,18 @@
 
     function open(){
       // ADR-160 (Onda 1 / T8a): "open-one-closes-other" — Inspector e Analysis
-      // drawer não convivem espremendo o canvas. Quando Inspector abre, Analysis
-      // fecha. Briefing: "Inspector + Analysis drawer abrem juntos espremendo
-      // canvas" (P1/P5/P10). Antes só fechava em viewport <1400px (parcial).
+      // drawer não convivem espremendo o canvas. Analysis usa drawer absolute
+      // sobre o canvas; fecha quando Inspector abre.
       if (typeof SolsticeAnalysis !== 'undefined' && SolsticeAnalysis.isOpen && SolsticeAnalysis.isOpen()){
         SolsticeAnalysis.close();
       }
       const a = app(); if (a) a.classList.add('has-inspector');
+      // Fase 7A: ativa a aba "Inspector" da sidebar. O conteúdo (preenchido
+      // por SolsticeProps.renderInspector) aparece DENTRO da sidebar, não
+      // mais como coluna à direita.
+      if (typeof SolsticeSidebarTabs !== 'undefined' && SolsticeSidebarTabs.activate){
+        try { SolsticeSidebarTabs.activate('inspector'); } catch(_){}
+      }
       SolsticeStore.set('ui.inspector.open', true);
     }
     function close(){
@@ -78,6 +83,11 @@
       // Sinaliza ao Props para deselecionar (sem loop: Props.deselect chama close→este flag)
       if (SolsticeProps && SolsticeProps.deselect){
         SolsticeProps.deselect({ skipInspector: true });
+      }
+      // Fase 7A: ao fechar, volta pra aba "Dados" (default). User pode
+      // estar olhando outras abas sem querer ter sido jogado em Inspector.
+      if (typeof SolsticeSidebarTabs !== 'undefined' && SolsticeSidebarTabs.activate){
+        try { SolsticeSidebarTabs.activate('dados'); } catch(_){}
       }
       SolsticeStore.set('ui.inspector.open', false);
       SolsticeStore.set('ui.inspector.slotId', null);

@@ -181,9 +181,6 @@
       root.setAttribute('data-mode',    t.mode    || (prefersDark ? 'dark' : 'light'));
       root.setAttribute('data-palette', t.palette || 'ocean');
       root.setAttribute('data-density', t.density || 'comfortable');
-      // Fase 4A (UX-MIRROR): layout espelhado — inspector à esquerda,
-      // sidebar à direita. Aplicado ANTES do CSS pintar pra evitar piscar.
-      root.setAttribute('data-layout',  t.layout  || 'default');
     } catch(e){ /* localStorage indisponível — usa defaults do HTML */ }
   })();
 </script>
@@ -356,17 +353,6 @@
                 <option value="spacious">Espaçoso</option>
               </select>
             </label>
-            <!-- Fase 4A (UX-MIRROR): toggle de layout. Default = sidebar à
-                 esquerda, inspector à direita (comportamento clássico de BI).
-                 Mirror = sidebar à direita, inspector à esquerda (algumas pessoas
-                 preferem ter as configurações próximas ao mouse). -->
-            <label class="solstice__menu-row" title="Posição do inspector e sidebar">
-              <span class="solstice__menu-row-label">🔀 Layout</span>
-              <select id="layout-select" aria-label="Posição do inspector">
-                <option value="default">Inspector à direita</option>
-                <option value="mirror">Inspector à esquerda</option>
-              </select>
-            </label>
           </div>
         </details>
 
@@ -435,6 +421,13 @@
         <span>Dicionários</span>
         <span class="solstice__sidebar-tab-badge" id="badge-dicionarios">6</span>
       </div>
+      <!-- Fase 7A: Inspector vira aba da sidebar. O <aside id="inspector"> à
+           direita é movido pra cá no boot (SolsticeSidebarTabs.init). -->
+      <div class="solstice__sidebar-tab" id="tab-inspector" role="tab" tabindex="-1" aria-selected="false">
+        <span class="solstice__sidebar-tab-icon">⚙️</span>
+        <span>Inspector</span>
+        <span class="solstice__sidebar-tab-badge solstice__hidden" id="badge-inspector"></span>
+      </div>
       </div>
 
       <!-- Bloco 2: painel de dados (popula após import/dummy)
@@ -469,6 +462,11 @@
       <div id="snapshots-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
       <!-- v4 (Auditoria 2026.4): Modelo de Dados — bases + relações com view tipo Power BI/SAS -->
       <div id="modelo-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
+
+      <!-- Fase 7A: container onde o <aside id="inspector"> será reparentado
+           no boot. Escondido por padrão (segue o padrão dos outros panels)
+           e aberto quando a aba "Inspector" está ativa. -->
+      <div id="inspector-panel" class="solstice__hidden" style="margin-top: var(--sp-4);"></div>
 
       <!-- B7-r2: props-panel MOVIDO para o inspector lateral direito (#inspector). -->
     </div>
