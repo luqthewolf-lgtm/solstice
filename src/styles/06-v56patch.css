@@ -440,6 +440,34 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 39 (solstice-modular-v1) — Tile actions hover overlay.
+     Actions (move, duplicate, remove, etc.) ganham slide-in da direita
+     quando aparecem. Hover em cada btn com leve scale.
+     ============================================================ */
+  .solstice__comp-actions {
+    transition: opacity 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform: translateX(8px);
+  }
+  .solstice__comp:hover .solstice__comp-actions,
+  .solstice__comp.is-selected .solstice__comp-actions,
+  .solstice__comp:focus-within .solstice__comp-actions {
+    transform: translateX(0);
+  }
+  .solstice__comp-btn {
+    transition: background 180ms ease,
+                color 180ms ease,
+                transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .solstice__comp-btn:hover {
+    transform: scale(1.15);
+    background: color-mix(in srgb, var(--c-accent) 14%, transparent) !important;
+    color: var(--c-accent) !important;
+  }
+  .solstice__comp-btn:active {
+    transform: scale(0.9);
+  }
+
+  /* ============================================================
      Polish 35 (solstice-modular-v1) — Scroll-top FAB.
      Botão flutuante "↑" que aparece quando user rola o canvas > 600px.
      Posição: acima do help FAB (right: 24px, bottom: 88px).

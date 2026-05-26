@@ -41,6 +41,10 @@ Stdlib-only — funciona em qualquer máquina com Python 3.8+ (sem npm, sem CDN 
 
 CI automática em `.github/workflows/build.yml` gera o artefato a cada push e o anexa ao release em tags `v*`. Guia operacional pra deploy interno (SharePoint, intranet, plugar Eva) em [`docs/DEPLOY-ITAU.md`](docs/DEPLOY-ITAU.md).
 
+### Sessão de polish noturna (2026-05-26)
+
+40+ polish + features visuais + 1 bug crítico resolvido (`Dummy.load` não populava `ingest.*`) + Drag-and-drop QuickSight MVP + Inspector como aba da sidebar. Detalhes em [`docs/MELHORIAS-SESSAO-NOTURNA.md`](docs/MELHORIAS-SESSAO-NOTURNA.md).
+
 ### Integração com LLM corporativo
 
 `Solstice.LLMAdapter` plugga qualquer endpoint compatível (Eva, OpenAI, ChatGPT corporativo). Configuração em uma linha:
