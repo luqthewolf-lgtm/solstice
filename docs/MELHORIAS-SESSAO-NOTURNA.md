@@ -1,22 +1,29 @@
-# Sessão noturna — o que foi feito enquanto você dormia
+# Sessão noturna + manhã — o que foi feito
 
-> Branch: `solstice-modular`
+> Branch: `solstice-modular` (push pro GitHub a cada bloco)
 > Foco: virar o app em algo gostoso de usar. 90% dos seus apontamentos
-> atacados. Sem refactor extra — só melhorias visíveis.
+> atacados. Sem refactor extra — só melhorias visíveis e funcionais.
 
 ## TL;DR
 
-**38 commits novos** depois do "Polish 1-4". Bug crítico **`Dummy.load`
+**~50 commits novos** depois do "Polish 1-4". Bug crítico **`Dummy.load`
 não populava `ingest.*`** descoberto e consertado (Polish 11) — antes
 "Ver com dataset de exemplo" abria a tela mas todos os tiles ficavam
 em estado "Sem dataset carregado". Agora bate.
 
 **Inspector vira aba na sidebar** (Fase 7A) — todo o espaço de
-configuração concentrado num lugar só. **Drag-and-drop de colunas estilo
-QuickSight** funcionando: arrasta coluna da aba "Dados" → solta em qualquer
-select de eixo do Inspector (Fase 7B). **AutoDashboard one-click**: clicar
-em "Ver com dataset de exemplo" monta dashboard sozinho com smooth scroll
-pra primeira seção (Polish 12 + 37).
+configuração concentrado num lugar só. **Drag-and-drop QuickSight v2**:
+arrasta coluna da aba "Dados" → o select de eixo do Inspector mostra
+chip removível com ícone do tipo da coluna (Polish 41). **Drag direto
+no canvas**: solta coluna em slot vazio = tile criado na hora com
+tipo apropriado (Polish 43). **AutoDashboard one-click**: clicar em
+"Ver com dataset de exemplo" monta dashboard sozinho com smooth scroll
+pra primeira seção (Polish 12 + 37). **Colunas em uso na sidebar
+sinalizam com dot accent pulsante** (Polish 49).
+
+**Atalhos novos**: Esc, Ctrl+E (AutoDashboard), Ctrl+Shift+N (nova
+seção), Ctrl+D (duplicar tile), Alt+D/M/C/S/X/I (trocar abas).
+Chip "⌨ atalhos" no footer abre lista completa (Polish 48).
 
 ## Os 6 fixes/features de alto impacto
 
