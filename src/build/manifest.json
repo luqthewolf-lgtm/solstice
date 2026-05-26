@@ -29,6 +29,26 @@
       "core/16-Toast.js",
       "core/17-Profiles.js",
       "core/18-Theme.js"
+    ],
+    "data-modules": [
+      "data/01-Dictionary.js",
+      "data/02-Domain.js",
+      "data/03-Tokenizer.js",
+      "data/04-Concepts.js",
+      "data/05-Inference.js",
+      "data/06-GoldenTest.js",
+      "data/07-Learning.js",
+      "data/08-Dummy.js",
+      "data/09-Onboarding.js",
+      "data/10-Debug.js",
+      "data/11-BR.js",
+      "data/12-Types.js",
+      "data/13-Compat.js",
+      "data/14-CompCache.js",
+      "data/15-Ingest.js",
+      "data/16-DatasetType.js",
+      "data/17-Quality.js",
+      "data/18-Editor.js"
     ]
   }
 }
