@@ -39,12 +39,42 @@
     function get(name){
       return document.documentElement.getAttribute('data-'+name);
     }
-    function set(name, value){
-      const allowed = name==='mode'?MODES:name==='palette'?PALETTES:name==='density'?DENSITIES:null;
-      if (!allowed || allowed.indexOf(value) < 0) return false;
+    // Sprint Solstice S6: eclipse wipe na troca de tema usando View
+    // Transitions API. Captura origin do mouse pra wipe radial.
+    // Fallback: swap direto se a API ou prefers-reduced-motion bloquear.
+    let _lastPointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    if (typeof window !== 'undefined' && window.addEventListener){
+      window.addEventListener('pointermove', (e) => {
+        _lastPointer.x = e.clientX; _lastPointer.y = e.clientY;
+      }, { passive: true, capture: true });
+      window.addEventListener('pointerdown', (e) => {
+        _lastPointer.x = e.clientX; _lastPointer.y = e.clientY;
+      }, { passive: true, capture: true });
+    }
+    function _applyValue(name, value){
       document.documentElement.setAttribute('data-'+name, value);
       const t = _load(); t[name] = value; _save(t);
       SolsticeStore.set('theme.'+name, value);
+    }
+    function set(name, value){
+      const allowed = name==='mode'?MODES:name==='palette'?PALETTES:name==='density'?DENSITIES:null;
+      if (!allowed || allowed.indexOf(value) < 0) return false;
+      const isVisual = (name === 'palette' || name === 'mode');
+      const prefersReduced = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // Eclipse wipe só pra troca visual (paleta/modo) e se browser suporta
+      if (isVisual && !prefersReduced && document.startViewTransition){
+        // Posiciona origin do wipe via custom property
+        document.documentElement.style.setProperty('--solstice-wipe-x', _lastPointer.x + 'px');
+        document.documentElement.style.setProperty('--solstice-wipe-y', _lastPointer.y + 'px');
+        document.documentElement.classList.add('solstice-wiping');
+        const trans = document.startViewTransition(() => _applyValue(name, value));
+        trans.finished.finally(() => {
+          document.documentElement.classList.remove('solstice-wiping');
+        });
+      } else {
+        _applyValue(name, value);
+      }
       return true;
     }
     function cycle(name){

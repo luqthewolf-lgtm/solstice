@@ -2071,6 +2071,57 @@
   }
 
   /* ============================================================
+     Sprint Solstice S6 — Eclipse wipe na troca de tema.
+     View Transitions API: clip-path circle de raio 0 pro ponto do
+     clique cresce até cobrir a tela inteira. A nova paleta surge
+     "por baixo" do wipe. 600ms cubic-bezier snappy.
+     ============================================================ */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-new(root) {
+    /* Coroa quente atrás do wipe — é o eclipse */
+    animation: solstice-eclipse-wipe 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  ::view-transition-old(root) {
+    /* Velho desvanece simultaneamente */
+    animation: solstice-eclipse-fade 700ms ease-out;
+  }
+  @keyframes solstice-eclipse-wipe {
+    from {
+      clip-path: circle(0 at var(--solstice-wipe-x, 50%) var(--solstice-wipe-y, 50%));
+    }
+    to {
+      clip-path: circle(150% at var(--solstice-wipe-x, 50%) var(--solstice-wipe-y, 50%));
+    }
+  }
+  @keyframes solstice-eclipse-fade {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+  /* Coroa visível durante o wipe — uma borda luminosa coral na fronteira */
+  html.solstice-wiping::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at var(--solstice-wipe-x, 50%) var(--solstice-wipe-y, 50%),
+        transparent 0%,
+        color-mix(in srgb, var(--c-accent) 12%, transparent) 0.1%,
+        transparent 0.2%);
+    animation: solstice-eclipse-corona 700ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    z-index: 99998;
+  }
+  @keyframes solstice-eclipse-corona {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ============================================================
      Sprint Solstice S3 — Quality ring SVG (motivo do arco do eclipse).
      Substitui o número plano por arco SVG + count-up + draw-in.
      Severidade afeta a cor do arco (high → success / med → warn / low → error).
