@@ -638,6 +638,10 @@
       <span class="solstice__status-item" id="status-saved" aria-live="polite"
             title="Auto-save ativo · Grava no localStorage do navegador a cada 5s.&#10;Estados: ○ Sem alterações · ● Salvando… · ● Salvo há Xs.&#10;Para histórico de versões: Salvar → 📸 Snapshot (IndexedDB)."
             style="color:var(--c-muted);">○ Sem alterações</span>
+      <!-- Polish 48: chip "atalhos" sempre visível. User descobre Ctrl+/ -->
+      <span class="solstice__status-item is-clickable" id="status-shortcuts" role="button"
+            tabindex="0" title="Atalhos de teclado (Ctrl+/)"
+            style="cursor:pointer;">⌨ atalhos</span>
       <!-- Auditoria 2026 (M-H-1 / A-102) + 2026.2 (JM-A2): texto inicial sem
            versão hardcoded — evita flicker "v5.6" → "v5.6.0-patched". O boot
            popula a partir de window.Solstice.version (única fonte de verdade). -->

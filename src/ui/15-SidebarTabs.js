@@ -1362,6 +1362,18 @@
       if (tDi) tDi.addEventListener('click', () => activate('dicionarios'));
       if (tIn) tIn.addEventListener('click', () => activate('inspector'));
 
+      // Polish 48: chip "atalhos" no footer abre modal global (mesmo que Ctrl+/)
+      const shortcutsChip = document.getElementById('status-shortcuts');
+      if (shortcutsChip){
+        shortcutsChip.addEventListener('click', () => _openShortcutsModal());
+        shortcutsChip.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' '){
+            e.preventDefault();
+            _openShortcutsModal();
+          }
+        });
+      }
+
       // Fase 7A: reparenta o <aside id="inspector"> pra dentro do
       // inspector-panel da sidebar (logo no boot). O painel à direita
       // não existe mais como coluna; vira filho da sidebar.

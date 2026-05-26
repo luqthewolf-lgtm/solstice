@@ -138,13 +138,15 @@ nenhum outro CSS). Cada um listado por tema:
 6. Volta pra aba "Dados" → arrasta uma coluna (data-column-name) → solta
    num select do Inspector (aparece ring accent) → toast confirma
 
-Atalhos pra brincar:
-- **Esc**: desseleciona tile
-- **Ctrl+E**: roda AutoDashboard
-- **Alt+I / Alt+D / Alt+C**: troca abas
+Atalhos pra brincar (todos listados também no chip "⌨ atalhos" do footer):
+- **Esc**: desseleciona tile + volta pra Dados
+- **Ctrl+E**: roda AutoDashboard (Express)
+- **Ctrl+Shift+N**: nova seção no canvas
+- **Ctrl+D**: duplica tile selecionado
+- **Alt+D / M / C / S / X / I**: troca abas (Dados/Modelo/Componentes/Snapshots/Dicionários/Inspector)
 - **Ctrl+P**: Ask
 - **Ctrl+S**: snapshot
-- **Ctrl+/**: lista de atalhos
+- **Ctrl+/**: lista completa de atalhos
 
 ## Sobre o "drag-and-drop QuickSight" (Fase 7B + Polish 41)
 
@@ -167,12 +169,20 @@ QuickSight/Power BI:
 Selects que NÃO são coluna (agregação sum/avg, formato auto/brl, etc.)
 continuam dropdown clássico — heurística pula eles.
 
-Próximas melhorias possíveis (deixei pra você decidir):
+**Polish 43 (rodada manhã)** — DROP direto no canvas vira tile pronto:
+- Slot vazio aceita drop de coluna. Heurística cria tile certo:
+  - measure/number → KPI Card
+  - date → Time-Series
+  - dimension/string → Distribuição (bar)
+  - outros → Tabela
+- Coluna é injetada no primeiro field vazio do config (column,
+  valueColumn, x, y, dimension, measure, etc.)
+- Quando arrasta, todos os slots vazios pulsam outline accent
+
+Próximas (deixei pra você decidir):
 - Drop zones genéricas "Dimensão / Medida / Cor" como CONTAINERS
-  (Power BI estilo — uma drop zone pra cada papel, com múltiplas
-  colunas dentro). Precisa redesenhar `SolsticeProps.renderInspector`.
-- Drop direto no canvas pra criar tile na hora (sem precisar add
-  componente antes via modal).
+  (Power BI estilo — múltiplas colunas por papel). Precisa
+  redesenhar `SolsticeProps.renderInspector`.
 
 ## Bugs/limitações conhecidas
 
