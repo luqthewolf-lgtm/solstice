@@ -772,6 +772,52 @@
       try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render(); } catch(_){}
     });
 
+    // Fase 7B (drag-and-drop QuickSight): selects de coluna do Inspector
+    // aceitam drop de cards de coluna arrastados da aba "Dados". Quando o
+    // user solta uma coluna num <select> que contém aquela opção, o select
+    // vira aquele valor e dispara o change event (Props.renderInspector
+    // ouve change → re-renderiza o componente).
+    (function _initColumnDragDrop(){
+      // Delega no body — pega selects dinâmicos do Inspector também
+      document.body.addEventListener('dragover', function(e){
+        const t = e.target;
+        if (!t || !t.tagName) return;
+        if (t.tagName === 'SELECT' && t.classList.contains('solstice__props-select')){
+          // Só aceita se há coluna sendo arrastada (data type custom)
+          if (Array.from(e.dataTransfer.types).includes('text/x-solstice-column')){
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            t.classList.add('is-drop-target');
+          }
+        }
+      });
+      document.body.addEventListener('dragleave', function(e){
+        const t = e.target;
+        if (t && t.tagName === 'SELECT' && t.classList.contains('is-drop-target')){
+          t.classList.remove('is-drop-target');
+        }
+      });
+      document.body.addEventListener('drop', function(e){
+        const t = e.target;
+        if (!t || t.tagName !== 'SELECT' || !t.classList.contains('solstice__props-select')) return;
+        const col = e.dataTransfer.getData('text/x-solstice-column');
+        if (!col) return;
+        e.preventDefault();
+        t.classList.remove('is-drop-target');
+        // Verifica se aquela coluna é uma opção válida desse select
+        const opt = Array.from(t.options).find(o => o.value === col);
+        if (!opt){
+          SolsticeToast.warn('Coluna incompatível',
+            '"' + col + '" não é opção válida para este eixo (tipo errado?). ' +
+            'Ajuste em "Mudar tipo" no editor da coluna.');
+          return;
+        }
+        t.value = col;
+        t.dispatchEvent(new Event('change', { bubbles: true }));
+        SolsticeToast.success('Coluna aplicada', col + ' → ' + (t.getAttribute('aria-label') || 'eixo'));
+      });
+    })();
+
     // Polish 17 (solstice-modular-v1): Chart.js defaults globais pro tema.
     // Aplica em todos os charts automaticamente. Roda quando Chart está
     // disponível (CDN carregada com defer). Se ainda não, retry em 200ms.

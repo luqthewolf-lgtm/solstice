@@ -99,7 +99,27 @@
       const uniqCount = new Set(rows.map(r => r[col])).size;
       const unit = (dict && dict.columns && dict.columns[col] && dict.columns[col].unit) || '';
 
-      const card = SolsticeUtils.el('div', { class:'solstice__editor-col' });
+      // Fase 7B (drag-and-drop QuickSight): cada card de coluna fica
+      // arrastável. Ao soltar num select de coluna do Inspector (ou em
+      // dropzones futuros) configura aquela coluna naquele eixo.
+      const card = SolsticeUtils.el('div', {
+        class:'solstice__editor-col',
+        draggable: 'true',
+        'data-column-name': col,
+        'data-column-type': t.type
+      });
+      card.addEventListener('dragstart', function(e){
+        e.dataTransfer.setData('text/x-solstice-column', col);
+        e.dataTransfer.setData('text/plain', col);
+        e.dataTransfer.effectAllowed = 'copy';
+        card.classList.add('is-dragging');
+        // Marca dropzones potenciais no Inspector
+        document.body.classList.add('solstice-dragging-column');
+      });
+      card.addEventListener('dragend', function(){
+        card.classList.remove('is-dragging');
+        document.body.classList.remove('solstice-dragging-column');
+      });
 
       // Linha 1: ícone + nome editável + actions
       const head = SolsticeUtils.el('div', { class:'solstice__editor-col-head' });

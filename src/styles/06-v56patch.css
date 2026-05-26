@@ -440,6 +440,35 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Fase 7B (solstice-modular-v1) — Drag-and-drop QuickSight visual.
+     Card de coluna sendo arrastado: visual "ghost". Selects que aceitam
+     drop ganham ring accent quando uma coluna é arrastada por cima.
+     Quando body.solstice-dragging-column está ativo, todos os selects de
+     props pulsam sutilmente convidando ao drop.
+     ============================================================ */
+  .solstice__editor-col[draggable="true"] {
+    cursor: grab;
+  }
+  .solstice__editor-col[draggable="true"]:active {
+    cursor: grabbing;
+  }
+  .solstice__editor-col.is-dragging {
+    opacity: 0.5;
+    transform: scale(0.97);
+  }
+  body.solstice-dragging-column .solstice__props-select {
+    /* Sutilmente destaca todos os selects de props enquanto arrasta */
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-accent) 40%, transparent);
+    transition: box-shadow 180ms ease;
+  }
+  .solstice__props-select.is-drop-target {
+    /* Drop target específico ganha ring mais forte + bg tonal */
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 50%, transparent) !important;
+    background-color: color-mix(in srgb, var(--c-accent) 8%, var(--c-surface)) !important;
+    transform: scale(1.02);
+  }
+
+  /* ============================================================
      Polish 20 (solstice-modular-v1) — Aba Componentes mais visual.
      Cards do catálogo com hover lift, ícone com gradient, busca destacada.
      ============================================================ */

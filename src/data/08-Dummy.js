@@ -155,12 +155,18 @@
         SolsticeStore.set('dataset.source', 'dummy');
         // Espelha em `ingest.*` (que é o que Components/Quality/Inspector
         // realmente consultam pra renderizar).
+        // Issues.byColumn é necessário pra _buildColumnCard do Editor —
+        // popula com objeto vazio default por coluna (sem null/invalid
+        // detectados, já que o dummy é gerado synthetic e limpo).
+        const issuesByColumn = {};
+        cols.forEach(c => { issuesByColumn[c] = { nulls: 0, invalid: 0 }; });
         SolsticeStore.set('ingest', {
           rows: rows,
           columns: cols,
           types: types,
           name: 'vendas_br_dummy.csv',
           source: 'dummy',
+          issues: { byColumn: issuesByColumn, total: 0 },
         });
       });
       SolsticeStore.set('dataset.ready', true); // dispara subscribers de dataset.*
