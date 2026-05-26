@@ -440,6 +440,75 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 29 (solstice-modular-v1) — Brand area + privacy badge.
+     Logo com glow accent sutil quando hover. Privacy badge com pulse
+     verde discreto pra sinalizar "rodando local".
+     ============================================================ */
+  .solstice__brand-icon {
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 240ms ease;
+    cursor: pointer;
+  }
+  .solstice__brand-icon:hover {
+    transform: scale(1.08) rotate(-6deg);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--c-accent) 50%, transparent);
+  }
+  .solstice__privacy-badge {
+    position: relative;
+    transition: transform 200ms ease, border-color 200ms ease;
+  }
+  .solstice__privacy-badge:hover {
+    transform: translateY(-1px);
+  }
+  /* Dot verde com pulse discreto */
+  .solstice__privacy-badge::before {
+    content: '';
+    position: absolute;
+    left: 6px; top: 50%;
+    transform: translateY(-50%);
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--c-success, #22c55e);
+    box-shadow: 0 0 4px var(--c-success, #22c55e);
+    opacity: 0.85;
+    animation: solstice-privacy-pulse 2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes solstice-privacy-pulse {
+    0%, 100% { opacity: 0.6; box-shadow: 0 0 4px var(--c-success, #22c55e); }
+    50%      { opacity: 1; box-shadow: 0 0 8px var(--c-success, #22c55e); }
+  }
+
+  /* ============================================================
+     Polish 28 (solstice-modular-v1) — Header Ask bar (✨ Pergunte ao Solstice).
+     Ícone ✨ com glow animado pra parecer "vivo".
+     Hover mais expressivo.
+     ============================================================ */
+  .solstice__header-ask-input {
+    transition: all 200ms ease;
+  }
+  .solstice__header-ask-input:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--c-accent) 18%, transparent),
+                0 0 0 3px color-mix(in srgb, var(--c-accent) 14%, transparent) !important;
+  }
+  .solstice__header-ask-icon {
+    /* Pulse glow no ícone ✨ */
+    animation: solstice-sparkle 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-accent) 40%, transparent));
+  }
+  @keyframes solstice-sparkle {
+    0%, 100% {
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c-accent) 40%, transparent));
+      transform: scale(1);
+    }
+    50% {
+      filter: drop-shadow(0 0 10px color-mix(in srgb, var(--c-accent) 70%, transparent));
+      transform: scale(1.08);
+    }
+  }
+
+  /* ============================================================
      Polish 27 (solstice-modular-v1) — Hint tooltips polidos.
      - Backdrop-filter glass moderno
      - Border accent sutil
