@@ -96,6 +96,16 @@
       "features/15-AutoDashboard.js",
       "features/16-Wizard.js",
       "features/17-Annotations.js"
+    ],
+    "persistence-modules": [
+      "persistence/01-MultiTab.js",
+      "persistence/02-SavedViews.js",
+      "persistence/03-AutoSave.js",
+      "persistence/04-Snapshots.js",
+      "persistence/05-Versions.js",
+      "persistence/06-IDB.js",
+      "persistence/07-FolderAttach.js",
+      "persistence/08-FileSystem.js"
     ]
   }
 }

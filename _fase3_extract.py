@@ -22,17 +22,17 @@ MODULE_END_PATTERNS = ("  })();", "  })()", "  };")
 PLACEHOLDER_CLOSE_RE = re.compile(r"^  /\*/@SOLSTICE_BUILD:slot=[\w\-./]+\*/$")
 
 WAVE = {
-    "name": "Onda 3.G - Features 2 (Filters -> Annotations)",
-    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=features-1-modules*/\n",
-    "next_const": "SolsticeMultiTab",
+    "name": "Onda 3.H - Persistencia",
+    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=features-2-modules*/\n",
+    "next_const": "SolsticeExport",
     "expected": [
-        "SolsticeFilters", "SolsticeCrossFilter", "SolsticeParams",
-        "SolsticeColumnScore", "SolsticeRecommender", "SolsticeAutoDashboard",
-        "SolsticeWizard", "SolsticeAnnotations",
+        "SolsticeMultiTab", "SolsticeSavedViews", "SolsticeAutoSave",
+        "SolsticeSnapshots", "SolsticeVersions", "SolsticeIDB",
+        "SolsticeFolderAttach", "SolsticeFileSystem",
     ],
-    "out_dir": "src/features",
-    "slot_name": "features-2-modules",
-    "file_index_start": 10,
+    "out_dir": "src/persistence",
+    "slot_name": "persistence-modules",
+    "file_index_start": 1,
 }
 
 
