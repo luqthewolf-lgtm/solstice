@@ -1442,6 +1442,25 @@
           e.preventDefault();
           _openShortcutsModal();
         }
+        // Polish 13 (solstice-modular-v1): Alt + letra pra trocar de aba.
+        // Alt evita conflito com typing comum mas é rápido de pressionar.
+        // Mapeamento: D=Dados, M=Modelo, C=Componentes, S=Snapshots,
+        // X=Dicionários (D já está ocupado), I=Inspector.
+        if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey){
+          const map = {
+            'd': 'dados',     'D': 'dados',
+            'm': 'modelo',    'M': 'modelo',
+            'c': 'componentes','C': 'componentes',
+            's': 'snapshots', 'S': 'snapshots',
+            'x': 'dicionarios','X': 'dicionarios',
+            'i': 'inspector', 'I': 'inspector',
+          };
+          const which = map[e.key];
+          if (which){
+            e.preventDefault();
+            activate(which);
+          }
+        }
       });
     }
 

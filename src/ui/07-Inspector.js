@@ -74,6 +74,13 @@
       if (typeof SolsticeSidebarTabs !== 'undefined' && SolsticeSidebarTabs.activate){
         try { SolsticeSidebarTabs.activate('inspector'); } catch(_){}
       }
+      // Polish 14: badge no tab Inspector ("●") indica que tem props pra ver,
+      // mesmo se o user trocar de aba. Some quando o user deseleciona.
+      const badge = document.getElementById('badge-inspector');
+      if (badge){
+        badge.textContent = '●';
+        badge.classList.remove('solstice__hidden');
+      }
       SolsticeStore.set('ui.inspector.open', true);
     }
     function close(){
@@ -88,6 +95,12 @@
       // estar olhando outras abas sem querer ter sido jogado em Inspector.
       if (typeof SolsticeSidebarTabs !== 'undefined' && SolsticeSidebarTabs.activate){
         try { SolsticeSidebarTabs.activate('dados'); } catch(_){}
+      }
+      // Polish 14: remove o badge de "●" do tab Inspector ao deselecionar
+      const badge = document.getElementById('badge-inspector');
+      if (badge){
+        badge.textContent = '';
+        badge.classList.add('solstice__hidden');
       }
       SolsticeStore.set('ui.inspector.open', false);
       SolsticeStore.set('ui.inspector.slotId', null);

@@ -216,11 +216,69 @@
      WCAG 2.4.1 (Bypass Blocks). Aparece só ao receber foco via Tab. -->
 <a href="#canvas-root" class="solstice__skip-link">Pular para o conteúdo principal</a>
 
-<!-- Splash screen (Patch Final ADR-146) — fade out 1.5s -->
-<div id="solstice-splash" style="position:fixed;inset:0;background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 600ms ease;">
-  <div style="font-size:96px;line-height:1;margin-bottom:16px;">🌗</div>
-  <div style="font-size:48px;font-weight:700;color:#fff;font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-0.02em;">Solstice</div>
-  <div style="font-size:14px;color:rgba(255,255,255,0.7);margin-top:8px;">Dashboard Studio</div>
+<!-- Splash screen (Polish 15) — gradient sutil + logo com pulse + fade out 600ms -->
+<style id="splash-inline-style">
+  #solstice-splash {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(91,168,255,0.10), transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(255,108,0,0.05), transparent 50%),
+      linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    transition: opacity 600ms ease;
+  }
+  #solstice-splash .splash-logo {
+    font-size: 96px; line-height: 1; margin-bottom: 16px;
+    animation: splash-pulse 2.2s ease-in-out infinite;
+    filter: drop-shadow(0 8px 24px rgba(91,168,255,0.30));
+  }
+  #solstice-splash .splash-name {
+    font-size: 56px; font-weight: 700; color: #fff;
+    font-family: 'Space Grotesk','Inter',sans-serif;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 30%, #5BA8FF 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: splash-name-in 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  #solstice-splash .splash-sub {
+    font-size: 15px; color: rgba(255,255,255,0.55);
+    margin-top: 10px; letter-spacing: 0.05em;
+    text-transform: uppercase;
+    animation: splash-name-in 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both;
+  }
+  #solstice-splash .splash-loader {
+    position: absolute; bottom: 48px; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px; overflow: hidden;
+  }
+  #solstice-splash .splash-loader::after {
+    content: '';
+    display: block; width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent, #5BA8FF, transparent);
+    animation: splash-loader-slide 1.4s ease-in-out infinite;
+  }
+  @keyframes splash-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.05); opacity: 0.85; }
+  }
+  @keyframes splash-name-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes splash-loader-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+</style>
+<div id="solstice-splash">
+  <div class="splash-logo" aria-hidden="true">🌗</div>
+  <div class="splash-name">Solstice</div>
+  <div class="splash-sub">Dashboard Studio</div>
+  <div class="splash-loader" aria-hidden="true"></div>
 </div>
 
 <!-- Banner versão (dev-only — só visível com data-debug=true)
