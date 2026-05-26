@@ -146,17 +146,33 @@ Atalhos pra brincar:
 - **Ctrl+S**: snapshot
 - **Ctrl+/**: lista de atalhos
 
-## Sobre o "drag-and-drop QuickSight" (Fase 7B)
+## Sobre o "drag-and-drop QuickSight" (Fase 7B + Polish 41)
 
-Versão MVP — funciona com selects existentes do Inspector. Próximas
-melhorias possíveis (não fiz, deixei pra você decidir):
+**Fase 7B (MVP)**: cards de coluna na aba Dados ficam arrastáveis,
+selects do Inspector aceitam drop. Funcionalidade básica.
 
-- Visualizar coluna como chip removível quando aplicada (em vez de
-  só value do select)
-- Drop zones genéricas "Dimensão / Medida / Cor" estilo Power BI
-  (precisa redesenhar painel do Inspector — não trivial)
+**Polish 41 (v2 — depois de você lembrar)**: selects de coluna do
+Inspector agora viram **drop zones visuais com chip removível** estilo
+QuickSight/Power BI:
+
+- Detecção automática via heurística (≥60% das options batem com
+  `ingest.columns` → é select de coluna)
+- Chip mostra: ícone do tipo (📊 número, 📅 data, 🔡 texto…) + nome + X
+- Native select fica oculto (preservado pra a11y)
+- Click no chip reabre o select pra trocar
+- Quando você arrasta uma coluna, TODAS as zones pulsam border
+  accent — "drop aqui" claríssimo
+- Drop preserva validação (coluna incompatível → toast warn)
+
+Selects que NÃO são coluna (agregação sum/avg, formato auto/brl, etc.)
+continuam dropdown clássico — heurística pula eles.
+
+Próximas melhorias possíveis (deixei pra você decidir):
+- Drop zones genéricas "Dimensão / Medida / Cor" como CONTAINERS
+  (Power BI estilo — uma drop zone pra cada papel, com múltiplas
+  colunas dentro). Precisa redesenhar `SolsticeProps.renderInspector`.
 - Drop direto no canvas pra criar tile na hora (sem precisar add
-  componente antes)
+  componente antes via modal).
 
 ## Bugs/limitações conhecidas
 
