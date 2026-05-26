@@ -793,18 +793,167 @@
       update();
     })();
 
-    // Fase 7B (drag-and-drop QuickSight): selects de coluna do Inspector
-    // aceitam drop de cards de coluna arrastados da aba "Dados". Quando o
-    // user solta uma coluna num <select> que contém aquela opção, o select
-    // vira aquele valor e dispara o change event (Props.renderInspector
-    // ouve change → re-renderiza o componente).
+    // Fase 7B + Polish 41 (solstice-modular-v1) — Drag-and-drop QuickSight.
+    // Cards de coluna na aba "Dados" arrastáveis. Selects de coluna do
+    // Inspector ganham WRAP visual em "column zone" com chip removível
+    // estilo Power BI / QuickSight. Native select fica oculto mas funcional.
     (function _initColumnDragDrop(){
-      // Delega no body — pega selects dinâmicos do Inspector também
+      function _columnIconFor(col){
+        try {
+          const ingest = SolsticeStore.get('ingest');
+          const t = ingest && ingest.types && ingest.types[col];
+          if (t && typeof SolsticeTypes !== 'undefined' && SolsticeTypes.icon){
+            return SolsticeTypes.icon(t.type || 'string');
+          }
+        } catch(_){}
+        return '📊';
+      }
+      function _isColumnSelect(sel){
+        if (!sel || sel.tagName !== 'SELECT') return false;
+        if (!sel.classList.contains('solstice__props-select')) return false;
+        try {
+          const ingest = SolsticeStore.get('ingest');
+          if (!ingest || !ingest.columns || !ingest.columns.length) return false;
+          const colsSet = new Set(ingest.columns);
+          const opts = Array.from(sel.options).filter(o => o.value);
+          if (opts.length < 2) return false;
+          // Pelo menos METADE das opções deve ser nome de coluna
+          // (selects de "função de agregação" tem valores como sum/avg,
+          // não viram zone). Threshold 0.6 evita falsos positivos.
+          const matches = opts.filter(o => colsSet.has(o.value)).length;
+          return matches / opts.length >= 0.6;
+        } catch(_){ return false; }
+      }
+      function _updateChip(zone, sel){
+        const chip = zone.querySelector('.solstice__column-chip')
+                  || zone.querySelector('.solstice__column-chip-empty');
+        if (!chip) return;
+        const v = sel.value;
+        const ingest = SolsticeStore.get('ingest');
+        const colsSet = new Set((ingest && ingest.columns) || []);
+        if (v && colsSet.has(v)){
+          zone.classList.remove('is-empty');
+          const icon = _columnIconFor(v);
+          const newChip = SolsticeUtils.el('div', { class: 'solstice__column-chip' });
+          newChip.appendChild(SolsticeUtils.el('span', { class:'solstice__column-chip-icon' }, icon));
+          newChip.appendChild(SolsticeUtils.el('span', { class:'solstice__column-chip-name', title: v }, v));
+          const clearBtn = SolsticeUtils.el('button', {
+            class:'solstice__column-chip-clear',
+            type: 'button',
+            'aria-label':'Remover coluna',
+            title:'Remover'
+          }, '×');
+          clearBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            sel.value = '';
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+          newChip.appendChild(clearBtn);
+          chip.replaceWith(newChip);
+        } else {
+          zone.classList.add('is-empty');
+          if (!chip.classList.contains('solstice__column-chip-empty')){
+            const empty = SolsticeUtils.el('span', { class:'solstice__column-chip-empty' },
+              '＋ Solte uma coluna aqui');
+            chip.replaceWith(empty);
+          }
+        }
+      }
+      function _wrap(sel){
+        if (sel.hasAttribute('data-column-zone-wrapped')) return;
+        sel.setAttribute('data-column-zone-wrapped', '1');
+        const parent = sel.parentNode;
+        if (!parent) return;
+        const zone = SolsticeUtils.el('div', { class: 'solstice__column-zone' });
+        parent.insertBefore(zone, sel);
+        // Chip placeholder; _updateChip vai substituir
+        const placeholder = SolsticeUtils.el('span', { class:'solstice__column-chip-empty' },
+          '＋ Solte uma coluna aqui');
+        zone.appendChild(placeholder);
+        zone.appendChild(sel);
+        sel.classList.add('is-zone-hidden');
+        // Click na zone abre o select pra editar
+        zone.addEventListener('click', function(e){
+          if (e.target.closest('.solstice__column-chip-clear')) return;
+          zone.classList.add('is-editing');
+          // Foca e abre o select
+          try { sel.focus(); } catch(_){}
+        });
+        // Quando select perde foco, volta ao modo chip
+        sel.addEventListener('blur', function(){
+          zone.classList.remove('is-editing');
+        });
+        sel.addEventListener('change', function(){
+          zone.classList.remove('is-editing');
+          _updateChip(zone, sel);
+        });
+        _updateChip(zone, sel);
+      }
+      function _processNewSelects(){
+        const selects = document.querySelectorAll(
+          '.solstice__props-select:not([data-column-zone-wrapped])'
+        );
+        selects.forEach(sel => {
+          if (_isColumnSelect(sel)) _wrap(sel);
+        });
+      }
+      // Observa mudanças no DOM (Props re-renderiza a cada select de tile)
+      const observer = new MutationObserver(() => {
+        // Throttle: rAF pra evitar processar a cada mutation atômica
+        if (observer._scheduled) return;
+        observer._scheduled = requestAnimationFrame(() => {
+          observer._scheduled = null;
+          _processNewSelects();
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      _processNewSelects();
+
+      // Delegação global de drag-drop (a zone aceita drop via bubbling)
+      document.body.addEventListener('dragover', function(e){
+        const zone = e.target.closest && e.target.closest('.solstice__column-zone');
+        if (!zone) return;
+        if (Array.from(e.dataTransfer.types).includes('text/x-solstice-column')){
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          zone.classList.add('is-drop-target');
+        }
+      });
+      document.body.addEventListener('dragleave', function(e){
+        const zone = e.target.closest && e.target.closest('.solstice__column-zone');
+        if (zone && !zone.contains(e.relatedTarget)){
+          zone.classList.remove('is-drop-target');
+        }
+      });
+      document.body.addEventListener('drop', function(e){
+        const zone = e.target.closest && e.target.closest('.solstice__column-zone');
+        if (!zone) return;
+        const col = e.dataTransfer.getData('text/x-solstice-column');
+        if (!col) return;
+        e.preventDefault();
+        zone.classList.remove('is-drop-target');
+        const sel = zone.querySelector('select.solstice__props-select');
+        if (!sel) return;
+        const opt = Array.from(sel.options).find(o => o.value === col);
+        if (!opt){
+          SolsticeToast.warn('Coluna incompatível',
+            '"' + col + '" não é opção válida para este eixo (tipo errado?). ' +
+            'Ajuste em "Mudar tipo" no editor da coluna.');
+          return;
+        }
+        sel.value = col;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        SolsticeToast.success('Coluna aplicada', col + ' → ' + (sel.getAttribute('aria-label') || 'eixo'));
+      });
+
+      // Fallback antigo: selects sem zone wrap também aceitam drop direto
+      // (caso heurística falhe ou seja outro tipo de select). Mantém compat.
       document.body.addEventListener('dragover', function(e){
         const t = e.target;
         if (!t || !t.tagName) return;
-        if (t.tagName === 'SELECT' && t.classList.contains('solstice__props-select')){
-          // Só aceita se há coluna sendo arrastada (data type custom)
+        if (t.tagName === 'SELECT'
+            && t.classList.contains('solstice__props-select')
+            && !t.hasAttribute('data-column-zone-wrapped')){
           if (Array.from(e.dataTransfer.types).includes('text/x-solstice-column')){
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
@@ -812,30 +961,19 @@
           }
         }
       });
-      document.body.addEventListener('dragleave', function(e){
-        const t = e.target;
-        if (t && t.tagName === 'SELECT' && t.classList.contains('is-drop-target')){
-          t.classList.remove('is-drop-target');
-        }
-      });
       document.body.addEventListener('drop', function(e){
         const t = e.target;
-        if (!t || t.tagName !== 'SELECT' || !t.classList.contains('solstice__props-select')) return;
+        if (!t || t.tagName !== 'SELECT'
+            || !t.classList.contains('solstice__props-select')
+            || t.hasAttribute('data-column-zone-wrapped')) return;
         const col = e.dataTransfer.getData('text/x-solstice-column');
         if (!col) return;
         e.preventDefault();
         t.classList.remove('is-drop-target');
-        // Verifica se aquela coluna é uma opção válida desse select
         const opt = Array.from(t.options).find(o => o.value === col);
-        if (!opt){
-          SolsticeToast.warn('Coluna incompatível',
-            '"' + col + '" não é opção válida para este eixo (tipo errado?). ' +
-            'Ajuste em "Mudar tipo" no editor da coluna.');
-          return;
-        }
+        if (!opt){ return; }
         t.value = col;
         t.dispatchEvent(new Event('change', { bubbles: true }));
-        SolsticeToast.success('Coluna aplicada', col + ' → ' + (t.getAttribute('aria-label') || 'eixo'));
       });
     })();
 
