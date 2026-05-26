@@ -1,0 +1,66 @@
+name: Build Solstice
+
+# Roda em push em qualquer branch e em tags v*. Manual trigger via UI também.
+# Gera dist/solstice.html e publica como artifact. Em release tag, anexa
+# o artifact ao release.
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # necessário pra publicar release asset em tag
+
+jobs:
+  build:
+    name: Build artefato single-file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        # Build.py só precisa de stdlib; 3.8+ funciona. Pinning 3.11 por previsibilidade.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Rodar build (concatena src/* em dist/solstice.html)
+        run: python src/build/build.py
+
+      - name: Mostrar SHA-256 do artefato
+        # Útil pro reviewer correlacionar download com release. Sem dependências.
+        run: |
+          sha256sum dist/solstice.html
+          ls -lh dist/
+
+      - name: Upload artifact (todo push)
+        # Vale 90 dias por padrão; download pela UI do GitHub Actions.
+        uses: actions/upload-artifact@v4
+        with:
+          name: solstice-html
+          path: dist/solstice.html
+          if-no-files-found: error
+
+      - name: Publicar como release asset (apenas em tag v*)
+        # Em tag `v1.0.0`, cria release `Solstice v1.0.0` com solstice.html anexado.
+        # `softprops/action-gh-release@v2` é a opção mais comum, mas pra evitar
+        # depender de plugin externo, uso gh CLI que já vem no runner.
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          # Cria release se não existe
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "Solstice $TAG" \
+              --notes "Build automático pelo workflow build.yml. SHA-256 do artefato:" \
+              --notes "$(sha256sum dist/solstice.html | awk '{print $1}')"
+          fi
+          # Anexa o artefato (overwrite se já existe)
+          gh release upload "$TAG" dist/solstice.html --clobber
