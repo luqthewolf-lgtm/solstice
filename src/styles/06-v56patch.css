@@ -1019,6 +1019,25 @@
      Quando body.solstice-dragging-column está ativo, todos os selects de
      props pulsam sutilmente convidando ao drop.
      ============================================================ */
+  /* Polish 43: slot vazio do canvas como drop target pra criar tile */
+  .solstice__slot.is-drop-target-col {
+    background: color-mix(in srgb, var(--c-accent) 12%, var(--c-surface)) !important;
+    border: 2px dashed var(--c-accent) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accent) 22%, transparent);
+    transform: scale(1.02);
+    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  body.solstice-dragging-column .solstice__slot:not(:has(.solstice__comp)) {
+    /* Sinal sutil de que slots vazios aceitam drop */
+    outline: 1px dashed color-mix(in srgb, var(--c-accent) 35%, transparent);
+    outline-offset: -1px;
+    animation: solstice-slot-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes solstice-slot-pulse {
+    0%, 100% { outline-color: color-mix(in srgb, var(--c-accent) 30%, transparent); }
+    50%      { outline-color: color-mix(in srgb, var(--c-accent) 60%, transparent); }
+  }
+
   .solstice__editor-col[draggable="true"] {
     cursor: grab;
   }

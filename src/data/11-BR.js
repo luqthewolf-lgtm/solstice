@@ -946,6 +946,94 @@
         SolsticeToast.success('Coluna aplicada', col + ' → ' + (sel.getAttribute('aria-label') || 'eixo'));
       });
 
+      // Polish 43 (solstice-modular-v1): drop direto num SLOT VAZIO do canvas
+      // cria tile na hora com tipo apropriado baseado no tipo da coluna.
+      // - Coluna numérica/measure → KPI Card
+      // - Coluna data → Time-Series
+      // - Coluna categórica/dimension → Distribuição (bar)
+      // - Outras → Tabela
+      function _bestCompTypeFor(col){
+        const ingest = SolsticeStore.get('ingest');
+        const t = ingest && ingest.types && ingest.types[col];
+        if (!t) return 'kpi';
+        const type = t.type || 'string';
+        if (type === 'measure' || type === 'number' || type === 'decimal' || type === 'currency'
+            || type === 'integer' || type === 'percent') return 'kpi';
+        if (type === 'date' || type === 'datetime' || type === 'time') return 'time-series';
+        if (type === 'dimension' || type === 'category' || type === 'string' || type === 'boolean') return 'distribution';
+        return 'table';
+      }
+      document.body.addEventListener('dragover', function(e){
+        const slot = e.target.closest && e.target.closest('.solstice__slot');
+        if (!slot) return;
+        // Só slots vazios — slots com comp já tem o sistema chip+zone
+        if (slot.querySelector('.solstice__comp')) return;
+        if (Array.from(e.dataTransfer.types).includes('text/x-solstice-column')){
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          slot.classList.add('is-drop-target-col');
+        }
+      });
+      document.body.addEventListener('dragleave', function(e){
+        const slot = e.target.closest && e.target.closest('.solstice__slot');
+        if (slot && !slot.contains(e.relatedTarget)){
+          slot.classList.remove('is-drop-target-col');
+        }
+      });
+      document.body.addEventListener('drop', function(e){
+        const slot = e.target.closest && e.target.closest('.solstice__slot');
+        if (!slot || slot.querySelector('.solstice__comp')) return;
+        const col = e.dataTransfer.getData('text/x-solstice-column');
+        if (!col) return;
+        e.preventDefault();
+        slot.classList.remove('is-drop-target-col');
+        const slotId = slot.getAttribute('data-id');
+        if (!slotId) return;
+        const compType = _bestCompTypeFor(col);
+        // Encontra slot na arvore canvas.sections e configura
+        try {
+          const sections = SolsticeUtils.deepClone(SolsticeStore.get('canvas.sections') || []);
+          let sl = null;
+          for (const s of sections) for (const r of s.rows){
+            const found = r.slots.find(x => x.id === slotId);
+            if (found){ sl = found; break; }
+          }
+          if (!sl) return;
+          sl.type = compType;
+          const def = SolsticeComponents.get(compType);
+          const ingest = SolsticeStore.get('ingest');
+          const ctx = {
+            rows: (ingest && ingest.rows) || [],
+            columns: (ingest && ingest.columns) || [],
+            types: (ingest && ingest.types) || {},
+            dictionary: SolsticeStore.get('dictionary')
+          };
+          sl.config = def && def.defaultConfig ? def.defaultConfig(ctx) : {};
+          // Substitui a coluna principal nos campos comuns do config
+          // (column, valueColumn, x, y, dimension, measure)
+          const colKeys = ['column', 'valueColumn', 'value', 'x', 'y', 'xColumn', 'yColumn',
+                            'dimension', 'measure', 'metric', 'series', 'group'];
+          for (const k of colKeys){
+            if (sl.config[k] === '' || sl.config[k] == null){
+              sl.config[k] = col;
+              break;
+            }
+          }
+          SolsticeStore.set('canvas.sections', sections);
+          SolsticeAudit.record({
+            action:'add_component_via_drag',
+            target: slotId,
+            details: { type: compType, column: col }
+          });
+          const label = (def && def.name) || compType;
+          SolsticeToast.success('Tile criado',
+            label + ' com "' + col + '"');
+        } catch(err){
+          SolsticeLog.warn('[drag-canvas-drop]', err && err.message);
+          SolsticeToast.error('Falha ao criar tile', err && err.message);
+        }
+      });
+
       // Fallback antigo: selects sem zone wrap também aceitam drop direto
       // (caso heurística falhe ou seja outro tipo de select). Mantém compat.
       document.body.addEventListener('dragover', function(e){

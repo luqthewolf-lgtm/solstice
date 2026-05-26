@@ -1477,6 +1477,30 @@
             SolsticeAutoDashboard.run({ silent: false });
           }
         }
+        // Polish 45 (solstice-modular-v1): Ctrl+Shift+N — nova seção.
+        // Usa SolsticeCanvas.addSection se disponível.
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n'){
+          if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.addSection){
+            e.preventDefault();
+            SolsticeCanvas.addSection('Nova seção');
+            SolsticeToast.success('Seção adicionada', 'Pronta pra receber tiles');
+          }
+        }
+        // Polish 45: Ctrl+D — duplica tile selecionado (se há).
+        // Não conflita com bookmark (browser intercepta antes, mas só fora
+        // de inputs onde já filtramos).
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd'){
+          const selSlotId = SolsticeStore.get('ui.inspector.slotId');
+          if (selSlotId && typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.duplicateSlot){
+            e.preventDefault();
+            try {
+              SolsticeCanvas.duplicateSlot(selSlotId);
+              SolsticeToast.success('Componente duplicado');
+            } catch(err){
+              SolsticeLog.warn('[duplicate]', err && err.message);
+            }
+          }
+        }
       });
     }
 
