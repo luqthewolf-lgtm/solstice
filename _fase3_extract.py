@@ -22,16 +22,16 @@ MODULE_END_PATTERNS = ("  })();", "  })()", "  };")
 PLACEHOLDER_CLOSE_RE = re.compile(r"^  /\*/@SOLSTICE_BUILD:slot=[\w\-./]+\*/$")
 
 WAVE = {
-    "name": "Onda 3.H - Persistencia",
-    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=features-2-modules*/\n",
-    "next_const": "SolsticeExport",
+    "name": "Onda 3.I - Export + Modes",
+    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=persistence-modules*/\n",
+    "next_const": "SolsticeMigrations",
     "expected": [
-        "SolsticeMultiTab", "SolsticeSavedViews", "SolsticeAutoSave",
-        "SolsticeSnapshots", "SolsticeVersions", "SolsticeIDB",
-        "SolsticeFolderAttach", "SolsticeFileSystem",
+        "SolsticeExport", "SolsticeTemplatesItau", "SolsticeModes",
+        "SolsticeSlides", "SolsticePresenter", "SolsticeCommandPalette",
+        "SolsticeTour", "SolsticeHints",
     ],
-    "out_dir": "src/persistence",
-    "slot_name": "persistence-modules",
+    "out_dir": "src/export",
+    "slot_name": "export-modules",
     "file_index_start": 1,
 }
 

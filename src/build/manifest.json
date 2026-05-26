@@ -106,6 +106,16 @@
       "persistence/06-IDB.js",
       "persistence/07-FolderAttach.js",
       "persistence/08-FileSystem.js"
+    ],
+    "export-modules": [
+      "export/01-Export.js",
+      "export/02-TemplatesItau.js",
+      "export/03-Modes.js",
+      "export/04-Slides.js",
+      "export/05-Presenter.js",
+      "export/06-CommandPalette.js",
+      "export/07-Tour.js",
+      "export/08-Hints.js"
     ]
   }
 }
