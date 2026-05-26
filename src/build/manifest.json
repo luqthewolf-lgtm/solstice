@@ -9,6 +9,26 @@
       "styles/04-theme.css",
       "styles/05-components.css",
       "styles/06-v56patch.css"
+    ],
+    "core-modules": [
+      "core/01-LZ.js",
+      "core/02-Config.js",
+      "core/03-ErrorBoundary.js",
+      "core/04-Utils.js",
+      "core/05-Storage.js",
+      "core/06-Store.js",
+      "core/07-StoreContract.js",
+      "core/08-Log.js",
+      "core/09-IngestState.js",
+      "core/10-Ids.js",
+      "core/11-Boot.js",
+      "core/12-Locale.js",
+      "core/13-I18n.js",
+      "core/14-Fmt.js",
+      "core/15-Errors.js",
+      "core/16-Toast.js",
+      "core/17-Profiles.js",
+      "core/18-Theme.js"
     ]
   }
 }

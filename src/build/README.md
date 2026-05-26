@@ -109,6 +109,22 @@ solstice/
 
 5. Smoke-test o `dist/solstice.html` no navegador. Boot OK = extração OK.
 
+## Lições aprendidas em extrações reais
+
+### Marcadores HTML vs CSS (Fase 2)
+
+Dentro de `<style>`, o token `@SOLSTICE_BUILD` em comentário HTML (`<!-- -->`) vira at-rule CSS desconhecida e o parser consome o próximo `{...}` em error recovery. Solução: comentário CSS (`/* */`). O build aceita ambos os formatos e exige consistência entre abertura e fechamento.
+
+### Detecção de fronteira entre módulos JS (Fase 3 onda A)
+
+Dois algoritmos ingênuos que **falham**:
+
+1. **Cortar em `\n\n` (linha em branco):** falha quando há linha em branco DENTRO de um comentário `/* ... */` multi-linha. Caso real: o comentário gigante que precede `SolsticeDictionary` tinha linha em branco interna.
+2. **Contar `/*` vs `*/` no prefixo:** falha porque regex literais JS contêm `*/` que parece fechamento de comentário (ex.: `/^\s*/i`, `/\*\*([^*]+)\*\*/g`). Resultado: contagem balanceada em pontos que estão dentro de comentário.
+
+**Algoritmo robusto que funciona:** cada módulo `SolsticeX` termina com uma linha de padrão fixo na indentação 2 — `  })();`, `  })()` ou `  };`. Detectar essa linha de fechamento é confiável porque é um padrão estrutural (linha inteira), não dependente do conteúdo.
+
+
 ## Variáveis de ambiente
 
 | Variável | Efeito |
