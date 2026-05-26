@@ -165,6 +165,29 @@
       });
       SolsticeStore.set('dataset.ready', true); // dispara subscribers de dataset.*
       SolsticeToast.success(SolsticeLocale.t('toast.dummy.loaded'), rows.length + ' linhas · ' + cols.length + ' colunas');
+
+      // POLISH 12 (solstice-modular-v1): one-click experience — se o canvas
+      // está vazio e o user acabou de pedir dataset de exemplo, monta um
+      // dashboard automático na hora via AutoDashboard. Sem precisar clicar
+      // "Auto" depois. Se quiser começar do zero, o user limpa as seções
+      // (já tem botão "Começar do zero" no banner de autosave).
+      // Skip silencioso se o user já tem trabalho em andamento.
+      try {
+        const opts2 = opts || {};
+        if (opts2.autoBuild !== false){
+          const currentSections = SolsticeStore.get('canvas.sections') || [];
+          if (!currentSections.length && typeof SolsticeAutoDashboard !== 'undefined'
+              && SolsticeAutoDashboard.run){
+            // Pequeno delay pra deixar o boot de outros subscribers acontecer
+            // antes (Inspector/Filters/etc. ouvem dataset.ready primeiro).
+            setTimeout(() => {
+              try { SolsticeAutoDashboard.run({ silent: true }); }
+              catch(e){ SolsticeLog.debug('[Dummy] autoBuild falhou', e && e.message); }
+            }, 400);
+          }
+        }
+      } catch(_){ /* não bloqueia o load */ }
+
       return { rows, cols };
     }
 

@@ -440,6 +440,44 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 9 (solstice-modular-v1) — Tipografia hierarquia.
+     Refinos: letter-spacing negativo em títulos (mais "premium"),
+     tabular-nums em valores numéricos (alinhamento decimal),
+     font-feature-settings pra dar mais respiro em uppercase.
+     ============================================================ */
+  /* Títulos hero/H1/H2 — letter-spacing menor */
+  .solstice__welcome-brand,
+  .solstice__dash-header-title,
+  .solstice__cmodal-header {
+    letter-spacing: -0.02em;
+  }
+  /* Valores numéricos: tabular figures alinha decimais */
+  .solstice__kpi-value,
+  .solstice__sidebar-tab-badge,
+  .solstice__comp-meta {
+    font-feature-settings: 'tnum', 'lnum';
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  /* Uppercase headings com letter-spacing pra arejar */
+  .solstice__sidebar-title,
+  .solstice__inspector-title,
+  .solstice__welcome-divider {
+    letter-spacing: 0.08em;
+    font-weight: var(--fw-semibold);
+  }
+  /* Sub-textos com line-height mais generoso pra leitura */
+  .solstice__welcome-path-desc,
+  .solstice__welcome-sub,
+  .solstice__cmodal-body p {
+    line-height: 1.55;
+  }
+  /* Labels de input: peso médio (era inherit) pra hierarquia clara */
+  .solstice__props-label {
+    font-weight: var(--fw-medium);
+    letter-spacing: 0;
+  }
+
+  /* ============================================================
      Polish 10 (solstice-modular-v1) — Microanimações de entrada.
      Quando o app boota, vários elementos aparecem ao mesmo tempo.
      Stagger curto + fade-in dá sensação "premium" de boot polido.
