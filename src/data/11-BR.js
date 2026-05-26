@@ -772,6 +772,49 @@
       try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render(); } catch(_){}
     });
 
+    // Polish 49 (solstice-modular-v1): marca colunas em uso no dashboard
+    // com dot accent na sidebar. Re-roda quando canvas.sections muda.
+    (function _initInUseIndicator(){
+      function _columnsInUse(){
+        const sections = SolsticeStore.get('canvas.sections') || [];
+        const used = new Set();
+        const COL_KEYS = ['column','valueColumn','value','x','y','xColumn','yColumn',
+                          'dimension','measure','metric','series','group','color',
+                          'sourceColumn','targetColumn'];
+        for (const s of sections) for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
+          const cfg = sl.config || {};
+          for (const k of COL_KEYS){
+            const v = cfg[k];
+            if (typeof v === 'string' && v) used.add(v);
+            if (Array.isArray(v)) v.forEach(x => { if (typeof x === 'string') used.add(x); });
+          }
+        }
+        return used;
+      }
+      function _apply(){
+        try {
+          const used = _columnsInUse();
+          document.querySelectorAll('.solstice__editor-col[data-column-name]').forEach(card => {
+            const col = card.getAttribute('data-column-name');
+            card.classList.toggle('is-in-use', used.has(col));
+          });
+        } catch(_){}
+      }
+      // Re-aplica quando sections mudam ou quando Editor re-renderiza
+      SolsticeStore.subscribe('canvas.sections', _apply);
+      // Observa mudanças no DOM (Editor re-renderiza cards)
+      const obs = new MutationObserver(() => {
+        if (obs._scheduled) return;
+        obs._scheduled = requestAnimationFrame(() => {
+          obs._scheduled = null;
+          _apply();
+        });
+      });
+      const dataPanel = document.getElementById('data-panel');
+      if (dataPanel) obs.observe(dataPanel, { childList: true, subtree: true });
+      _apply();
+    })();
+
     // Polish 35: Scroll-top FAB no canvas. Aparece quando user rola
     // mais de 600px, click rola smooth pro topo.
     (function _initScrollTopFab(){

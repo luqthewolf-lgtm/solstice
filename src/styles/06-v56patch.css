@@ -1064,6 +1064,29 @@
     opacity: 0.7;
   }
 
+  /* ============================================================
+     Polish 49 (solstice-modular-v1) — Indicador "em uso" na sidebar.
+     Colunas usadas em tiles do dashboard ganham um dot accent na lateral
+     do card (`.is-in-use`). Aplicado via JS observando canvas.sections.
+     ============================================================ */
+  .solstice__editor-col.is-in-use {
+    position: relative;
+  }
+  .solstice__editor-col.is-in-use::after {
+    content: '';
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    box-shadow: 0 0 6px var(--c-accent);
+    animation: solstice-in-use-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes solstice-in-use-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(1.2); }
+  }
+
   /* Polish 43: slot vazio do canvas como drop target pra criar tile */
   .solstice__slot.is-drop-target-col {
     background: color-mix(in srgb, var(--c-accent) 12%, var(--c-surface)) !important;
