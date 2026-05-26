@@ -2071,6 +2071,77 @@
   }
 
   /* ============================================================
+     Sprint Solstice S13 — Welcome state com assinatura Solstice.
+     Logo 🌗 grande com coroa quente atrás (mesma metáfora do splash);
+     'Solstice' em gradient violeta→coral; corona pulsando sutil;
+     terceiro card (dataset de exemplo) destacado como recomendado.
+     ============================================================ */
+  .solstice__welcome-brand {
+    /* Gradient violeta → coral, igual splash, identidade consistente */
+    background: linear-gradient(135deg,
+      var(--c-text) 0%,
+      color-mix(in srgb, var(--c-ai-accent) 75%, var(--c-text)) 35%,
+      var(--c-accent) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  /* O logo (🌗) é um elemento separado antes do título — buscamos pelo
+     irmão anterior do brand. Como nem sempre há, aplicamos no .solstice__
+     canvas-empty .solstice__welcome via ::before pra criar a coroa atrás. */
+  .solstice__canvas-empty.solstice__welcome {
+    position: relative;
+    overflow: visible;
+  }
+  .solstice__canvas-empty.solstice__welcome::before {
+    /* Coroa quente radial atrás de toda a área central do welcome */
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 30%,
+      color-mix(in srgb, var(--c-accent) 16%, transparent) 0%,
+      color-mix(in srgb, var(--c-ai-accent) 8%, transparent) 25%,
+      transparent 55%);
+    animation: solstice-welcome-corona 6s ease-in-out infinite;
+    z-index: 0;
+  }
+  .solstice__canvas-empty.solstice__welcome > * {
+    position: relative;
+    z-index: 1;
+  }
+  /* Destaca o último card (Ver com dataset de exemplo) como CTA primário */
+  .solstice__welcome-paths > .solstice__welcome-path:last-child {
+    border: 1px solid color-mix(in srgb, var(--c-accent) 50%, var(--c-border)) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--c-accent) 25%, transparent),
+                0 12px 32px -8px color-mix(in srgb, var(--c-accent) 28%, transparent);
+    position: relative;
+  }
+  .solstice__welcome-paths > .solstice__welcome-path:last-child::before {
+    content: '⚡ recomendado';
+    position: absolute;
+    top: -10px; right: 12px;
+    padding: 2px 9px;
+    background: var(--c-accent);
+    color: var(--c-bg);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    box-shadow: 0 4px 10px -2px color-mix(in srgb, var(--c-accent) 50%, transparent);
+    pointer-events: none;
+  }
+  @keyframes solstice-welcome-corona {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__canvas-empty.solstice__welcome::before { animation: none; }
+  }
+
+  /* ============================================================
      Sprint Solstice S12 — Section scrollspy.
      Pill flutuante no canto superior-direito do canvas.
      ============================================================ */
