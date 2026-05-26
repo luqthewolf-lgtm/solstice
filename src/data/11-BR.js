@@ -1032,6 +1032,78 @@
       });
     })();
 
+    // Sprint Solstice S4 (solstice-modular-v1): count-up nos valores de KPI.
+    //
+    // Cada .solstice__kpi-value pode carregar data-anim-target (valor bruto)
+    // e data-anim-formatted (string final). Ao entrar no viewport pela
+    // primeira vez na sessão, anima o número de 0 ao alvo em 900ms ease-out
+    // cubic, depois substitui pela string final exata (preserva unidade).
+    //
+    // prefers-reduced-motion: pula direto pro valor final.
+    // Marca elemento com data-anim-done=1 pra não re-animar em re-render.
+    (function _initKPICountUp(){
+      const prefersReduced = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let nf = null;
+      try { nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }); } catch(_){}
+      function _animate(el){
+        if (!el || el.dataset.animDone === '1') return;
+        const target = parseFloat(el.getAttribute('data-anim-target'));
+        const finalStr = el.getAttribute('data-anim-formatted');
+        if (!isFinite(target) || !finalStr){
+          el.dataset.animDone = '1';
+          return;
+        }
+        el.dataset.animDone = '1';
+        if (prefersReduced){
+          el.textContent = finalStr;
+          return;
+        }
+        const start = performance.now();
+        const duration = 900;
+        // Detecta se o valor original tem decimais — se sim, anima inteiro
+        // (porque formatação de decimais varia muito) e só no final aplica
+        // a string original.
+        function tick(now){
+          const t = Math.min(1, (now - start) / duration);
+          // ease-out cubic
+          const eased = 1 - Math.pow(1 - t, 3);
+          if (t < 1){
+            const cur = target * eased;
+            el.textContent = nf ? nf.format(Math.round(cur)) : String(Math.round(cur));
+            requestAnimationFrame(tick);
+          } else {
+            el.textContent = finalStr;
+          }
+        }
+        // Começa em 0 (estado visual antes da anim)
+        el.textContent = nf ? nf.format(0) : '0';
+        requestAnimationFrame(tick);
+      }
+      // IntersectionObserver detecta tiles entrando em viewport
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries){
+          if (e.isIntersecting) _animate(e.target);
+        }
+      }, { root: null, threshold: 0.4 });
+      function _scan(){
+        document.querySelectorAll('.solstice__kpi-value[data-anim-target]:not([data-anim-done])').forEach(el => io.observe(el));
+      }
+      _scan();
+      // Re-scan quando canvas muda (novos KPIs sendo renderizados)
+      const canvas = document.querySelector('.solstice__canvas');
+      if (canvas){
+        const obs = new MutationObserver(() => {
+          if (obs._scheduled) return;
+          obs._scheduled = requestAnimationFrame(() => {
+            obs._scheduled = null;
+            _scan();
+          });
+        });
+        obs.observe(canvas, { childList: true, subtree: true });
+      }
+    })();
+
     // Polish 35: Scroll-top FAB no canvas. Aparece quando user rola
     // mais de 600px, click rola smooth pro topo.
     (function _initScrollTopFab(){

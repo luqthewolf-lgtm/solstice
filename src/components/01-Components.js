@@ -1114,11 +1114,16 @@
         // === Linha 1: valor grande à esquerda ===
         // Tooltip humanizado: "Soma de 200 valores válidos da coluna Receita Mensal"
         const tooltip = aggLabel + ' de ' + SolsticeHumanize.recordCount(values.length).replace(' registros', ' valores válidos').replace(' registro', ' valor válido') + ' da coluna ' + friendlyName;
+        // Sprint Solstice S4: data-anim-target carrega o valor numérico bruto
+        // pro count-up; data-anim-formatted preserva a string final exata
+        // (com unidade/sufixo) que substitui o número quando a animação acaba.
         const valueEl = SolsticeUtils.el('div', {
           class: 'solstice__kpi-value',
           title: tooltip,
           'aria-label': tooltip,
-          style: 'color: var(--comp-value-color, var(--c-text));'
+          style: 'color: var(--comp-value-color, var(--c-text));',
+          'data-anim-target': String(value),
+          'data-anim-formatted': formatted
         }, formatted);
 
         // === Linha 3: comparação humanizada (ADR-042: 8 tipos configuráveis) ===
