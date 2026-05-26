@@ -22,16 +22,24 @@ MODULE_END_PATTERNS = ("  })();", "  })()", "  };")
 PLACEHOLDER_CLOSE_RE = re.compile(r"^  /\*/@SOLSTICE_BUILD:slot=[\w\-./]+\*/$")
 
 WAVE = {
-    "name": "Onda 3.I - Export + Modes",
-    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=persistence-modules*/\n",
-    "next_const": "SolsticeMigrations",
+    "name": "Onda 3.J - Workspace + Avancado (final)",
+    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=export-modules*/\n",
+    # Esta eh a ultima onda. end_anchor = fim do conteudo, ou seja, a linha
+    # `})();` final que fecha a IIFE principal. Vou usar o `})();` antes do
+    # `</script>` como end_anchor.
+    "end_anchor": "})();\n</script>",
     "expected": [
-        "SolsticeExport", "SolsticeTemplatesItau", "SolsticeModes",
-        "SolsticeSlides", "SolsticePresenter", "SolsticeCommandPalette",
-        "SolsticeTour", "SolsticeHints",
+        "SolsticeMigrations", "SolsticePages", "SolsticePagesUI",
+        "SolsticeWorkspace", "SolsticeViews", "SolsticeCollections",
+        "SolsticeShare", "SolsticePDF", "SolsticeExportSVG", "SolsticeEmbed",
+        "SolsticeComments", "SolsticeDuck", "SolsticeFormulaCore",
+        "SolsticeFormula", "SolsticeFormulaRow", "SolsticeMeasures",
+        "SolsticeExportData", "SolsticeLimits", "SolsticeSettings",
+        "SolsticeColumnConfig", "SolsticeStatsAsync", "SolsticeV56",
+        "SolsticeSelfAudit",
     ],
-    "out_dir": "src/export",
-    "slot_name": "export-modules",
+    "out_dir": "src/workspace",
+    "slot_name": "workspace-modules",
     "file_index_start": 1,
 }
 

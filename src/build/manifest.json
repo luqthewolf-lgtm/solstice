@@ -116,6 +116,31 @@
       "export/06-CommandPalette.js",
       "export/07-Tour.js",
       "export/08-Hints.js"
+    ],
+    "workspace-modules": [
+      "workspace/01-Migrations.js",
+      "workspace/02-Pages.js",
+      "workspace/03-PagesUI.js",
+      "workspace/04-Workspace.js",
+      "workspace/05-Views.js",
+      "workspace/06-Collections.js",
+      "workspace/07-Share.js",
+      "workspace/08-PDF.js",
+      "workspace/09-ExportSVG.js",
+      "workspace/10-Embed.js",
+      "workspace/11-Comments.js",
+      "workspace/12-Duck.js",
+      "workspace/13-FormulaCore.js",
+      "workspace/14-Formula.js",
+      "workspace/15-FormulaRow.js",
+      "workspace/16-Measures.js",
+      "workspace/17-ExportData.js",
+      "workspace/18-Limits.js",
+      "workspace/19-Settings.js",
+      "workspace/20-ColumnConfig.js",
+      "workspace/21-StatsAsync.js",
+      "workspace/22-V56.js",
+      "workspace/23-SelfAudit.js"
     ]
   }
 }
