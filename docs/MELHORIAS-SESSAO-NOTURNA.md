@@ -239,6 +239,64 @@ Se você quiser continuar polishing (em ordem de impacto):
 
 ---
 
+## Rodada 52-58 — exploração de colunas (UX de descoberta)
+
+Polishes focados em **conectar a sidebar Dados ao canvas** — o user vê
+no card de coluna não só o nome, mas QUANTOS tiles usam, ONDE estão,
+QUAIS seções dependem dela, e UM CLICK te leva pro tile.
+
+- **Polish 52 — Hover coluna sidebar destaca tiles que usam**: passa
+  mouse num card de coluna → tiles que usam aquela coluna ganham ring
+  accent + scale; os outros ficam dim (opacity 0.45). Anota tiles com
+  `data-uses-cols` via MutationObserver. Esclarece visualmente "esta
+  coluna alimenta esses tiles".
+
+- **Polish 53 — Badge contador no card de coluna**: substitui dot do
+  Polish 49 por badge numérico mostrando quantos tiles usam a coluna.
+  Exemplo: `qt_vendas` mostrou `10`, `receita` `6`, `data` `4`. Quem
+  não está em uso fica sem badge — instantâneo identificar colunas
+  "viúvas".
+
+- **Polish 54 — Tooltip informativa no card**: `title` contextual em
+  cada card: "N tiles usam X · click para focar" ou "X não está em uso
+  · arraste para um slot para adicionar". A11y + descobribilidade.
+
+- **Polish 55 — Click no card scrolla pro primeiro tile**: click num
+  card de coluna em uso → scroll suave até o primeiro tile que a usa
+  + flash de box-shadow accent (1.4s). Click em coluna sem uso →
+  toast info pedindo pra arrastar pro slot. `prefers-reduced-motion`
+  respeitado.
+
+- **Polish 56 — Search box na sidebar Dados**: input sticky no topo
+  do `.solstice__editor` filtra cards por nome (case-insensitive
+  includes). Atualiza contador "(N de M)" no folder summary enquanto
+  o filtro tem texto. Esc limpa; Enter clica o primeiro card visível.
+  Util pra datasets com 20+ colunas.
+
+- **Polish 57 — Section head sinaliza coluna em hover**: além dos
+  tiles, a seção que contém pelo menos um tile usando a coluna recebe
+  borda lateral accent + chip flutuante "🎯 usa <col>" no header.
+  Anotação prévia em `data-section-uses-cols` (set por seção).
+
+- **Polish 58 — Pill de atalhos no tile selecionado**: tile selecionado
+  exibe pill discreto no canto inferior-direito: "⌨ ESC fecha · Alt+I
+  inspetor". Backdrop-filter blur 6px pra não atrapalhar gráfico.
+  opacity 0.7 default, 1.0 no hover.
+
+### Anatomia das 7 melhorias
+
+Todas vivem em duas arquivos:
+- `src/data/11-BR.js` (~210 linhas adicionais) — JS de annotation,
+  observers, event delegation, helpers de coleção de cols-por-slot.
+- `src/styles/06-v56patch.css` (~180 linhas adicionais) — estilos
+  isolados em @layer v56patch (não vazam pro original).
+
+Reaproveitam o helper `_columnsUsedBy(slot)` que percorre keys
+conhecidas de coluna no `slot.config` (`column`, `valueColumn`, `x`,
+`y`, `dimension`, `measure`, `series`, etc) e devolve `Set<string>`.
+
+---
+
 Boa noite. Café bom amanhã. ☕
 
 — Opus 4.7

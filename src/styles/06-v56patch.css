@@ -1201,6 +1201,20 @@
   .solstice__editor-col.is-in-use { cursor: pointer; }
 
   /* ============================================================
+     Polish 59 (solstice-modular-v1) — Section header com elevação
+     visual quando "stuck" (sticky tocando o topo do canvas).
+     A classe .is-stuck é toggable via IntersectionObserver no JS.
+     ============================================================ */
+  .solstice__section-head.is-stuck {
+    background: color-mix(in srgb, var(--c-surface-2) 95%, var(--c-bg)) !important;
+    box-shadow: 0 4px 12px -4px color-mix(in srgb, #000 30%, transparent),
+                0 1px 0 var(--c-border) inset;
+    backdrop-filter: saturate(1.3);
+    -webkit-backdrop-filter: saturate(1.3);
+    transition: box-shadow 200ms ease, background 200ms ease;
+  }
+
+  /* ============================================================
      Polish 58 (solstice-modular-v1) — Hint de atalhos no tile selecionado.
      Pill discreto no canto inferior-direito com ESC pra fechar inspetor.
      Aparece sempre quando .is-selected; opacidade reduzida pra ficar sutil.

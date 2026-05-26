@@ -1036,6 +1036,40 @@
       update();
     })();
 
+    // Polish 59 (solstice-modular-v1): detecta quando section-head fica
+    // "stuck" (sticky tocando o topo do canvas) e adiciona .is-stuck pra
+    // CSS dar elevação visual.
+    //
+    // Estratégia simples: no scroll do canvas, mede getBoundingClientRect
+    // de cada head e compara com o top do canvas. Se head.y === canvas.y
+    // (com tolerância), está sticky.
+    (function _initStickyDetector(){
+      const canvas = document.querySelector('.solstice__canvas');
+      if (!canvas) return;
+      let raf = null;
+      function _update(){
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          const canvasTop = canvas.getBoundingClientRect().top;
+          document.querySelectorAll('.solstice__section-head').forEach(head => {
+            const rect = head.getBoundingClientRect();
+            // "stuck" quando o head está colado no topo do canvas
+            // (tolerância de 2px pra arredondamento). Não considera heads
+            // acima do canvas (rect.bottom < canvasTop) — esses já passaram.
+            const stuck = Math.abs(rect.top - canvasTop) < 2 && rect.bottom > canvasTop;
+            head.classList.toggle('is-stuck', stuck);
+          });
+        });
+      }
+      canvas.addEventListener('scroll', _update, { passive: true });
+      // Observa novas sections sendo criadas
+      const obs = new MutationObserver(_update);
+      obs.observe(canvas, { childList: true, subtree: true });
+      // tick inicial
+      _update();
+    })();
+
     // Polish 56 (solstice-modular-v1): Search box pra filtrar colunas
     // na sidebar. Útil pra datasets com 20+ colunas onde scroll é lento.
     // - Injeta input no topo do .solstice__editor (idempotente).
