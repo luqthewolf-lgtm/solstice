@@ -440,6 +440,23 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Fase 7D.2 (solstice-modular-v1) — Top bar polish: separadores
+     entre grupos mais visíveis pra hierarquia clara entre Arquivo,
+     Tema e Conta. Antes o border-left era 1px no tom da borda padrão
+     (quase invisível em dark mode); agora ganha mais contraste e
+     padding generoso pra cada grupo respirar.
+     ============================================================ */
+  .solstice__header-actions .solstice__toolbar-group {
+    padding: 0 var(--sp-4);  /* era sp-3 */
+  }
+  .solstice__header-actions .solstice__toolbar-group + .solstice__toolbar-group {
+    /* Separador mais expressivo: gradient vertical sutil ao invés de 1px chapado.
+       Funciona em qualquer paleta porque usa color-mix com c-border. */
+    border-left-color: color-mix(in srgb, var(--c-border) 60%, var(--c-text) 18%);
+    margin-left: var(--sp-1);
+  }
+
+  /* ============================================================
      Fase 7E (solstice-modular-v1) — Polish global dos componentes/tiles.
      Pequenas melhorias visuais que afetam TODOS os tipos de visualização
      (KPI, bar, line, scatter, tabela, etc.):
