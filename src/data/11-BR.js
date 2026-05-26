@@ -754,23 +754,6 @@
       themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
     });
 
-    // Polish 51 (solstice-modular-v1): chip "🪄 Auto" no header.
-    // Visível só quando dataset.ready=true. 1 click → AutoDashboard.
-    (function _initAutoChip(){
-      const btn = document.getElementById('btn-auto-dashboard');
-      if (!btn) return;
-      function _toggle(ready){
-        btn.classList.toggle('solstice__hidden', !ready);
-      }
-      _toggle(SolsticeStore.get('dataset.ready'));
-      SolsticeStore.subscribe('dataset.ready', _toggle);
-      btn.addEventListener('click', () => {
-        if (typeof SolsticeAutoDashboard !== 'undefined' && SolsticeAutoDashboard.run){
-          SolsticeAutoDashboard.run({ silent: false });
-        }
-      });
-    })();
-
     // Polish 61 (solstice-modular-v1): toast educativo na primeira vez
     // que o canvas ganha tiles (após AutoDashboard ou import). Ensina
     // sobre o hover de colunas (Polish 52) que é descoberta passiva.
