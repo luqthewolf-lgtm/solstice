@@ -772,6 +772,27 @@
       try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render(); } catch(_){}
     });
 
+    // Polish 35: Scroll-top FAB no canvas. Aparece quando user rola
+    // mais de 600px, click rola smooth pro topo.
+    (function _initScrollTopFab(){
+      const fab = document.getElementById('scroll-top-fab');
+      const canvas = document.querySelector('.solstice__canvas');
+      if (!fab || !canvas) return;
+      let raf = null;
+      function update(){
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          fab.classList.toggle('is-visible', canvas.scrollTop > 600);
+        });
+      }
+      canvas.addEventListener('scroll', update, { passive: true });
+      fab.addEventListener('click', () => {
+        canvas.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      update();
+    })();
+
     // Fase 7B (drag-and-drop QuickSight): selects de coluna do Inspector
     // aceitam drop de cards de coluna arrastados da aba "Dados". Quando o
     // user solta uma coluna num <select> que contém aquela opção, o select
