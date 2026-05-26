@@ -2050,6 +2050,74 @@
   }
 
   /* ============================================================
+     Sprint Solstice S3 — Quality ring SVG (motivo do arco do eclipse).
+     Substitui o número plano por arco SVG + count-up + draw-in.
+     Severidade afeta a cor do arco (high → success / med → warn / low → error).
+     ============================================================ */
+  .solstice__quality-ring {
+    position: relative;
+    width: 92px;
+    height: 92px;
+    margin: var(--sp-2) auto;
+    display: block;
+    /* Coroa quente sutil atrás — o glow do eclipse */
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--c-accent) 25%, transparent));
+  }
+  .solstice__quality-ring svg {
+    display: block;
+    overflow: visible;
+  }
+  .solstice__quality-ring-track {
+    fill: none;
+    stroke: var(--c-border);
+    stroke-width: 8;
+    opacity: 0.5;
+  }
+  .solstice__quality-ring-arc {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke: var(--c-accent);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, currentColor 45%, transparent));
+  }
+  .solstice__quality-ring--high .solstice__quality-ring-arc { stroke: var(--c-success); }
+  .solstice__quality-ring--med  .solstice__quality-ring-arc { stroke: var(--c-warn); }
+  .solstice__quality-ring--low  .solstice__quality-ring-arc { stroke: var(--c-error); }
+  .solstice__quality-ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 1px;
+    pointer-events: none;
+  }
+  .solstice__quality-ring-num {
+    font-family: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--c-text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .solstice__quality-ring-total {
+    font-size: 11px;
+    color: var(--c-muted);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__quality-ring-arc { transition: none !important; }
+  }
+  /* Esconde o número velho .solstice__quality-score (que ficou na cascade
+     do CSS antigo) — agora usamos o ring. Deixa o display fallback caso
+     o ring não renderize por algum motivo. */
+  .solstice__quality-card:has(.solstice__quality-ring) .solstice__quality-score {
+    display: none;
+  }
+
+  /* ============================================================
      A11y (audit 2026.6) — prefers-reduced-motion blanket.
      Polish 22/24/28/29/49/+ não tinham fallback individual. Em vez
      de adicionar @media em cada @keyframes, um bloco único desliga

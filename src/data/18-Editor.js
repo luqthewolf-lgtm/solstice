@@ -1813,6 +1813,81 @@
       host.appendChild(list);
     }
 
+    // Sprint Solstice S3: quality ring SVG (motivo do arco do eclipse).
+    // Substitui o número 86/100 chapado por arco SVG com:
+    //   - track (círculo de fundo, opacidade baixa)
+    //   - arc (stroke colorido por severidade) com draw-in via dashoffset
+    //   - texto centralizado com count-up de 0 ao score
+    // prefers-reduced-motion: zero animação, valor final direto.
+    function _buildQualityRing(score, sevClass){
+      const ns = 'http://www.w3.org/2000/svg';
+      const SIZE = 92;          // viewBox + tamanho exibido (px)
+      const STROKE = 8;          // espessura do arco
+      const R = (SIZE - STROKE) / 2;
+      const CIRC = 2 * Math.PI * R;
+      const offsetFinal = CIRC * (1 - Math.max(0, Math.min(100, score)) / 100);
+      const wrap = document.createElement('div');
+      wrap.className = 'solstice__quality-ring solstice__quality-ring--' + sevClass;
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + SIZE + ' ' + SIZE);
+      svg.setAttribute('width', SIZE); svg.setAttribute('height', SIZE);
+      svg.setAttribute('aria-label', 'Qualidade: ' + score + ' de 100');
+      svg.setAttribute('role', 'img');
+      // Track
+      const track = document.createElementNS(ns, 'circle');
+      track.setAttribute('cx', SIZE/2); track.setAttribute('cy', SIZE/2);
+      track.setAttribute('r', R);
+      track.setAttribute('class', 'solstice__quality-ring-track');
+      svg.appendChild(track);
+      // Arc — rotacionado -90° pra começar no topo
+      const arc = document.createElementNS(ns, 'circle');
+      arc.setAttribute('cx', SIZE/2); arc.setAttribute('cy', SIZE/2);
+      arc.setAttribute('r', R);
+      arc.setAttribute('class', 'solstice__quality-ring-arc');
+      arc.setAttribute('transform', 'rotate(-90 ' + (SIZE/2) + ' ' + (SIZE/2) + ')');
+      arc.setAttribute('stroke-dasharray', CIRC);
+      arc.setAttribute('stroke-dashoffset', CIRC); // começa vazio
+      svg.appendChild(arc);
+      wrap.appendChild(svg);
+      // Texto centralizado
+      const text = document.createElement('div');
+      text.className = 'solstice__quality-ring-text';
+      const num = document.createElement('span');
+      num.className = 'solstice__quality-ring-num';
+      num.textContent = '0';
+      const total = document.createElement('span');
+      total.className = 'solstice__quality-ring-total';
+      total.textContent = '/100';
+      text.appendChild(num);
+      text.appendChild(total);
+      wrap.appendChild(text);
+      // Animações respeitando reduced-motion
+      const prefersReduced = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced){
+        arc.setAttribute('stroke-dashoffset', offsetFinal);
+        num.textContent = String(score);
+      } else {
+        // Draw-in do arco — 900ms cubic-bezier (snappy)
+        requestAnimationFrame(() => {
+          arc.style.transition = 'stroke-dashoffset 900ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+          arc.setAttribute('stroke-dashoffset', offsetFinal);
+        });
+        // Count-up sincronizado — easing manual via rAF
+        const startTs = performance.now();
+        const duration = 900;
+        function tick(now){
+          const t = Math.min(1, (now - startTs) / duration);
+          // ease-out cubic
+          const eased = 1 - Math.pow(1 - t, 3);
+          num.textContent = String(Math.round(score * eased));
+          if (t < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+      return wrap;
+    }
+
     function updateQualityCard(){
       const card = document.getElementById('quality-card');
       const ingest = SolsticeStore.get('ingest');
@@ -1824,9 +1899,11 @@
         SolsticeUtils.el('span', null, 'Qualidade'),
         SolsticeUtils.el('span', { style:'font-family:var(--font-mono);font-size:10px;' }, q.profile)
       ));
-      card.appendChild(SolsticeUtils.el('div', { class:'solstice__quality-score solstice__quality-score--'+sevClass }, String(q.score) + '/100'));
+      // Sprint Solstice S3: ring SVG no lugar de '86/100' chapado.
+      card.appendChild(_buildQualityRing(q.score, sevClass));
       card.appendChild(SolsticeUtils.el('div', { class:'solstice__quality-meta' },
         ingest.rows.length + ' linhas · ' + ingest.columns.length + ' colunas'));
+      // Mantém a bar fina embaixo do ring (afordância secundária — quick scan)
       const bar = SolsticeUtils.el('div', { class:'solstice__quality-bar' });
       bar.appendChild(SolsticeUtils.el('div', { class:'solstice__quality-bar-fill', style:'width:'+q.score+'%' }));
       card.appendChild(bar);
