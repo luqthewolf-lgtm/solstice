@@ -440,6 +440,56 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 16 (solstice-modular-v1) — Tile head / título do componente.
+     O título "RECEITA / TICKET MÉDIO" do KPI tava pequeno. Vou dar mais
+     hierarquia: peso médio, tracking ligeiro, opacity sutil.
+     ============================================================ */
+  .solstice__comp-title {
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-muted);
+    opacity: 0.85;
+    transition: opacity 180ms ease;
+  }
+  .solstice__comp:hover .solstice__comp-title {
+    opacity: 1;
+    color: var(--c-text-2);
+  }
+  .solstice__comp.is-selected .solstice__comp-title {
+    color: var(--c-accent);
+    opacity: 1;
+  }
+
+  /* Tile head em geral: separação mais clara do body */
+  .solstice__comp-head {
+    padding-bottom: var(--sp-2);
+    margin-bottom: var(--sp-2);
+    border-bottom: 1px solid color-mix(in srgb, var(--c-border) 50%, transparent);
+  }
+
+  /* KPI delta com chip visual quando positivo/negativo */
+  .solstice__kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: var(--rad-full);
+    font-size: var(--fs-xs);
+    background: color-mix(in srgb, currentColor 10%, transparent);
+  }
+  .solstice__kpi-delta--success {
+    background: color-mix(in srgb, var(--c-success) 12%, transparent);
+  }
+  .solstice__kpi-delta--error {
+    background: color-mix(in srgb, var(--c-error) 12%, transparent);
+  }
+  .solstice__kpi-delta--muted {
+    background: color-mix(in srgb, var(--c-muted) 10%, transparent);
+  }
+
+  /* ============================================================
      Polish 9 (solstice-modular-v1) — Tipografia hierarquia.
      Refinos: letter-spacing negativo em títulos (mais "premium"),
      tabular-nums em valores numéricos (alinhamento decimal),
