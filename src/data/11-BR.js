@@ -754,6 +754,23 @@
       themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
     });
 
+    // Polish 51 (solstice-modular-v1): chip "🪄 Auto" no header.
+    // Visível só quando dataset.ready=true. 1 click → AutoDashboard.
+    (function _initAutoChip(){
+      const btn = document.getElementById('btn-auto-dashboard');
+      if (!btn) return;
+      function _toggle(ready){
+        btn.classList.toggle('solstice__hidden', !ready);
+      }
+      _toggle(SolsticeStore.get('dataset.ready'));
+      SolsticeStore.subscribe('dataset.ready', _toggle);
+      btn.addEventListener('click', () => {
+        if (typeof SolsticeAutoDashboard !== 'undefined' && SolsticeAutoDashboard.run){
+          SolsticeAutoDashboard.run({ silent: false });
+        }
+      });
+    })();
+
     // Polish 50 (solstice-modular-v1): preset "Modo Itaú" — aplica paleta
     // + dash-header com cores institucionais Itaú em 1 clique. Pra
     // publicação interna no banco.

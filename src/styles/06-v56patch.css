@@ -1065,6 +1065,41 @@
   }
 
   /* ============================================================
+     Polish 51 (solstice-modular-v1) — Chip "🪄 Auto" no header.
+     Visual destaque (gradient accent → roxo) pra chamar atenção como
+     ação principal quando há dataset.
+     ============================================================ */
+  .solstice__btn--auto-magic {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--c-accent) 22%, var(--c-surface-2)),
+      color-mix(in srgb, #a78bfa 16%, var(--c-surface-2))) !important;
+    border-color: color-mix(in srgb, var(--c-accent) 40%, transparent) !important;
+    color: var(--c-text) !important;
+    font-weight: var(--fw-medium);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 10%, transparent),
+                0 2px 6px color-mix(in srgb, var(--c-accent) 18%, transparent);
+    animation: solstice-auto-pulse 3.6s ease-in-out infinite;
+  }
+  .solstice__btn--auto-magic:hover {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--c-accent) 35%, var(--c-surface)),
+      color-mix(in srgb, #a78bfa 28%, var(--c-surface))) !important;
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent),
+                0 6px 16px color-mix(in srgb, var(--c-accent) 35%, transparent);
+  }
+  @keyframes solstice-auto-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 10%, transparent),
+                  0 2px 6px color-mix(in srgb, var(--c-accent) 18%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accent) 18%, transparent),
+                  0 4px 12px color-mix(in srgb, var(--c-accent) 30%, transparent);
+    }
+  }
+
+  /* ============================================================
      Polish 50 (solstice-modular-v1) — Botão "Modo Itaú" no menu Tema.
      Hover ganha gradient laranja sutil (preview da identidade).
      ============================================================ */
