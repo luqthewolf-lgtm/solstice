@@ -440,6 +440,32 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Fase 7C (solstice-modular-v1) — Sidebar polish (todas as abas).
+     Refina hover e active state das abas pra UX moderna: hover desliza
+     levemente, padding mais generoso, transição suave em transform.
+     ============================================================ */
+  .solstice__sidebar-tab {
+    padding: var(--sp-2) var(--sp-3);
+    margin-bottom: 2px;  /* respiro entre abas (era 0) */
+    transition: background var(--t-fast),
+                color var(--t-fast),
+                transform 180ms ease,
+                border-left-color 180ms ease;
+  }
+  .solstice__sidebar-tab:hover:not(.is-active) {
+    transform: translateX(2px);  /* feedback sutil "vou ser clicada" */
+  }
+  /* Ícone fica menos esmaecido no estado ativo */
+  .solstice__sidebar-tab.is-active .solstice__sidebar-tab-icon {
+    opacity: 1;
+  }
+  /* Estado focus-visible com ring accent (já tem mas reforça) */
+  .solstice__sidebar-tab:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 1px;
+  }
+
+  /* ============================================================
      Fase 7D.2 (solstice-modular-v1) — Top bar polish: separadores
      entre grupos mais visíveis pra hierarquia clara entre Arquivo,
      Tema e Conta. Antes o border-left era 1px no tom da borda padrão
