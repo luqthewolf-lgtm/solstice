@@ -128,11 +128,40 @@
     function load(opts){
       const rows = gerar(opts && opts.seed, opts && opts.n);
       const cols = Object.keys(rows[0]);
+      // FIX solstice-modular-v1: infere types e popula `ingest.*` (não só
+      // `dataset.*`). Antes só populava dataset → componentes (KPI, Bar, etc.)
+      // que dependem de Store.get('ingest') ficavam em estado "Sem dataset
+      // carregado" mesmo após Dummy.load(). Agora bate.
+      const types = {};
+      cols.forEach(c => {
+        try {
+          if (typeof SolsticeTypes !== 'undefined' && SolsticeTypes.inferColumn){
+            const sample = rows.slice(0, 100).map(r => r[c]);
+            types[c] = SolsticeTypes.inferColumn(sample);
+          } else {
+            // Fallback simples: olha o primeiro valor não-null
+            const v = rows.find(r => r[c] != null)?.[c];
+            const t = typeof v === 'number' ? 'number' : 'string';
+            types[c] = { type: t };
+          }
+        } catch(_){
+          types[c] = { type: 'string' };
+        }
+      });
       SolsticeStore.batch(() => {
         SolsticeStore.set('dataset.rows', rows);
         SolsticeStore.set('dataset.columns', cols);
         SolsticeStore.set('dataset.name', 'vendas_br_dummy.csv');
         SolsticeStore.set('dataset.source', 'dummy');
+        // Espelha em `ingest.*` (que é o que Components/Quality/Inspector
+        // realmente consultam pra renderizar).
+        SolsticeStore.set('ingest', {
+          rows: rows,
+          columns: cols,
+          types: types,
+          name: 'vendas_br_dummy.csv',
+          source: 'dummy',
+        });
       });
       SolsticeStore.set('dataset.ready', true); // dispara subscribers de dataset.*
       SolsticeToast.success(SolsticeLocale.t('toast.dummy.loaded'), rows.length + ' linhas · ' + cols.length + ' colunas');
