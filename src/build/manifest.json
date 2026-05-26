@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "_comment": "Fase 1: slots vazio. O build roda em passthrough e produz dist/solstice.html byte-idêntico ao baseline. Conforme extrairmos blocos nas Fases 2+, cada novo slot ganha entrada aqui com a lista ordenada de arquivos a concatenar.",
+  "slots": {}
+}

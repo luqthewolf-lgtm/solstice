@@ -22,6 +22,11 @@ node_modules/
 # Saída de build/extract
 tests/dist/
 
+# Artefato do build modular (refactor-modular-v1): regenerável via
+# `python src/build/build.py`. Não commitar pra evitar diff gigante a cada
+# fase de extração. Distribuição final (Fase 6) vai em release tag/CI.
+dist/
+
 # Sistema
 .DS_Store
 Thumbs.db
