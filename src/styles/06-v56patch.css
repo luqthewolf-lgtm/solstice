@@ -1019,6 +1019,51 @@
      Quando body.solstice-dragging-column está ativo, todos os selects de
      props pulsam sutilmente convidando ao drop.
      ============================================================ */
+  /* ============================================================
+     Polish 44 (solstice-modular-v1) — Tooltips/hints contextuais.
+     Refinam o .solstice__props-hint (dica sob o controle) com ícone
+     "💡" e melhor hierarquia visual. Hover destaca.
+     ============================================================ */
+  .solstice__inspector .solstice__props-hint {
+    font-size: 11px !important;
+    color: color-mix(in srgb, var(--c-muted) 90%, var(--c-text) 10%) !important;
+    line-height: 1.5 !important;
+    margin-top: 6px !important;
+    padding-left: 18px;
+    position: relative;
+    opacity: 0.85;
+    transition: opacity 200ms ease;
+  }
+  .solstice__inspector .solstice__props-hint::before {
+    content: '💡';
+    position: absolute;
+    left: 0; top: 0;
+    font-size: 11px;
+    opacity: 0.6;
+  }
+  .solstice__inspector .solstice__props-field:hover .solstice__props-hint {
+    opacity: 1;
+  }
+  .solstice__inspector .solstice__props-field:hover .solstice__props-hint::before {
+    opacity: 1;
+  }
+  /* Description de grupo (group-desc) também ganha ícone */
+  .solstice__inspector .solstice__props-group-desc {
+    font-size: 11px !important;
+    color: var(--c-muted) !important;
+    line-height: 1.5 !important;
+    margin-top: 4px;
+    padding-left: 20px;
+    position: relative;
+  }
+  .solstice__inspector .solstice__props-group-desc::before {
+    content: '✨';
+    position: absolute;
+    left: 0; top: 0;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
   /* Polish 43: slot vazio do canvas como drop target pra criar tile */
   .solstice__slot.is-drop-target-col {
     background: color-mix(in srgb, var(--c-accent) 12%, var(--c-surface)) !important;

@@ -1517,6 +1517,18 @@
           ['Ctrl + Shift + ?', 'Abrir este modal de atalhos (alternativa)'],
           ['?',                'Ajuda / Onboarding'],
           ['Ctrl + Shift + D', 'Inspector de debug'],
+          ['Ctrl + E',         'Auto-Dashboard (Express)'],
+          ['Ctrl + Shift + N', 'Nova seção no canvas'],
+          ['Ctrl + D',         'Duplicar componente selecionado'],
+          ['Esc',              'Fechar Inspector / deselecionar componente'],
+        ]},
+        { id:'abas',      icon:'🗂️', title:'Trocar de aba (Sidebar)', entries: [
+          ['Alt + D', 'Dados'],
+          ['Alt + M', 'Modelo'],
+          ['Alt + C', 'Componentes'],
+          ['Alt + S', 'Snapshots'],
+          ['Alt + X', 'Dicionários'],
+          ['Alt + I', 'Inspector (propriedades do componente)'],
         ]},
         { id:'navegacao', icon:'🧭', title:'Navegação', entries: [
           ['Esc',              'Fechar painel / modal / modo atual'],
