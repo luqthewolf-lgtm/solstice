@@ -1461,6 +1461,22 @@
             activate(which);
           }
         }
+        // Polish 36: Esc fecha Inspector + deseleciona tile + volta pra Dados.
+        if (e.key === 'Escape' && !e.ctrlKey && !e.metaKey){
+          const insOpen = SolsticeStore.get('ui.inspector.open');
+          if (insOpen && typeof SolsticeInspector !== 'undefined'){
+            e.preventDefault();
+            SolsticeInspector.close();
+          }
+        }
+        // Polish 36: Ctrl+E (Express) — Auto-Dashboard rápido.
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e' && !e.shiftKey && !e.altKey){
+          const ingest = SolsticeStore.get('ingest');
+          if (ingest && ingest.rows && ingest.rows.length && typeof SolsticeAutoDashboard !== 'undefined'){
+            e.preventDefault();
+            SolsticeAutoDashboard.run({ silent: false });
+          }
+        }
       });
     }
 

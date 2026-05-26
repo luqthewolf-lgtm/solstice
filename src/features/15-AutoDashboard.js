@@ -329,6 +329,18 @@
         });
         SolsticeToast.success('🪄 Dashboard montado pela IA',
           finalRecs.length + ' componente(s) em ' + sections.length + ' seção(ões) — confiança ' + Math.round(finalAvgConf) + '%');
+        // Polish 37 (solstice-modular-v1): smooth scroll pra primeira seção
+        // recém criada — user vê o dashboard surgindo ao invés de ficar na
+        // home. Delay 600ms pra deixar SolsticeCanvas re-renderizar primeiro.
+        setTimeout(() => {
+          try {
+            const canvas = document.querySelector('.solstice__canvas');
+            const firstNew = document.querySelector('.solstice__section');
+            if (canvas && firstNew && firstNew.scrollIntoView){
+              firstNew.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          } catch(_){ /* no-op se falhar */ }
+        }, 600);
         return true;
       }
 
