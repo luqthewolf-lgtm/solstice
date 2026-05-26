@@ -440,6 +440,84 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 34 (solstice-modular-v1) — Badges, chips, dots refinados.
+     Badge de contagem da sidebar (11 cols, 28 components, etc.) com
+     animação subtle quando o valor muda (counter).
+     ============================================================ */
+  .solstice__sidebar-tab-badge {
+    transition: background 200ms ease, color 200ms ease, transform 180ms ease;
+    /* Tabular nums pra alinhamento decimal */
+    font-feature-settings: 'tnum';
+    font-variant-numeric: tabular-nums;
+  }
+  .solstice__sidebar-tab:hover .solstice__sidebar-tab-badge:not(.solstice__hidden) {
+    transform: scale(1.08);
+  }
+  /* Selection rings em geral (qualquer .is-selected) ganham transição suave */
+  .is-selected,
+  .is-active {
+    transition: background 200ms ease,
+                color 200ms ease,
+                border-color 200ms ease,
+                box-shadow 200ms ease;
+  }
+
+  /* Animação de "count-up" quando badges aparecem */
+  .solstice__sidebar-tab-badge:not(.solstice__hidden) {
+    animation: solstice-badge-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes solstice-badge-pop {
+    from { transform: scale(0.6); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  /* ============================================================
+     Polish 33 (solstice-modular-v1) — Ingest progress overlay.
+     Cards de cada etapa do import (Parse, Infer, Quality) com transições
+     suaves entre estados (pending → running → done).
+     ============================================================ */
+  .solstice__ingest-progress {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--c-surface) 88%, transparent) !important;
+    box-shadow: 0 20px 48px -12px rgba(0,0,0,0.4),
+                0 0 0 1px rgba(255,255,255,0.05) inset;
+  }
+  .solstice__ingest-progress-item {
+    transition: color 280ms ease, padding 200ms ease;
+    padding: 6px 0;
+  }
+  .solstice__ingest-progress-item--done {
+    /* Quando done, item fica com check + tom mais sutil */
+    padding-left: 4px;
+  }
+  .solstice__ingest-progress-item--running .solstice__ingest-progress-icon {
+    animation-duration: 0.9s; /* Override do spin pra ficar mais rápido */
+  }
+
+  /* ============================================================
+     Polish 32 (solstice-modular-v1) — Auto-save status no footer.
+     "● Salvo agora" recebe destaque verde sutil quando salva,
+     fade pra cor neutra quando passa tempo.
+     ============================================================ */
+  #status-saved {
+    transition: color 600ms ease;
+  }
+  /* Quando texto começa com ● Salvo agora → cor success */
+  #status-saved:not(:empty) {
+    color: var(--c-text-2);
+  }
+  /* Pulse no dot quando o texto contém "agora" - via animation */
+  #status-saved[data-state="just-saved"] {
+    color: var(--c-success) !important;
+    animation: solstice-saved-flash 1.2s ease;
+  }
+  @keyframes solstice-saved-flash {
+    0%   { color: var(--c-success); }
+    100% { color: var(--c-text-2); }
+  }
+
+  /* ============================================================
      Polish 31 (solstice-modular-v1) — Help FAB (botão ? flutuante).
      - Sombra elevada permanente
      - Hover scale + glow accent forte
