@@ -2071,6 +2071,80 @@
   }
 
   /* ============================================================
+     Sprint Solstice S10 — Modo foco "golden hour".
+     F (tile selecionado): expande tile no centro, escurece resto.
+     Esc sai. Útil em apresentação ou inspeção visual.
+     ============================================================ */
+  body.solstice-focus-mode-active::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--c-bg) 85%, #000);
+    z-index: 100;
+    pointer-events: none;
+    animation: solstice-focus-overlay-in var(--t-base) ease-out;
+  }
+  @keyframes solstice-focus-overlay-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .solstice__comp.is-focus-mode {
+    position: relative;
+    z-index: 101;
+    transform: scale(1.25);
+    transform-origin: center;
+    box-shadow: 0 0 0 3px var(--c-accent),
+                0 30px 60px -10px rgba(0, 0, 0, 0.6),
+                0 0 80px color-mix(in srgb, var(--c-accent) 30%, transparent) !important;
+    transition: transform var(--t-base) cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow var(--t-base);
+  }
+  /* Hint visual no canto: "Esc para sair" */
+  .solstice__comp.is-focus-mode::after {
+    content: '⌨ Esc · sair · F · alternar';
+    position: absolute;
+    bottom: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 12px;
+    border-radius: var(--rad-sm);
+    background: color-mix(in srgb, var(--c-bg) 90%, #000);
+    color: var(--c-muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border: 1px solid var(--c-border);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.solstice-focus-mode-active::before { animation: none; }
+    .solstice__comp.is-focus-mode { transform: scale(1.15); transition: none; }
+  }
+
+  /* ============================================================
+     Sprint Solstice S9 — Spotlight inverso (controle → tile).
+     Foco em qualquer controle dentro do Inspector marca o tile alvo
+     no canvas com ring accent + scale 1.01. Outros tiles ficam dim
+     (opacity 0.25). Reforça 'você sempre sabe o que está editando'.
+     ============================================================ */
+  .solstice__canvas.is-spotlighting .solstice__comp:not(.is-spotlight) {
+    opacity: 0.25;
+    transition: opacity var(--t-mid) ease;
+  }
+  .solstice__comp.is-spotlight {
+    box-shadow: 0 0 0 2px var(--c-accent),
+                0 12px 32px -8px color-mix(in srgb, var(--c-accent) 50%, transparent),
+                0 0 28px color-mix(in srgb, var(--c-accent) 22%, transparent) !important;
+    transform: scale(1.012);
+    z-index: 5;
+    transition: box-shadow var(--t-base), transform var(--t-base);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__canvas.is-spotlighting .solstice__comp:not(.is-spotlight) { transition: none; }
+    .solstice__comp.is-spotlight { transform: none; transition: none; }
+  }
+
+  /* ============================================================
      Sprint Solstice S8 — Search incremental no Inspector.
      Aparece só quando o tile tem >6 controles. Filtra accordions e
      fields por nome.

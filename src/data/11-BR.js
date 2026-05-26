@@ -1032,6 +1032,121 @@
       });
     })();
 
+    // Sprint Solstice S10 (solstice-modular-v1): modo foco "golden hour".
+    //
+    // Atalho F (quando tile selecionado): centraliza + amplia o tile,
+    // resto do canvas escurece (a escuridão do eclipse). Esc sai. Útil
+    // pra apresentação ou inspecionar visualmente um único KPI/chart.
+    (function _initFocusMode(){
+      let active = null;
+      function _enter(tile){
+        if (!tile) return;
+        _exit(); // garantia
+        active = tile;
+        tile.classList.add('is-focus-mode');
+        document.body.classList.add('solstice-focus-mode-active');
+        tile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      function _exit(){
+        if (active){
+          active.classList.remove('is-focus-mode');
+          active = null;
+        }
+        document.body.classList.remove('solstice-focus-mode-active');
+      }
+      document.addEventListener('keydown', function(e){
+        // Ignora se digitando num campo
+        const inField = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' ||
+                        e.target.tagName === 'SELECT' || e.target.isContentEditable;
+        if (inField) return;
+        if (e.key === 'f' || e.key === 'F'){
+          if (e.ctrlKey || e.metaKey || e.altKey) return; // não pisar em Ctrl+F etc
+          if (active){
+            _exit();
+            e.preventDefault();
+          } else {
+            const slotId = SolsticeStore.get('ui.selectedSlot') ||
+                           SolsticeStore.get('ui.inspector.slotId');
+            if (slotId){
+              const tile = document.querySelector('[data-comp-id="' + slotId + '"]');
+              if (tile){ _enter(tile); e.preventDefault(); }
+            }
+          }
+        }
+        if (e.key === 'Escape' && active){
+          _exit();
+        }
+      });
+      // Click fora do tile (no overlay) sai também
+      document.body.addEventListener('click', function(e){
+        if (!active) return;
+        if (e.target.closest && e.target.closest('.solstice__comp.is-focus-mode')) return;
+        if (e.target.classList && e.target.classList.contains('solstice-focus-overlay')){
+          _exit();
+        }
+      });
+    })();
+
+    // Sprint Solstice S9 (solstice-modular-v1): spotlight inverso.
+    //
+    // Quando user foca/hover num controle dentro do #inspector-body, o
+    // tile correspondente no canvas recebe .is-spotlight (ring accent +
+    // scale 1.01) e o resto fica dim (opacity 0.25). Complementa Polish
+    // 52 (que faz coluna → tile); aqui é controle → tile, "você sempre
+    // sabe o que está editando".
+    (function _initInspectorSpotlight(){
+      const canvas = document.querySelector('.solstice__canvas');
+      if (!canvas) return;
+      let activeTile = null;
+      function _spotlight(){
+        const slotId = SolsticeStore.get('ui.inspector.slotId');
+        if (!slotId) return;
+        const tile = document.querySelector('[data-comp-id="' + slotId + '"]');
+        if (!tile) return;
+        if (activeTile === tile) return; // already spotlighted
+        _clear();
+        activeTile = tile;
+        tile.classList.add('is-spotlight');
+        canvas.classList.add('is-spotlighting');
+        tile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      function _clear(){
+        if (activeTile){
+          activeTile.classList.remove('is-spotlight');
+          activeTile = null;
+        }
+        canvas.classList.remove('is-spotlighting');
+      }
+      // focusin no body cobre todos os tipos de input/select/button no inspector
+      document.body.addEventListener('focusin', function(e){
+        const ctrl = e.target.closest && e.target.closest(
+          '#inspector-body input, #inspector-body select, #inspector-body button, #inspector-body textarea, #inspector-body [contenteditable]'
+        );
+        if (ctrl) _spotlight();
+      });
+      document.body.addEventListener('focusout', function(e){
+        // Aguarda um tick — se o próximo focus ainda for dentro do inspector,
+        // não limpa.
+        setTimeout(() => {
+          const active = document.activeElement;
+          if (!active || !active.closest || !active.closest('#inspector-body')){
+            _clear();
+          }
+        }, 0);
+      });
+      // Hover também ativa spotlight (mais "ao vivo")
+      document.body.addEventListener('mouseover', function(e){
+        const ctrl = e.target.closest && e.target.closest(
+          '#inspector-body .solstice__props-field, #inspector-body .solstice__accord-head'
+        );
+        if (ctrl) _spotlight();
+      });
+      document.body.addEventListener('mouseleave', function(e){
+        // só limpa quando mouse sai do inspector inteiro
+        if (e.target && e.target.id === 'inspector-body') _clear();
+      }, true);
+    })();
+
     // Sprint Solstice S5 (solstice-modular-v1): entrada escalonada de tiles.
     //
     // Quando um tile entra no DOM pela primeira vez, set --solstice-stagger
