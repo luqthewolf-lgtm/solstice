@@ -440,6 +440,133 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 20 (solstice-modular-v1) — Aba Componentes mais visual.
+     Cards do catálogo com hover lift, ícone com gradient, busca destacada.
+     ============================================================ */
+  .solstice__cat-card {
+    /* Override do hover original */
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 220ms ease,
+                border-color 180ms ease,
+                background 180ms ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .solstice__cat-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--c-accent);
+    box-shadow: 0 8px 22px -4px color-mix(in srgb, var(--c-accent) 22%, transparent);
+  }
+  .solstice__cat-card::before {
+    /* Gradient overlay sutil que aparece no hover */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--c-accent) 6%, transparent),
+      transparent 50%);
+    opacity: 0;
+    transition: opacity 240ms ease;
+    pointer-events: none;
+  }
+  .solstice__cat-card:hover::before {
+    opacity: 1;
+  }
+  /* Search input mais destacado */
+  .solstice__cat-search-input {
+    transition: all 200ms ease;
+  }
+  .solstice__cat-search-input:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent);
+  }
+
+  /* ============================================================
+     Polish 19 (solstice-modular-v1) — Status bar (footer) polish.
+     Separadores visuais entre items, hover sutil pra items clicáveis,
+     dot do dataset.ready com pulse quando recém-carregado.
+     ============================================================ */
+  .solstice__status {
+    /* Background com gradient sutil pra dar profundidade */
+    background:
+      linear-gradient(to right,
+        var(--c-surface),
+        color-mix(in srgb, var(--c-surface-2) 50%, var(--c-surface)) 50%,
+        var(--c-surface));
+    /* Letter-spacing pequeno na mono pra desconcentrar peso */
+    letter-spacing: 0.01em;
+  }
+  .solstice__status-item {
+    padding: 2px 6px;
+    border-radius: var(--rad-sm);
+    transition: background 180ms ease, color 180ms ease;
+  }
+  /* Hover só nos items clicáveis (cursor pointer) */
+  .solstice__status-item[role="button"]:hover,
+  .solstice__status-item.is-clickable:hover {
+    background: color-mix(in srgb, var(--c-surface-2) 70%, var(--c-accent) 10%);
+    color: var(--c-text);
+    cursor: pointer;
+  }
+  /* Dot do status com glow sutil */
+  .solstice__status-dot {
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* ============================================================
+     Polish 18 (solstice-modular-v1) — Insight cards refinados.
+     Border-left mais expressivo, background tonal sutil pra cada tipo,
+     ícone com fundo arredondado.
+     ============================================================ */
+  .solstice__insight-card {
+    border-left-width: 4px;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 200ms ease,
+                border-color 200ms ease;
+  }
+  .solstice__insight-card--warn {
+    background:
+      linear-gradient(to right,
+        color-mix(in srgb, var(--c-warn) 6%, var(--c-surface)),
+        var(--c-surface) 30%);
+  }
+  .solstice__insight-card--error {
+    background:
+      linear-gradient(to right,
+        color-mix(in srgb, var(--c-error) 5%, var(--c-surface)),
+        var(--c-surface) 30%);
+  }
+  .solstice__insight-card--success {
+    background:
+      linear-gradient(to right,
+        color-mix(in srgb, var(--c-success) 5%, var(--c-surface)),
+        var(--c-surface) 30%);
+  }
+  .solstice__insight-card--info {
+    background:
+      linear-gradient(to right,
+        color-mix(in srgb, var(--c-accent) 5%, var(--c-surface)),
+        var(--c-surface) 30%);
+  }
+  /* Ícone com fundo circular tonal */
+  .solstice__insight-icon {
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+    font-size: 16px !important;
+    flex-shrink: 0;
+  }
+  .solstice__insight-card--warn .solstice__insight-icon {
+    background: color-mix(in srgb, var(--c-warn) 14%, transparent);
+  }
+  .solstice__insight-card--error .solstice__insight-icon {
+    background: color-mix(in srgb, var(--c-error) 14%, transparent);
+  }
+  .solstice__insight-card--success .solstice__insight-icon {
+    background: color-mix(in srgb, var(--c-success) 14%, transparent);
+  }
+
+  /* ============================================================
      Polish 16 (solstice-modular-v1) — Tile head / título do componente.
      O título "RECEITA / TICKET MÉDIO" do KPI tava pequeno. Vou dar mais
      hierarquia: peso médio, tracking ligeiro, opacity sutil.

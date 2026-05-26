@@ -772,6 +772,64 @@
       try { if (typeof SolsticeCanvas !== 'undefined' && SolsticeCanvas.render) SolsticeCanvas.render(); } catch(_){}
     });
 
+    // Polish 17 (solstice-modular-v1): Chart.js defaults globais pro tema.
+    // Aplica em todos os charts automaticamente. Roda quando Chart está
+    // disponível (CDN carregada com defer). Se ainda não, retry em 200ms.
+    (function _initChartDefaults(){
+      function applyDefaults(){
+        if (typeof Chart === 'undefined' || !Chart.defaults) {
+          setTimeout(applyDefaults, 200);
+          return;
+        }
+        const rs = getComputedStyle(document.documentElement);
+        const cText  = rs.getPropertyValue('--c-text').trim()  || '#F4F7FF';
+        const cMuted = rs.getPropertyValue('--c-muted').trim() || '#8C99B8';
+        const cBorder = rs.getPropertyValue('--c-border').trim() || '#1F2A47';
+        // Fonte global pra todos os charts
+        Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
+        Chart.defaults.font.size = 11;
+        Chart.defaults.color = cMuted;
+        // Animação suave
+        Chart.defaults.animation = {
+          duration: 600,
+          easing: 'easeOutQuart',
+        };
+        // Tooltips com style tema
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(20, 32, 58, 0.96)';
+        Chart.defaults.plugins.tooltip.titleColor = cText;
+        Chart.defaults.plugins.tooltip.bodyColor = cText;
+        Chart.defaults.plugins.tooltip.borderColor = cBorder;
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.titleFont = { weight: 600, size: 12 };
+        Chart.defaults.plugins.tooltip.bodyFont = { size: 11 };
+        Chart.defaults.plugins.tooltip.cornerRadius = 6;
+        Chart.defaults.plugins.tooltip.boxPadding = 4;
+        Chart.defaults.plugins.tooltip.usePointStyle = true;
+        // Legend mais discreta
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        Chart.defaults.plugins.legend.labels.padding = 12;
+        Chart.defaults.plugins.legend.labels.boxWidth = 8;
+        Chart.defaults.plugins.legend.labels.boxHeight = 8;
+        // Grid com cor da borda (sutil)
+        if (Chart.defaults.scales){
+          if (Chart.defaults.scales.linear){
+            Chart.defaults.scales.linear.grid = {
+              color: cBorder + '40',  // 40 = ~25% opacity em hex
+              drawBorder: false,
+            };
+          }
+          if (Chart.defaults.scales.category){
+            Chart.defaults.scales.category.grid = {
+              display: false,
+            };
+          }
+        }
+        SolsticeLog.debug('[ChartDefaults] aplicados');
+      }
+      applyDefaults();
+    })();
+
     // 3. Profile
     const profile = SolsticeProfiles.ensureDefault();
     document.getElementById('profile-name').textContent = profile.name;
