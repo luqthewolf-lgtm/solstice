@@ -75,6 +75,17 @@
     "components-modules": [
       "components/01-Components.js",
       "components/02-Props.js"
+    ],
+    "features-1-modules": [
+      "features/01-Templates.js",
+      "features/02-Insights.js",
+      "features/03-ExecutiveInsights.js",
+      "features/04-Query.js",
+      "features/05-LLM.js",
+      "features/06-Narrative.js",
+      "features/07-Agent.js",
+      "features/08-Inconsistencies.js",
+      "features/09-Ask.js"
     ]
   }
 }

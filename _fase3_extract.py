@@ -22,14 +22,17 @@ MODULE_END_PATTERNS = ("  })();", "  })()", "  };")
 PLACEHOLDER_CLOSE_RE = re.compile(r"^  /\*/@SOLSTICE_BUILD:slot=[\w\-./]+\*/$")
 
 WAVE = {
-    "name": "Onda 3.E - Components + Props",
-    # start_anchor: imediatamente apos o close do placeholder anterior
-    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=ui-shell-modules*/\n",
-    # end_anchor: imediatamente ANTES do open do placeholder seguinte
-    "end_anchor": "  /*@SOLSTICE_BUILD:slot=ui-structure-modules*/\n",
-    "expected": ["SolsticeComponents", "SolsticeProps"],
-    "out_dir": "src/components",
-    "slot_name": "components-modules",
+    "name": "Onda 3.F - Features 1 (Templates -> Ask)",
+    # Apos o close do ultimo placeholder (ui-structure-modules)
+    "start_anchor": "  /*/@SOLSTICE_BUILD:slot=ui-structure-modules*/\n",
+    "next_const": "SolsticeFilters",
+    "expected": [
+        "SolsticeTemplates", "SolsticeInsights", "SolsticeExecutiveInsights",
+        "SolsticeQuery", "SolsticeLLM", "SolsticeNarrative", "SolsticeAgent",
+        "SolsticeInconsistencies", "SolsticeAsk",
+    ],
+    "out_dir": "src/features",
+    "slot_name": "features-1-modules",
     "file_index_start": 1,
 }
 
