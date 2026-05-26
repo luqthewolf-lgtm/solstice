@@ -440,6 +440,195 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 10 (solstice-modular-v1) — Microanimações de entrada.
+     Quando o app boota, vários elementos aparecem ao mesmo tempo.
+     Stagger curto + fade-in dá sensação "premium" de boot polido.
+     ============================================================ */
+  .solstice__header {
+    animation: solstice-fade-in 320ms ease 60ms both;
+  }
+  .solstice__sidebar {
+    animation: solstice-slide-from-left 380ms cubic-bezier(0.2, 0.8, 0.2, 1) 80ms both;
+  }
+  @keyframes solstice-slide-from-left {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .solstice__canvas {
+    animation: solstice-fade-in 420ms ease 140ms both;
+  }
+  /* Respeita preferência de reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__header,
+    .solstice__sidebar,
+    .solstice__canvas,
+    .solstice__comp:not(.solstice__comp--no-data),
+    .solstice__welcome-path,
+    .solstice__toast,
+    .solstice__cmodal {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* ============================================================
+     Polish 8 (solstice-modular-v1) — Scrollbar customizada.
+     Sidebar já tem scrollbar invisível. Aplicar a mesma discrição
+     no canvas, modais e em qualquer .solstice__inspector-body, com
+     opção de mostrar fina no hover.
+     ============================================================ */
+  .solstice__canvas,
+  .solstice__cmodal-body,
+  .solstice__inspector-body,
+  .solstice__editor-folder {
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--c-muted) 40%, transparent) transparent;
+  }
+  .solstice__canvas::-webkit-scrollbar,
+  .solstice__cmodal-body::-webkit-scrollbar,
+  .solstice__inspector-body::-webkit-scrollbar,
+  .solstice__editor-folder::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .solstice__canvas::-webkit-scrollbar-track,
+  .solstice__cmodal-body::-webkit-scrollbar-track,
+  .solstice__inspector-body::-webkit-scrollbar-track,
+  .solstice__editor-folder::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .solstice__canvas::-webkit-scrollbar-thumb,
+  .solstice__cmodal-body::-webkit-scrollbar-thumb,
+  .solstice__inspector-body::-webkit-scrollbar-thumb,
+  .solstice__editor-folder::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--c-muted) 25%, transparent);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 200ms ease;
+  }
+  .solstice__canvas:hover::-webkit-scrollbar-thumb,
+  .solstice__cmodal-body:hover::-webkit-scrollbar-thumb,
+  .solstice__inspector-body:hover::-webkit-scrollbar-thumb,
+  .solstice__editor-folder:hover::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--c-muted) 50%, transparent);
+    background-clip: padding-box;
+  }
+
+  /* ============================================================
+     Polish 7 (solstice-modular-v1) — Modais (cmodal).
+     - Backdrop com blur mais forte + dim mais profundo
+     - Card com border-radius maior + sombra mais elevada
+     - Header com border-bottom sutil pra separar de body
+     - Entrada animada com spring (escala leve)
+     ============================================================ */
+  .solstice__cmodal-backdrop {
+    background: color-mix(in srgb, #000 60%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+  }
+  .solstice__cmodal {
+    border-radius: var(--rad-xl, 16px);
+    border: 1px solid color-mix(in srgb, var(--c-border) 100%, transparent);
+    box-shadow: 0 24px 60px -12px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(255,255,255,0.04) inset;
+    animation: solstice-cmodal-spring 280ms cubic-bezier(0.34, 1.4, 0.5, 1) both;
+  }
+  @keyframes solstice-cmodal-spring {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .solstice__cmodal-header {
+    /* Separador sutil entre header e body */
+    border-bottom: 1px solid color-mix(in srgb, var(--c-border) 50%, transparent);
+    letter-spacing: -0.01em;
+  }
+  .solstice__cmodal-body {
+    padding-top: var(--sp-4);
+  }
+  .solstice__cmodal-footer {
+    /* Background sutil pra footer parecer "sticky" */
+    background: color-mix(in srgb, var(--c-surface-2) 40%, transparent);
+  }
+
+  /* ============================================================
+     Polish 6 (solstice-modular-v1) — Skeleton utility.
+     Classe genérica .solstice__skeleton aplica shimmer suave pra loading
+     states. Pode ser usada em width/height definidos pelo container.
+     ============================================================ */
+  .solstice__skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--c-surface-2) 0%,
+      color-mix(in srgb, var(--c-surface-3) 80%, var(--c-accent) 5%) 50%,
+      var(--c-surface-2) 100%
+    );
+    background-size: 200% 100%;
+    border-radius: var(--rad-sm);
+    animation: solstice-skeleton-shimmer 1.8s ease-in-out infinite;
+    color: transparent !important;
+    pointer-events: none;
+    user-select: none;
+  }
+  @keyframes solstice-skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ============================================================
+     Polish 5 (solstice-modular-v1) — Empty states global.
+     Tornar os estados vazios (KPI sem dado, dataset não carregado, etc.)
+     menos desanimadores e com call-to-action visualmente atrativo.
+     ============================================================ */
+  .solstice__comp-empty {
+    /* Suaviza o pattern listrado existente */
+    background:
+      radial-gradient(
+        ellipse at center,
+        color-mix(in srgb, var(--c-accent) 4%, transparent) 0%,
+        transparent 70%
+      ),
+      repeating-linear-gradient(
+        45deg,
+        transparent, transparent 10px,
+        color-mix(in srgb, var(--c-muted) 3%, transparent) 10px,
+        color-mix(in srgb, var(--c-muted) 3%, transparent) 11px
+      );
+    transition: opacity 280ms ease;
+  }
+  .solstice__comp-empty::before {
+    font-size: 28px;
+    opacity: 0.5;
+    animation: solstice-empty-float 3.2s ease-in-out infinite;
+  }
+  @keyframes solstice-empty-float {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50%      { transform: translateY(-3px); opacity: 0.7; }
+  }
+  /* Comp em estado no-data: visual mais convidativo */
+  .solstice__comp--no-data {
+    background: var(--c-surface);
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--c-border) 100%, transparent);
+  }
+  .solstice__comp--no-data:hover {
+    border-color: color-mix(in srgb, var(--c-accent) 50%, var(--c-border));
+    background: color-mix(in srgb, var(--c-accent) 3%, var(--c-surface));
+  }
+  /* Botão "Importar CSV" dentro do no-data ganha destaque */
+  .solstice__comp--no-data .solstice__btn--primary {
+    margin-top: var(--sp-2);
+    animation: solstice-fade-in 480ms ease 200ms both;
+  }
+
+  /* ============================================================
      Polish 4 (solstice-modular-v1) — Inputs e Selects.
      Transição mais premium em focus, sutil "lift" no foco.
      ============================================================ */
