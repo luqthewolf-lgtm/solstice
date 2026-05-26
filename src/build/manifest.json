@@ -86,6 +86,16 @@
       "features/07-Agent.js",
       "features/08-Inconsistencies.js",
       "features/09-Ask.js"
+    ],
+    "features-2-modules": [
+      "features/10-Filters.js",
+      "features/11-CrossFilter.js",
+      "features/12-Params.js",
+      "features/13-ColumnScore.js",
+      "features/14-Recommender.js",
+      "features/15-AutoDashboard.js",
+      "features/16-Wizard.js",
+      "features/17-Annotations.js"
     ]
   }
 }
