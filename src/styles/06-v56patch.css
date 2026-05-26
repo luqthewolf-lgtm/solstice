@@ -1065,6 +1065,24 @@
   }
 
   /* ============================================================
+     Polish 50 (solstice-modular-v1) — Botão "Modo Itaú" no menu Tema.
+     Hover ganha gradient laranja sutil (preview da identidade).
+     ============================================================ */
+  .solstice__menu-preset {
+    transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+  }
+  .solstice__menu-preset:hover {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, #EC7000 10%, transparent),
+      color-mix(in srgb, #B85800 6%, transparent)) !important;
+    border-color: color-mix(in srgb, #EC7000 40%, var(--c-border)) !important;
+    transform: translateY(-1px);
+  }
+  .solstice__menu-preset:active {
+    transform: scale(0.98);
+  }
+
+  /* ============================================================
      Polish 49 (solstice-modular-v1) — Indicador "em uso" na sidebar.
      Colunas usadas em tiles do dashboard ganham um dot accent na lateral
      do card (`.is-in-use`). Aplicado via JS observando canvas.sections.

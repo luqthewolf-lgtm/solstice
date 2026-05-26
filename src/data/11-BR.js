@@ -753,6 +753,38 @@
       const next = SolsticeTheme.cycle('mode');
       themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
     });
+
+    // Polish 50 (solstice-modular-v1): preset "Modo Itaú" — aplica paleta
+    // + dash-header com cores institucionais Itaú em 1 clique. Pra
+    // publicação interna no banco.
+    const presetItauBtn = document.getElementById('btn-preset-itau');
+    if (presetItauBtn){
+      presetItauBtn.addEventListener('click', () => {
+        try {
+          SolsticeTheme.set('palette', 'itau');
+          paletteSelect.value = 'itau';
+          // Limpa custom override se existir
+          const root = document.documentElement.style;
+          root.removeProperty('--c-accent');
+          root.removeProperty('--c-accent-hi');
+          root.removeProperty('--c-accent-lo');
+          // Aplica gradient laranja Itaú no dash-header
+          if (typeof SolsticeDashHeader !== 'undefined' && SolsticeDashHeader.set){
+            SolsticeDashHeader.set({
+              gradient: { from: '#EC7000', to: '#B85800', direction: 'to right' }
+            });
+            // Force re-render do header
+            if (SolsticeDashHeader.render) {
+              try { SolsticeDashHeader.render(); } catch(_){}
+            }
+          }
+          SolsticeToast.success('🟠 Modo Itaú aplicado',
+            'Paleta laranja + banner laranja. Pra voltar, escolha outra paleta.');
+        } catch(e){
+          SolsticeLog.warn('[preset-itau]', e && e.message);
+        }
+      });
+    }
     // C-01 v3: sincroniza dropdown quando palette muda via API.
     // BUG1 v4 (Auditoria 2026.4): charts existentes precisam RE-RENDERIZAR ao trocar paleta.
     // Antes: ao trocar Ocean→Forest, gráfico ficava com cor antiga porque Chart.js
