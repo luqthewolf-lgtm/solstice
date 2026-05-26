@@ -520,7 +520,7 @@
      animação subtle quando o valor muda (counter).
      ============================================================ */
   .solstice__sidebar-tab-badge {
-    transition: background 200ms ease, color 200ms ease, transform 180ms ease;
+    transition: background var(--t-mid) ease, color var(--t-mid) ease, transform 180ms ease;
     /* Tabular nums pra alinhamento decimal */
     font-feature-settings: 'tnum';
     font-variant-numeric: tabular-nums;
@@ -531,10 +531,10 @@
   /* Selection rings em geral (qualquer .is-selected) ganham transição suave */
   .is-selected,
   .is-active {
-    transition: background 200ms ease,
-                color 200ms ease,
-                border-color 200ms ease,
-                box-shadow 200ms ease;
+    transition: background var(--t-mid) ease,
+                color var(--t-mid) ease,
+                border-color var(--t-mid) ease,
+                box-shadow var(--t-mid) ease;
   }
 
   /* Animação de "count-up" quando badges aparecem */
@@ -559,7 +559,7 @@
                 0 0 0 1px rgba(255,255,255,0.05) inset;
   }
   .solstice__ingest-progress-item {
-    transition: color 280ms ease, padding 200ms ease;
+    transition: color 280ms ease, padding var(--t-mid) ease;
     padding: 6px 0;
   }
   .solstice__ingest-progress-item--done {
@@ -657,7 +657,7 @@
   }
   .solstice__privacy-badge {
     position: relative;
-    transition: transform 200ms ease, border-color 200ms ease;
+    transition: transform var(--t-mid) ease, border-color var(--t-mid) ease;
   }
   .solstice__privacy-badge:hover {
     transform: translateY(-1px);
@@ -687,7 +687,7 @@
      Hover mais expressivo.
      ============================================================ */
   .solstice__header-ask-input {
-    transition: all 200ms ease;
+    transition: all var(--t-mid) ease;
   }
   .solstice__header-ask-input:hover {
     transform: translateY(-1px);
@@ -721,7 +721,7 @@
   .solstice__hint-tooltip {
     background: linear-gradient(135deg,
       var(--c-accent),
-      color-mix(in srgb, var(--c-accent) 75%, #a78bfa));
+      color-mix(in srgb, var(--c-accent) 75%, var(--c-ai-accent)));
     border-radius: 12px !important;
     border: 1px solid color-mix(in srgb, var(--c-accent) 50%, #fff 10%);
     padding: 14px 18px !important;
@@ -769,7 +769,7 @@
      animação suave no expand/collapse.
      ============================================================ */
   .solstice__filterbar {
-    transition: border-color 200ms ease, box-shadow 200ms ease;
+    transition: border-color var(--t-mid) ease, box-shadow var(--t-mid) ease;
   }
   .solstice__filterbar:hover {
     border-color: color-mix(in srgb, var(--c-accent) 30%, var(--c-border));
@@ -798,7 +798,7 @@
      ============================================================ */
   .solstice__quality-card {
     border-left: 3px solid color-mix(in srgb, var(--c-accent) 50%, var(--c-border));
-    transition: border-color 200ms ease;
+    transition: border-color var(--t-mid) ease;
   }
   /* Cor da borda esquerda muda conforme score */
   .solstice__quality-card:has(.solstice__quality-score--high) {
@@ -834,7 +834,7 @@
      ============================================================ */
   .solstice__section-ai-badge {
     position: relative;
-    transition: transform 200ms ease;
+    transition: transform var(--t-mid) ease;
   }
   .solstice__section-ai-badge::before {
     /* Glow blur atrás do badge */
@@ -842,7 +842,7 @@
     position: absolute; inset: -2px;
     background: linear-gradient(135deg,
       color-mix(in srgb, var(--c-accent) 40%, transparent),
-      color-mix(in srgb, #a78bfa 40%, transparent));
+      color-mix(in srgb, var(--c-ai-accent) 40%, transparent));
     border-radius: inherit;
     filter: blur(8px);
     opacity: 0.4;
@@ -903,7 +903,7 @@
     border-radius: var(--rad-md);
     background: color-mix(in srgb, var(--c-surface) 60%, transparent);
     padding: 4px 8px;
-    transition: border-color 200ms ease, background 200ms ease;
+    transition: border-color var(--t-mid) ease, background var(--t-mid) ease;
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -975,7 +975,7 @@
     align-items: center;
     justify-content: center;
     font-size: 14px;
-    transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+    transition: background var(--t-fast) ease, color var(--t-fast) ease, transform var(--t-faster) ease;
     flex-shrink: 0;
   }
   .solstice__column-chip-clear:hover {
@@ -1032,7 +1032,7 @@
     padding-left: 18px;
     position: relative;
     opacity: 0.85;
-    transition: opacity 200ms ease;
+    transition: opacity var(--t-mid) ease;
   }
   .solstice__inspector .solstice__props-hint::before {
     content: '💡';
@@ -1069,13 +1069,13 @@
      Hover ganha gradient laranja sutil (preview da identidade).
      ============================================================ */
   .solstice__menu-preset {
-    transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+    transition: background var(--t-mid) ease, border-color var(--t-mid) ease, transform 120ms ease;
   }
   .solstice__menu-preset:hover {
     background: linear-gradient(90deg,
-      color-mix(in srgb, #EC7000 10%, transparent),
-      color-mix(in srgb, #B85800 6%, transparent)) !important;
-    border-color: color-mix(in srgb, #EC7000 40%, var(--c-border)) !important;
+      color-mix(in srgb, var(--c-brand-itau) 10%, transparent),
+      color-mix(in srgb, var(--c-brand-itau-dark) 6%, transparent)) !important;
+    border-color: color-mix(in srgb, var(--c-brand-itau) 40%, var(--c-border)) !important;
     transform: translateY(-1px);
   }
   .solstice__menu-preset:active {
@@ -1093,7 +1093,7 @@
                 0 10px 28px -6px color-mix(in srgb, var(--c-accent) 40%, transparent) !important;
     transform: scale(1.012);
     z-index: 2;
-    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: all var(--t-mid) cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   /* Quando há AO MENOS um is-highlighted no canvas, os outros tiles
      ficam dim (opacity menor) pra reforçar o contraste.
@@ -1104,7 +1104,7 @@
   .solstice__canvas.is-dimming-others
     .solstice__comp:not(.is-highlighted) {
     opacity: 0.45 !important;
-    transition: opacity 200ms ease;
+    transition: opacity var(--t-mid) ease;
   }
 
   /* ============================================================
@@ -1176,7 +1176,7 @@
                 0 1px 0 var(--c-border) inset;
     backdrop-filter: saturate(1.3);
     -webkit-backdrop-filter: saturate(1.3);
-    transition: box-shadow 200ms ease, background 200ms ease;
+    transition: box-shadow var(--t-mid) ease, background var(--t-mid) ease;
   }
 
   /* ============================================================
@@ -1224,7 +1224,7 @@
     border-left: 3px solid var(--c-accent);
     padding-left: calc(var(--solstice-space-4, 16px) - 3px);
     background: color-mix(in srgb, var(--c-accent) 4%, transparent);
-    transition: border-color 200ms ease, background 200ms ease;
+    transition: border-color var(--t-mid) ease, background var(--t-mid) ease;
   }
   /* data-hovered-col vive no próprio .section-head (setado pelo JS) pra
      que attr() do ::before consiga ler. */
@@ -1312,7 +1312,7 @@
     border: 2px dashed var(--c-accent) !important;
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accent) 22%, transparent);
     transform: scale(1.02);
-    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: all var(--t-mid) cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   body.solstice-dragging-column .solstice__slot:not(:has(.solstice__comp)) {
     /* Sinal sutil de que slots vazios aceitam drop */
@@ -1382,7 +1382,7 @@
   }
   /* Search input mais destacado */
   .solstice__cat-search-input {
-    transition: all 200ms ease;
+    transition: all var(--t-mid) ease;
   }
   .solstice__cat-search-input:focus {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent);
@@ -1427,9 +1427,9 @@
      ============================================================ */
   .solstice__insight-card {
     border-left-width: 4px;
-    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1),
-                box-shadow 200ms ease,
-                border-color 200ms ease;
+    transition: transform var(--t-mid) cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow var(--t-mid) ease,
+                border-color var(--t-mid) ease;
   }
   .solstice__insight-card--warn {
     background:
@@ -1629,7 +1629,7 @@
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: padding-box;
-    transition: background 200ms ease;
+    transition: background var(--t-mid) ease;
   }
   .solstice__canvas:hover::-webkit-scrollbar-thumb,
   .solstice__cmodal-body:hover::-webkit-scrollbar-thumb,
@@ -1748,7 +1748,7 @@
   /* Botão "Importar CSV" dentro do no-data ganha destaque */
   .solstice__comp--no-data .solstice__btn--primary {
     margin-top: var(--sp-2);
-    animation: solstice-fade-in 480ms ease 200ms both;
+    animation: solstice-fade-in 480ms ease var(--t-mid) both;
   }
 
   /* ============================================================
@@ -1760,7 +1760,7 @@
     transition: border-color 180ms ease,
                 box-shadow 180ms ease,
                 background 180ms ease,
-                transform 100ms ease;
+                transform var(--t-faster) ease;
   }
   .solstice__props-select:focus,
   .solstice__props-input:focus {
@@ -1896,8 +1896,8 @@
     /* Override do transition base pra ter timing premium */
     transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
                 box-shadow 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
-                border-color 200ms ease,
-                background 200ms ease;
+                border-color var(--t-mid) ease,
+                background var(--t-mid) ease;
   }
   .solstice__welcome-path:hover {
     /* Hover mais expressivo (era -2px → agora -4px + ring accent) */
@@ -1985,7 +1985,7 @@
   .solstice__comp {
     /* Override do components.css: shadow base + transição mais suave */
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+    transition: border-color var(--t-mid) ease, box-shadow var(--t-mid) ease, transform var(--t-mid) ease;
   }
   .solstice__comp:hover {
     /* Override mais expressivo do hover (era só border-color) */

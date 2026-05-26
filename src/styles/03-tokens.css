@@ -40,11 +40,28 @@
     --rad-xs: 0.25rem; --rad-sm: 0.375rem; --rad-md: 0.625rem; --rad-lg: 0.875rem;
     --rad-full: 9999px;
 
-    /* Transições — Auditoria 2026: --ease-in removido (sem uso). */
-    --t-fast: 150ms; --t-base: 250ms; --t-slow: 400ms;
+    /* Transições — Auditoria 2026.6: adicionados --t-faster e --t-mid
+       após a varredura detectar 40+ valores hardcoded (160/200/220/240ms)
+       sem sistema claro. Agora 5 níveis cobrem todos os casos. */
+    --t-faster: 100ms;   /* hover state, micro-feedback */
+    --t-fast: 150ms;     /* btn press, foco */
+    --t-mid: 200ms;      /* default da UI (hover de tile, fade) */
+    --t-base: 250ms;     /* modal/drawer transitions */
+    --t-slow: 400ms;     /* entrance animations, smooth scroll */
     --ease: cubic-bezier(.4,0,.2,1);
     --ease-out: cubic-bezier(0,0,.2,1);
+    --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);  /* mais "snappy" */
     --ease-elastic: cubic-bezier(.34,1.56,.64,1);
+
+    /* Brand tokens — Itaú (Modo Itaú preset). Auditoria 2026.6:
+       movidos de 06-v56patch.css onde estavam hardcoded. */
+    --c-brand-itau:        #EC7000;  /* laranja primário */
+    --c-brand-itau-dark:   #B85800;  /* gradiente secundário */
+
+    /* Cor secundária pra animações "IA" — usada em Polish 22 (AI glow)
+       e mix com accent quando algo vem da IA. Mantém-se #a78bfa pra
+       contraste de marca (roxo) sem depender da paleta. */
+    --c-ai-accent:         #a78bfa;
 
     /* Z-index — Auditoria 2026: --z-canvas e --z-overlay removidos (sem uso). */
     --z-sticky: 50;

@@ -44,15 +44,10 @@
 
     function get(){
       const stored = SolsticeStore.get('canvas.header');
-      // Migração suave (solstice-modular-v1 / 7D): se o user tem o velho
-      // default laranja Itaú salvo, troca pelo novo default sutil que segue
-      // a paleta. Mantém todas as outras props customizadas. User pode voltar
-      // ao laranja Itaú via menu de tema do dashboard se quiser.
-      if (stored && stored.gradient
-          && stored.gradient.from === '#EC7000'
-          && stored.gradient.to === '#B85800'){
-        return { ...DEFAULT, ...stored, gradient: DEFAULT.gradient };
-      }
+      // Audit 2026.6: REMOVIDA a migração legacy que revertia gradient
+      // #EC7000/#B85800 pro default. Ela conflitava com Polish 50 ("Modo
+      // Itaú" preset) — todo set explícito de gradient Itaú era anulado.
+      // Quem tem o legacy salvo pode trocar manualmente via Tema.
       return { ...DEFAULT, ...(stored || {}) };
     }
     function set(patch){
