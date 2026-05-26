@@ -353,6 +353,22 @@
         p.classList.remove('solstice__hidden');
         try { r(); } catch(e){ SolsticeLog.warn('[SidebarTabs] render', which, e); }
       }
+      // Sprint Solstice S11: SPLIT MODE — quando Inspector ativa, exibe
+      // também o painel de Dados (compacto) acima dele, pra que drag-drop
+      // de colunas (Polish 41), hover (Polish 52) e search (Polish 56)
+      // continuem funcionais. Sem split, o user clicava num tile e perdia
+      // a aba Dados — drag-drop inutilizado.
+      const isSplitCandidate = (which === 'inspector') && !!panels.dados;
+      if (isSplitCandidate){
+        panels.dados.classList.remove('solstice__hidden');
+        try { _renderDataPanel(); } catch(_){}
+        // Força o Editor a popular os cards de coluna no split — sem isso
+        // os cards podem não existir se o user nunca entrou na aba Dados.
+        try { if (typeof SolsticeEditor !== 'undefined' && SolsticeEditor.render) SolsticeEditor.render(); } catch(_){}
+        document.body.classList.add('solstice-sidebar-split');
+      } else {
+        document.body.classList.remove('solstice-sidebar-split');
+      }
     }
 
     /** Fase 7A: garante que o <aside id="inspector"> está dentro do

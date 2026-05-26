@@ -2071,6 +2071,96 @@
   }
 
   /* ============================================================
+     Sprint Solstice S11 — Split sidebar (Dados + Inspector co-visíveis).
+     Quando Inspector ativa, body ganha .solstice-sidebar-split. Os dois
+     paineis (#data-panel + #inspector-panel) ficam EMPILHADOS:
+       - Dados no topo, ~38% da altura, modo compacto (cards menores)
+       - Inspector embaixo, ~62%, com search/spotlight intactos
+     Separador visual com border. Resolve regressão UX de Fase 7A:
+     'sem aba Dados visível, drag-drop de coluna era inacessível'.
+     ============================================================ */
+  body.solstice-sidebar-split .solstice__sidebar-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  body.solstice-sidebar-split #data-panel {
+    flex: 0 0 38%;
+    min-height: 0;
+    overflow-y: auto;
+    border-bottom: 2px solid var(--c-border);
+    padding-bottom: 8px;
+    /* mini-mode: cards mais densos */
+    position: relative;
+  }
+  body.solstice-sidebar-split #data-panel::before {
+    content: '📊 colunas (arraste pro Inspector)';
+    display: block;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--c-muted);
+    background: color-mix(in srgb, var(--c-accent) 6%, transparent);
+    border-bottom: 1px solid var(--c-border);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  body.solstice-sidebar-split #inspector-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  /* Cards compactos só no split mode (não polui o modo Dados normal) */
+  body.solstice-sidebar-split .solstice__editor-col {
+    padding: 6px 8px !important;
+    min-height: 0;
+  }
+  body.solstice-sidebar-split .solstice__editor-col .solstice__editor-col-actions {
+    display: none; /* esconde ⚡🏷️🗑️ no split — espaço escasso */
+  }
+  body.solstice-sidebar-split .solstice__editor-col-fillrow,
+  body.solstice-sidebar-split .solstice__editor-col-info-uniq {
+    display: none; /* esconde barra de fill e contadores secundários */
+  }
+  body.solstice-sidebar-split .solstice__editor-col-info {
+    font-size: 0.68rem;
+    opacity: 0.7;
+  }
+  body.solstice-sidebar-split .solstice__editor-col-name {
+    font-size: 0.85rem;
+  }
+  /* O search box (Polish 56) também fica menor no split */
+  body.solstice-sidebar-split .solstice__editor-search {
+    padding: 4px 0 6px;
+  }
+  body.solstice-sidebar-split .solstice__editor-search-input {
+    padding: 5px 8px;
+    font-size: 0.78rem;
+  }
+  /* Quality card colapsa pra mini quando split — só o ring fica */
+  body.solstice-sidebar-split .solstice__quality-card {
+    padding: 6px 8px;
+    margin: 4px 0;
+  }
+  body.solstice-sidebar-split .solstice__quality-card .solstice__quality-ring {
+    width: 56px;
+    height: 56px;
+    margin: 4px auto;
+  }
+  body.solstice-sidebar-split .solstice__quality-card .solstice__quality-ring-num {
+    font-size: 18px;
+  }
+  body.solstice-sidebar-split .solstice__quality-meta,
+  body.solstice-sidebar-split .solstice__quality-bar,
+  body.solstice-sidebar-split .solstice__quality-issue {
+    display: none;
+  }
+
+  /* ============================================================
      Sprint Solstice S10 — Modo foco "golden hour".
      F (tile selecionado): expande tile no centro, escurece resto.
      Esc sai. Útil em apresentação ou inspeção visual.
