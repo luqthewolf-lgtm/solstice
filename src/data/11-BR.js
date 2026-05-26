@@ -849,6 +849,17 @@
         }
         return used;
       }
+      // Polish 53: também conta quantos tiles usam cada coluna (Map col→count).
+      function _columnUsageCounts(){
+        const sections = SolsticeStore.get('canvas.sections') || [];
+        const counts = new Map();
+        for (const s of sections) for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
+          const cols = _columnsUsedBy(sl);
+          // cada tile incrementa cada coluna que ele usa (uma vez por tile)
+          cols.forEach(c => counts.set(c, (counts.get(c) || 0) + 1));
+        }
+        return counts;
+      }
       function _annotateTiles(){
         try {
           const sections = SolsticeStore.get('canvas.sections') || [];
@@ -862,10 +873,34 @@
       }
       function _apply(){
         try {
-          const used = _columnsInUse();
+          const counts = _columnUsageCounts();
           document.querySelectorAll('.solstice__editor-col[data-column-name]').forEach(card => {
             const col = card.getAttribute('data-column-name');
-            card.classList.toggle('is-in-use', used.has(col));
+            const n = counts.get(col) || 0;
+            card.classList.toggle('is-in-use', n > 0);
+            // Polish 53: badge com contador de tiles que usam a coluna.
+            // Atualiza inplace pra evitar flicker no re-render do Editor.
+            let badge = card.querySelector(':scope > .solstice__editor-col-usage');
+            if (n > 0){
+              if (!badge){
+                badge = document.createElement('span');
+                badge.className = 'solstice__editor-col-usage';
+                badge.title = ''; // setado abaixo
+                card.appendChild(badge);
+              }
+              badge.textContent = String(n);
+              badge.title = n + (n === 1 ? ' tile usa esta coluna' : ' tiles usam esta coluna');
+              badge.setAttribute('aria-label', badge.title);
+            } else if (badge){
+              badge.remove();
+            }
+            // Polish 54: title do próprio card pra dica de teclado/click.
+            // Sobrescreve o title só quando relevante (card em uso).
+            if (n > 0){
+              card.setAttribute('title', n + (n === 1 ? ' tile usa' : ' tiles usam') + ' "' + col + '" · click para focar no primeiro');
+            } else {
+              card.setAttribute('title', '"' + col + '" não está em uso · arraste para um slot para adicionar');
+            }
           });
           _annotateTiles();
         } catch(_){}
@@ -923,6 +958,32 @@
         document.querySelectorAll('.solstice__canvas.is-dimming-others').forEach(c => {
           c.classList.remove('is-dimming-others');
         });
+      });
+
+      // Polish 55: click no card de coluna → scroll suave até o primeiro
+      // tile usando ela + flash visual. Não engole clicks em botões/ações
+      // dentro do card (renomeiar, transformar, etc).
+      document.body.addEventListener('click', function(e){
+        // Ignora se clicou em botão/input dentro do card
+        if (e.target.closest('.solstice__editor-col-actions, .solstice__editor-col-btn, button, input, [contenteditable]')) return;
+        const card = e.target.closest && e.target.closest('.solstice__editor-col[data-column-name]');
+        if (!card) return;
+        const col = card.getAttribute('data-column-name');
+        if (!col) return;
+        // Encontra o primeiro tile que usa essa coluna
+        const tiles = Array.from(document.querySelectorAll('.solstice__comp[data-uses-cols]'));
+        const target = tiles.find(t => (t.getAttribute('data-uses-cols') || '').split(',').indexOf(col) >= 0);
+        if (!target){
+          // Sem tile usando: feedback discreto
+          if (typeof SolsticeToast !== 'undefined' && SolsticeToast.info){
+            SolsticeToast.info('Coluna sem uso', '"' + col + '" ainda não está em nenhum tile. Arraste para um slot.');
+          }
+          return;
+        }
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Flash visual (classe temporária)
+        target.classList.add('is-flash-focus');
+        setTimeout(() => target.classList.remove('is-flash-focus'), 1400);
       });
     })();
 

@@ -1143,9 +1143,12 @@
   }
 
   /* ============================================================
-     Polish 49 (solstice-modular-v1) — Indicador "em uso" na sidebar.
-     Colunas usadas em tiles do dashboard ganham um dot accent na lateral
-     do card (`.is-in-use`). Aplicado via JS observando canvas.sections.
+     Polish 49 + 53 (solstice-modular-v1) — Indicador "em uso" na sidebar.
+     Colunas usadas em tiles do dashboard ganham:
+     - .is-in-use: dot accent pulsante (Polish 49) — fallback se não tem
+       badge numérico ainda.
+     - .solstice__editor-col-usage: badge numérico com contador (Polish 53),
+       aparece quando o JS popula. Quando o badge existe, escondemos o dot.
      ============================================================ */
   .solstice__editor-col.is-in-use {
     position: relative;
@@ -1160,9 +1163,57 @@
     box-shadow: 0 0 6px var(--c-accent);
     animation: solstice-in-use-pulse 2.4s ease-in-out infinite;
   }
+  /* Se o badge numérico existe, esconde o dot pra evitar redundância */
+  .solstice__editor-col.is-in-use:has(.solstice__editor-col-usage)::after {
+    display: none;
+  }
   @keyframes solstice-in-use-pulse {
     0%, 100% { opacity: 0.7; transform: scale(1); }
     50%      { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Polish 53: badge numérico no card de coluna mostrando quantos
+     tiles do dashboard usam aquela coluna */
+  .solstice__editor-col-usage {
+    position: absolute;
+    top: 6px; right: 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--c-accent) 18%, transparent);
+    color: var(--c-accent);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 40%, transparent);
+    box-shadow: 0 0 0 2px var(--c-surface);
+    pointer-events: none;
+    z-index: 2;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .solstice__editor-col:hover .solstice__editor-col-usage {
+    background: color-mix(in srgb, var(--c-accent) 28%, transparent);
+    transform: scale(1.08);
+  }
+  /* Polish 55: indica que o card é clicável quando há tile pra focar */
+  .solstice__editor-col.is-in-use { cursor: pointer; }
+
+  /* Polish 55: flash de foco aplicado ao tile depois que o user
+     clica num card de coluna na sidebar — pulse rápido na borda accent
+     pra reforçar "este é o tile que estava procurando". */
+  .solstice__comp.is-flash-focus {
+    animation: solstice-flash-focus 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes solstice-flash-focus {
+    0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--c-accent) 70%, transparent); }
+    25%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--c-accent) 50%, transparent); }
+    60%  { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accent) 30%, transparent); }
+    100% { box-shadow: 0 0 0 0   transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__comp.is-flash-focus { animation: none; }
   }
 
   /* Polish 43: slot vazio do canvas como drop target pra criar tile */
