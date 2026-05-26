@@ -1,5 +1,14 @@
 {
   "version": 1,
-  "_comment": "Fase 1: slots vazio. O build roda em passthrough e produz dist/solstice.html byte-idêntico ao baseline. Conforme extrairmos blocos nas Fases 2+, cada novo slot ganha entrada aqui com a lista ordenada de arquivos a concatenar.",
-  "slots": {}
+  "_comment": "Cada chave em 'slots' corresponde a um marcador <!--@SOLSTICE_BUILD:slot=NOME--> (ou /*@SOLSTICE_BUILD:slot=NOME*/ em contexto CSS) no solstice_baseline.html. O build concatena os arquivos listados na ordem indicada, separados por '\\n', e injeta no placeholder.",
+  "slots": {
+    "styles": [
+      "styles/01-shell.css",
+      "styles/02-reset.css",
+      "styles/03-tokens.css",
+      "styles/04-theme.css",
+      "styles/05-components.css",
+      "styles/06-v56patch.css"
+    ]
+  }
 }

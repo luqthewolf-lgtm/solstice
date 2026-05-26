@@ -1,0 +1,176 @@
+@layer theme {
+
+  /* === OCEAN (default) — v8 polish: surface-2/3 mais escuros para texto branco legível.
+     Tons mais escuros melhoram contraste WCAG AA pra texto branco sobre surface
+     escura, especialmente em densidade compact. */
+  :root[data-palette="ocean"][data-mode="dark"] {
+    --c-bg: #060B18; --c-surface: #14203A; --c-surface-2: #1B2A4D; --c-surface-3: #243559;
+    --c-text: #F4F7FF; --c-text-2: #C5D0E8; --c-muted: #8090B0; --c-border: #34427A;
+    --c-accent: #5BA8FF; --c-accent-hi: #87C2FF; --c-accent-lo: #2980E5;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    /* B5-03 (v6-autonomous / DS-05 — Helena/Vercel): tons text-only
+       que passam WCAG AA. --c-warn original (FBBF24/D97706) é OK pra
+       backgrounds tintados mas tem 2.8:1 quando usado como `color:`
+       sobre fundo branco. As variantes -text-on-light são escurecidas
+       pra >= 4.5:1. Em dark mode, herdam o original (já passa). */
+    --c-warn-text: #FBBF24;
+    --c-success-text: #4ADE80;
+    --c-error-text: #F87171;
+    --c-info-text: #60A5FA;
+    /* B4-03 (v6-autonomous / DS-03 — Helena/Vercel): 3 elevações documentadas.
+       --sh-1: hover sutil em cards e botões (lift mínimo)
+       --sh-2: dropdown, popover, tooltip (média intensidade)
+       --sh-3: modal, drawer, overlay (máxima — flutua acima de tudo)
+       --sh-glow: estado de foco/destaque (não-elevação) — usar em focus-visible. */
+    --sh-1: 0 2px 4px rgba(0,0,0,.5); --sh-2: 0 6px 16px rgba(0,0,0,.55); --sh-3: 0 14px 32px rgba(0,0,0,.65);
+    --sh-glow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 40%, transparent);
+  }
+  :root[data-palette="ocean"][data-mode="light"] {
+    --c-bg: #E8EEFA; --c-surface: #FFFFFF; --c-surface-2: #F4F7FE; --c-surface-3: #E2EAF7;
+    /* Audit Fix 6: c-muted escurecido para AA (4.5:1+). Era #6B7896, agora #4F5A78 */
+    --c-text: #0A1020; --c-text-2: #2A3658; --c-muted: #4F5A78; --c-border: #C8D4EB;
+    --c-accent: #1A6FE0; --c-accent-hi: #4D9FFF; --c-accent-lo: #0F4FA8;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    /* B5-03: text-only variantes pra AA em light mode (over white) */
+    --c-warn-text: #854500;    /* contraste ~5:1 vs white */
+    --c-success-text: #15803D; /* contraste ~5:1 */
+    --c-error-text: #B91C1C;   /* contraste ~5:1 */
+    --c-info-text: #1D4ED8;    /* contraste ~6:1 */
+    --sh-1: 0 2px 4px rgba(15,30,80,.10); --sh-2: 0 6px 14px rgba(15,30,80,.14); --sh-3: 0 14px 28px rgba(15,30,80,.18);
+  }
+
+  /* === SUNSET === */
+  :root[data-palette="sunset"][data-mode="dark"] {
+    --c-bg: #1A0F1F; --c-surface: #1E1322; --c-surface-2: #28182C; --c-surface-3: #36213B;
+    --c-text: #FFF0F5; --c-text-2: #E8C5D2; --c-muted: #9A7785; --c-border: #4B2D45;
+    --c-accent: #FF6B9D; --c-accent-hi: #FF8FB5; --c-accent-lo: #E04578;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    --sh-1: 0 1px 2px rgba(0,0,0,.4); --sh-2: 0 4px 12px rgba(0,0,0,.45); --sh-3: 0 12px 28px rgba(0,0,0,.55);
+  }
+  :root[data-palette="sunset"][data-mode="light"] {
+    --c-bg: #FFF5F8; --c-surface: #FFFFFF; --c-surface-2: #FCEDF2; --c-surface-3: #F7DEE7;
+    /* Audit Fix 6: c-muted escurecido para AA */
+    --c-text: #1A0F1F; --c-text-2: #45264A; --c-muted: #6A4A57; --c-border: #EDD0DA;
+    --c-accent: #E04578; --c-accent-hi: #FF6B9D; --c-accent-lo: #B83560;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    --sh-1: 0 1px 2px rgba(80,15,40,.06); --sh-2: 0 4px 12px rgba(80,15,40,.08); --sh-3: 0 12px 28px rgba(80,15,40,.12);
+  }
+
+  /* === FOREST === */
+  :root[data-palette="forest"][data-mode="dark"] {
+    --c-bg: #0D1A14; --c-surface: #102019; --c-surface-2: #182E25; --c-surface-3: #213D33;
+    --c-text: #EAF5EE; --c-text-2: #BAD4C5; --c-muted: #6E8F7C; --c-border: #2D4D3A;
+    --c-accent: #2DD4BF; --c-accent-hi: #5EEAD4; --c-accent-lo: #14B8A6;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    --sh-1: 0 1px 2px rgba(0,0,0,.4); --sh-2: 0 4px 12px rgba(0,0,0,.45); --sh-3: 0 12px 28px rgba(0,0,0,.55);
+  }
+  :root[data-palette="forest"][data-mode="light"] {
+    --c-bg: #F2FAF5; --c-surface: #FFFFFF; --c-surface-2: #E8F5EC; --c-surface-3: #D6ECDE;
+    /* Audit Fix 6: c-muted escurecido para AA */
+    --c-text: #0D1A14; --c-text-2: #2A453A; --c-muted: #4A6856; --c-border: #C6E0CF;
+    --c-accent: #0D9488; --c-accent-hi: #14B8A6; --c-accent-lo: #0F766E;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    --sh-1: 0 1px 2px rgba(15,60,40,.06); --sh-2: 0 4px 12px rgba(15,60,40,.08); --sh-3: 0 12px 28px rgba(15,60,40,.12);
+  }
+
+  /* === VINEYARD === */
+  :root[data-palette="vineyard"][data-mode="dark"] {
+    --c-bg: #160B1F; --c-surface: #1A0E25; --c-surface-2: #25162F; --c-surface-3: #32203D;
+    --c-text: #F5EBFF; --c-text-2: #CFB5E0; --c-muted: #8A6FA0; --c-border: #422D52;
+    --c-accent: #A78BFA; --c-accent-hi: #C4B5FD; --c-accent-lo: #7C3AED;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    --sh-1: 0 1px 2px rgba(0,0,0,.4); --sh-2: 0 4px 12px rgba(0,0,0,.45); --sh-3: 0 12px 28px rgba(0,0,0,.55);
+  }
+  :root[data-palette="vineyard"][data-mode="light"] {
+    --c-bg: #FAF5FF; --c-surface: #FFFFFF; --c-surface-2: #F0E7FA; --c-surface-3: #E3D5F2;
+    /* Audit Fix 6: c-muted escurecido para AA */
+    --c-text: #160B1F; --c-text-2: #3D2548; --c-muted: #5E4E70; --c-border: #DCC8ED;
+    --c-accent: #7C3AED; --c-accent-hi: #A78BFA; --c-accent-lo: #5B21B6;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    --sh-1: 0 1px 2px rgba(50,10,80,.06); --sh-2: 0 4px 12px rgba(50,10,80,.08); --sh-3: 0 12px 28px rgba(50,10,80,.12);
+  }
+
+  /* === COFFEE === */
+  :root[data-palette="coffee"][data-mode="dark"] {
+    --c-bg: #1A1410; --c-surface: #1F1A15; --c-surface-2: #2A211B; --c-surface-3: #382C24;
+    --c-text: #F5EDE2; --c-text-2: #D4C2A8; --c-muted: #998269; --c-border: #4A3B30;
+    --c-accent: #D97757; --c-accent-hi: #E89978; --c-accent-lo: #B85A3C;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    --sh-1: 0 1px 2px rgba(0,0,0,.4); --sh-2: 0 4px 12px rgba(0,0,0,.45); --sh-3: 0 12px 28px rgba(0,0,0,.55);
+  }
+  :root[data-palette="coffee"][data-mode="light"] {
+    --c-bg: #FBF7F2; --c-surface: #FFFFFF; --c-surface-2: #F5EDE2; --c-surface-3: #EBDDC8;
+    /* Audit Fix 6: c-muted escurecido para AA */
+    --c-text: #1A1410; --c-text-2: #43352B; --c-muted: #695440; --c-border: #E0D0BA;
+    --c-accent: #B85A3C; --c-accent-hi: #D97757; --c-accent-lo: #92452D;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    --sh-1: 0 1px 2px rgba(60,40,15,.06); --sh-2: 0 4px 12px rgba(60,40,15,.08); --sh-3: 0 12px 28px rgba(60,40,15,.12);
+  }
+
+  /* === ITAU (SOL-H4 v2 — paleta corporativa Itaú, laranja sobre escuro) ===
+     Núcleo: laranja Itaú #FF6C00. Surfaces escuras pra deixar o laranja
+     gritar. Light mode usa fundo near-white com accent forte. */
+  :root[data-palette="itau"][data-mode="dark"] {
+    --c-bg: #0E0E0E; --c-surface: #161616; --c-surface-2: #1F1F1F; --c-surface-3: #292929;
+    --c-text: #FFFFFF; --c-text-2: #D7D7D7; --c-muted: #9A9A9A; --c-border: #3A2A1A;
+    /* Auditoria 2026.6: laranja oficial Itaú #EC7000 (brand-accurate). */
+    --c-accent: #EC7000; --c-accent-hi: #FF8A33; --c-accent-lo: #B85800;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    --sh-1: 0 2px 4px rgba(0,0,0,.55); --sh-2: 0 6px 16px rgba(0,0,0,.6); --sh-3: 0 14px 32px rgba(0,0,0,.7);
+  }
+  :root[data-palette="itau"][data-mode="light"] {
+    --c-bg: #FAF6F0; --c-surface: #FFFFFF; --c-surface-2: #FFF1E0; --c-surface-3: #FFE0BF;
+    --c-text: #1A0E00; --c-text-2: #3A2200; --c-muted: #6A4A1F; --c-border: #F0CFA1;
+    /* Auditoria 2026.6: laranja oficial Itaú #EC7000. */
+    --c-accent: #EC7000; --c-accent-hi: #FF8A33; --c-accent-lo: #B84800;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    --sh-1: 0 1px 2px rgba(80,40,0,.08); --sh-2: 0 4px 12px rgba(80,40,0,.12); --sh-3: 0 12px 28px rgba(80,40,0,.18);
+  }
+
+  /* B5-03 (v6-autonomous / DS-05): variantes -text WCAG AA pra TODAS
+     paletas light (regra geral, sobrescrevível por paleta específica
+     se quiser tom contextual). Aplica só em data-mode="light". */
+  :root[data-mode="light"] {
+    --c-warn-text: #854500;
+    --c-success-text: #15803D;
+    --c-error-text: #B91C1C;
+    --c-info-text: #1D4ED8;
+  }
+
+  /* === SLATE (neutro corporativo) === */
+  :root[data-palette="slate"][data-mode="dark"] {
+    --c-bg: #0F1419; --c-surface: #131A22; --c-surface-2: #1B232D; --c-surface-3: #252E3A;
+    --c-text: #EEF2F7; --c-text-2: #B8C0CC; --c-muted: #6B7785; --c-border: #2D3742;
+    --c-accent: #94A3B8; --c-accent-hi: #CBD5E1; --c-accent-lo: #64748B;
+    --c-success: #4ADE80; --c-warn: #FBBF24; --c-error: #F87171; --c-info: #60A5FA;
+    --sh-1: 0 1px 2px rgba(0,0,0,.4); --sh-2: 0 4px 12px rgba(0,0,0,.45); --sh-3: 0 12px 28px rgba(0,0,0,.55);
+  }
+  :root[data-palette="slate"][data-mode="light"] {
+    --c-bg: #F8FAFC; --c-surface: #FFFFFF; --c-surface-2: #F1F5F9; --c-surface-3: #E2E8F0;
+    /* Audit Fix 6: c-muted ja era borderline; escurecido para AA confortavel */
+    --c-text: #0F1419; --c-text-2: #334155; --c-muted: #4B5666; --c-border: #CBD5E1;
+    --c-accent: #475569; --c-accent-hi: #64748B; --c-accent-lo: #1E293B;
+    --c-success: #16A34A; --c-warn: #D97706; --c-error: #DC2626; --c-info: #2563EB;
+    --sh-1: 0 1px 2px rgba(15,20,25,.06); --sh-2: 0 4px 12px rgba(15,20,25,.08); --sh-3: 0 12px 28px rgba(15,20,25,.12);
+  }
+
+  /* Camada Polish v7: sombras adaptativas REAIS por tema.
+     A regra: sombra contrasta com o fundo, não se mistura com ele.
+       Light (fundo claro) → sombra PRETA pura (drop-shadow clássico).
+       Dark  (fundo escuro) → sombra BRANCA pura (rim-light/glow real, sem preto misturado).
+     Não usar rgba(0,0,0,…) em dark — sobre #0B0F1A vira invisível e o card fica deprimido.
+     Em vez disso, usar ring + glow branco (alpha 0.10–0.22) que cria efeito de elevação luminosa. */
+  :root[data-mode="light"] {
+    --solstice-shadow-sm: 0 1px 2px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.10);
+    --solstice-shadow-md: 0 4px 8px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14);
+    --solstice-shadow-lg: 0 10px 24px rgba(0,0,0,0.16), 0 24px 48px rgba(0,0,0,0.20);
+  }
+  :root[data-mode="dark"] {
+    /* SOMBRA BRANCA REAL: ring sutil + glow exterior. Zero rgba preto misturado. */
+    --solstice-shadow-sm: 0 0 0 1px rgba(255,255,255,0.06), 0 2px 8px rgba(255,255,255,0.10);
+    --solstice-shadow-md: 0 0 0 1px rgba(255,255,255,0.10), 0 6px 16px rgba(255,255,255,0.14), 0 12px 32px rgba(255,255,255,0.10);
+    --solstice-shadow-lg: 0 0 0 1px rgba(255,255,255,0.14), 0 12px 28px rgba(255,255,255,0.20), 0 24px 56px rgba(255,255,255,0.16);
+  }
+}
+
+/* ===== COMPONENTES ===== */

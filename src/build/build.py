@@ -78,13 +78,24 @@ OUTPUT = DIST_DIR / "solstice.html"
 VERBOSE = os.environ.get("SOLSTICE_BUILD_VERBOSE", "0") == "1"
 CHECK_HASH = os.environ.get("SOLSTICE_BUILD_CHECK", "0") == "1"
 
-# Regex do placeholder. Aceita whitespace ao redor do nome, exige que o
-# fechamento bata com a abertura, e permite múltiplas linhas entre eles.
-# Usamos re.DOTALL pra que `.` cubra newlines.
+# Regex do placeholder. Aceita DOIS formatos de comentário:
+#
+#   HTML (default, fora de <style>/<script>):
+#       <!--@SOLSTICE_BUILD:slot=NAME-->...<!--/@SOLSTICE_BUILD:slot=NAME-->
+#
+#   CSS (dentro de <style>): usar comentário CSS, porque o token @NAME dentro
+#   de HTML comment vira at-rule desconhecida e o parser come a próxima {...}:
+#       /*@SOLSTICE_BUILD:slot=NAME*/.../*/@SOLSTICE_BUILD:slot=NAME*/
+#
+# A regex usa backreferences nomeadas pra exigir que abertura e fechamento
+# usem o MESMO formato (não mistura <!-- com */). Isso pega typos como
+# `<!--...*/` cedo. re.DOTALL pra que `.` cubra newlines no corpo.
 PLACEHOLDER_RE = re.compile(
-    r"<!--@SOLSTICE_BUILD:slot=([A-Za-z0-9_\-./]+)-->"
-    r"(.*?)"
-    r"<!--/@SOLSTICE_BUILD:slot=\1-->",
+    r"(?P<open><!--|/\*)"
+    r"@SOLSTICE_BUILD:slot=(?P<name>[A-Za-z0-9_\-./]+)"
+    r"(?P<close>-->|\*/)"
+    r"(?P<body>.*?)"
+    r"(?P=open)/@SOLSTICE_BUILD:slot=(?P=name)(?P=close)",
     re.DOTALL,
 )
 
@@ -165,18 +176,21 @@ def apply_placeholders(html: str, manifest: dict) -> str:
     missing_in_manifest = []
 
     def replace(match: re.Match) -> str:
-        name = match.group(1)
+        name = match.group("name")
+        open_tok = match.group("open")    # <!--  ou  /*
+        close_tok = match.group("close")  # -->   ou  */
         slots_seen.add(name)
         if name not in slots_in_manifest:
             missing_in_manifest.append(name)
             return match.group(0)  # mantém placeholder intacto (não-fatal)
         content = resolve_slot(name, manifest["slots"][name])
-        # Preserva os marcadores no output pra debug e pra próximo build
-        # idempotente (rodar build duas vezes não duplica conteúdo).
+        # Preserva os marcadores no output (mesmo formato que veio) pra debug
+        # e pra próximo build idempotente — rodar build duas vezes seguidas
+        # não duplica conteúdo nem troca de formato.
         return (
-            f"<!--@SOLSTICE_BUILD:slot={name}-->\n"
+            f"{open_tok}@SOLSTICE_BUILD:slot={name}{close_tok}\n"
             f"{content}\n"
-            f"<!--/@SOLSTICE_BUILD:slot={name}-->"
+            f"{open_tok}/@SOLSTICE_BUILD:slot={name}{close_tok}"
         )
 
     result = PLACEHOLDER_RE.sub(replace, html)

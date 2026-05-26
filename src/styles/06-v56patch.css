@@ -1,0 +1,421 @@
+@layer v56patch {
+
+  /* Auditoria 2026 (R-19 / A-904): estados loading/error universais.
+     Antes ausentes para Bar/Line/Scatter/Gauge/Sankey/Funnel/Box/Cat/Pivot.
+     Agora: classe genérica por instância do componente. Renderers podem
+     marcar `slot.classList.add('is-loading' | 'is-error')`. */
+  .solstice__comp.is-loading {
+    position: relative;
+    opacity: 0.7;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .solstice__comp.is-loading::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 28px; height: 28px;
+    margin: -14px 0 0 -14px;
+    border: 3px solid color-mix(in srgb, var(--c-accent) 25%, transparent);
+    border-top-color: var(--c-accent);
+    border-radius: 50%;
+    animation: solstice-spin 0.9s linear infinite;
+    z-index: 2;
+  }
+  @keyframes solstice-spin {
+    to { transform: rotate(360deg); }
+  }
+  .solstice__comp.is-error {
+    position: relative;
+    border: 1px solid var(--c-error);
+    background: color-mix(in srgb, var(--c-error) 8%, var(--c-surface));
+  }
+  .solstice__comp.is-error::before {
+    content: '⚠ ' attr(data-error-message);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    font-size: var(--fs-sm);
+    color: var(--c-error);
+    text-align: center;
+    background: color-mix(in srgb, var(--c-bg) 85%, transparent);
+    z-index: 2;
+  }
+
+  /* 0) Tokens escaláveis via clamp() — pequeno em 1280px, médio em 1440, ótimo em 1920+
+     Auditoria 2026 (cleanliness): --v56-icon-sm, --v56-icon-lg, --v56-pad, --v56-gap
+     removidos (declarados mas nunca consumidos via var()). --v56-icon-md, --v56-sidebar-w,
+     --v56-inspector-w, --v56-comp-min-h continuam em uso. */
+  :root {
+    --v56-icon-md: clamp(16px, 1.1vw, 20px);
+    --v56-sidebar-w: clamp(220px, 18vw, 300px);
+    --v56-inspector-w: clamp(280px, 22vw, 360px);
+    --v56-comp-min-h: clamp(160px, 22vh, 360px);
+  }
+
+  /* Auditoria 2026 (L-C-1 / A-908): em viewports <1280px o clamp() de icon-md
+     pode cair abaixo de 14px (0.9vw em 1100px = ~9.9px → clamp segura em 12).
+     Aqui forçamos piso mínimo seguro para tablets/notebooks pequenos. */
+  @media (max-width: 1280px) {
+    :root {
+      --v56-icon-md: 17px;
+    }
+  }
+
+  /* 1) Sidebar/Inspector responsivos — em viewport apertado encolhem em vez de empurrar canvas pra fora */
+  @media (max-width: 1500px) {
+    .solstice__app { grid-template-columns: var(--v56-sidebar-w) 1fr 0px; }
+    .solstice__app.has-inspector { grid-template-columns: var(--v56-sidebar-w) 1fr var(--v56-inspector-w); }
+  }
+
+  /* 2) Thinkpad / notebook típico (1366x768 e similares) — chrome compacto.
+     Auditoria 2026.6 (FLUID-TYPE): NÃO encolhe mais os tokens de fonte aqui —
+     a tipografia fluida no html já dá a escala certa. Antes este bloco forçava
+     --fs-base:0.92rem (14,72px) e deixava o app "agoniante" em 1366. Mantemos só
+     a compactação de chrome (paddings/grid) que faz sentido em tela apertada. */
+  @media (max-width: 1400px) and (min-width: 1101px) {
+    :root {
+      --row-h: 2.25rem;
+    }
+    .solstice__header { padding: 6px 12px; gap: 8px; }
+    .solstice__header-ask { max-width: 360px; margin: 0 8px; }
+    .solstice__toolbar-group { gap: 4px; }
+    .solstice__btn { padding: 0 10px; }
+    .solstice__pill { padding: 0 8px; }
+    .solstice__brand-sub { display: none; }
+    .solstice__canvas { padding: 12px; }
+    .solstice__sidebar { padding: 12px; }
+    .solstice__app { grid-template-columns: 240px 1fr 0px; }
+    .solstice__app.has-inspector { grid-template-columns: 240px 1fr 300px; }
+  }
+
+  /* 3) Telas muito pequenas (sub-1100): some com elementos secundários do header */
+  @media (max-width: 1100px) {
+    .solstice__header-actions .solstice__pill[title*="Densidade"],
+    .solstice__header-actions .solstice__pill[title*="Density"] { display: none; }
+    .solstice__brand-sub { display: none; }
+    .solstice__app { grid-template-columns: 220px 1fr 0px; }
+    .solstice__app.has-inspector { grid-template-columns: 220px 1fr 280px; }
+  }
+
+  /* 4) Tablet/mobile portrait — sidebar como drawer flutuante (toggle "Dados") */
+  
+  /* 5) Botão hambúrguer mobile (toggle sidebar) — só aparece <=900 */
+  .v56-sidebar-toggle {
+    display: none;
+    background: transparent; border: 0; cursor: pointer;
+    width: 36px; height: 36px; align-items: center; justify-content: center;
+    border-radius: var(--rad-sm, 6px); color: var(--c-text, #fff); font-size: 18px;
+  }
+  .v56-sidebar-toggle:hover { background: var(--c-surface-2, rgba(255,255,255,0.06)); }
+  
+  /* 6) Tamanho consistente para todos os ícones em botões */
+  .solstice__btn,
+  .solstice__pill,
+  .solstice__sidebar-tab,
+  .solstice__status-item {
+    line-height: 1.2;
+  }
+  .solstice__sidebar-tab-icon,
+  .solstice__brand-icon {
+    width: var(--v56-icon-md);
+    height: var(--v56-icon-md);
+    flex-shrink: 0;
+  }
+  .solstice__btn--icon {
+    width: var(--row-h, 36px);
+    height: var(--row-h, 36px);
+    min-width: var(--row-h, 36px);
+    flex-shrink: 0;
+  }
+  .solstice__btn > * { flex-shrink: 0; }
+
+  /* 7) Componente do canvas: nunca estourar verticalmente em telas pequenas + scroll interno */
+  .solstice__comp {
+    min-height: var(--v56-comp-min-h);
+    max-height: 80vh;
+    overflow: hidden; /* o body interno cuida do scroll */
+  }
+  .solstice__comp-body, .solstice__comp__body {
+    overflow: auto;
+    max-height: 100%;
+  }
+  /* tabela: scroll horizontal quando muitas colunas, sem estourar */
+  .solstice__data-table-wrap { overflow: auto; max-width: 100%; }
+  .solstice__data-table { table-layout: auto; }
+
+  /* 8) Bugfix: botão "..." (mais) cortado em cards estreitos */
+  .solstice__comp__more, .solstice__row-tools, .solstice__comp-actions {
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .solstice__comp__head, .solstice__comp-head {
+    min-width: 0;
+    gap: 4px;
+  }
+  .solstice__comp__title, .solstice__comp-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 9) Filter bar: scroll horizontal em vez de quebrar layout */
+  .solstice__filterbar {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  /* 10) Crossfilter bar destacada (extensão de eventos) */
+  .solstice__crossfilter-bar { z-index: 50; position: sticky; top: 0; }
+
+  /* 11) Container queries para componentes — quando o container é pequeno, esconde cabeçalho rico */
+  .solstice__comp { container-type: inline-size; container-name: comp; }
+  @container comp (max-width: 360px) {
+    .solstice__comp__subtitle, .solstice__comp-subtitle { display: none; }
+    .solstice__comp__head small, .solstice__comp-head small { display: none; }
+  }
+  @container comp (max-width: 220px) {
+    .solstice__comp__icon { display: none; }
+  }
+
+  /* 12) 4K e ultra-wide: aumenta levemente type scale, padding, max widths */
+  /* Auditoria 2026.6 (STD-TYPE): em telas grandes NÃO aumentamos a fonte (era
+     --fs-base:1.05rem) — fonte fixa é o padrão e mantém PDF/print consistente.
+     Mantemos só mais respiro de padding no canvas pra não esticar de borda a
+     borda num monitor largo (escolha de layout, não de tipografia). */
+  @media (min-width: 2200px) {
+    .solstice__canvas { padding: var(--sp-8) clamp(2.5rem, 5vw, 6rem); }
+  }
+
+  /* 13) Tabela virtualizada — wrapper + viewport com altura controlada */
+  .v56-vtable {
+    position: relative;
+    border: 1px solid var(--c-border, rgba(255,255,255,0.1));
+    border-radius: var(--rad-sm, 6px);
+    background: var(--c-surface, #14203A);
+    font-size: var(--fs-sm, 12px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .v56-vtable__head {
+    display: grid;
+    background: var(--c-surface-2);
+    border-bottom: 1px solid var(--c-border);
+    font-weight: 600;
+    color: var(--c-text);
+    user-select: none;
+  }
+  .v56-vtable__head > div {
+    padding: 6px 10px;
+    border-right: 1px solid var(--c-border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .v56-vtable__head > div:last-child { border-right: 0; }
+  .v56-vtable__viewport {
+    overflow: auto;
+    position: relative;
+    flex: 1;
+    min-height: 200px;
+  }
+  .v56-vtable__spacer { position: relative; width: 100%; }
+  .v56-vtable__rows {
+    position: absolute; top: 0; left: 0; right: 0;
+    will-change: transform;
+  }
+  .v56-vtable__row {
+    display: grid;
+    border-bottom: 1px solid var(--c-border);
+    cursor: pointer;
+    background: var(--c-surface);
+  }
+  .v56-vtable__row:hover { background: var(--c-surface-2); }
+  .v56-vtable__row.is-active { background: var(--c-accent-lo, #2980E5); color: #fff; }
+  .v56-vtable__row > div {
+    padding: 4px 10px;
+    border-right: 1px solid var(--c-border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .v56-vtable__row > div:last-child { border-right: 0; }
+  .v56-vtable__row .num { text-align: right; font-family: var(--font-mono); }
+  .v56-vtable__footer {
+    background: var(--c-surface-2);
+    border-top: 1px solid var(--c-border);
+    padding: 4px 10px;
+    font-size: 10px;
+    color: var(--c-muted);
+    font-family: var(--font-mono);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .v56-vtable__search {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+    padding: 3px 8px;
+    border-radius: var(--rad-xs);
+    font-size: 11px;
+    width: 140px;
+  }
+
+  /* 14) Painel multi-CSV (datasets) na sidebar — G2-02 v3 redesign.
+     Auditoria 2026.4: visual reformulado por inconsistência com o resto da sidebar.
+     Antes: cards apertados (padding 4px, font 11px), lista plain. Agora: cards
+     com mais respiro, badge de tipos coloridos, hover state claro, e header
+     com ícone proeminente. */
+  .v56-datasets {
+    margin-top: 8px;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-border);
+    border-radius: var(--rad-md);
+    padding: 10px;
+  }
+  .v56-datasets__title {
+    font-size: 13px;
+    font-weight: var(--fw-semibold);
+    color: var(--c-text);
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 6px;
+  }
+  .v56-datasets__title > span:first-child {
+    text-transform: none; letter-spacing: 0;
+  }
+  .v56-datasets__add {
+    background: var(--c-accent); color: #fff;
+    border: 0; padding: 4px 10px; border-radius: var(--rad-sm);
+    font-size: 11px; font-weight: var(--fw-semibold); cursor: pointer;
+    transition: background var(--t-fast);
+  }
+  .v56-datasets__add:hover { background: var(--c-accent-hi); }
+  /* G2-01 v3: barra de Modelo de Dados — CTA pra conectar bases via ID. */
+  .v56-datasets__model-cta {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 8px; padding: 8px 10px;
+    background: color-mix(in srgb, var(--c-accent) 8%, var(--c-surface));
+    border: 1px dashed color-mix(in srgb, var(--c-accent) 35%, transparent);
+    border-radius: var(--rad-sm);
+    font-size: 11px; color: var(--c-text-2);
+    cursor: pointer; transition: all var(--t-fast);
+  }
+  .v56-datasets__model-cta:hover {
+    background: color-mix(in srgb, var(--c-accent) 14%, var(--c-surface));
+    border-color: var(--c-accent);
+  }
+  .v56-datasets__model-cta strong { color: var(--c-accent); font-weight: var(--fw-semibold); }
+  /* SOL-B2 v3: cap + scroll quando há muitas bases carregadas (5+).
+     Aumentei max-height pra 280px (era 220px) — comporta 5-6 bases sem scroll. */
+  .v56-datasets__list {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 280px; overflow-y: auto;
+    padding-right: 2px;
+  }
+  .v56-dataset-item {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 8px 10px; border-radius: var(--rad-sm);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    font-size: 12px; color: var(--c-text); cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .v56-dataset-item:hover {
+    border-color: var(--c-accent-lo);
+    background: color-mix(in srgb, var(--c-accent) 4%, var(--c-surface));
+  }
+  .v56-dataset-item.is-active {
+    border-color: var(--c-accent);
+    background: color-mix(in srgb, var(--c-accent) 10%, var(--c-surface));
+    box-shadow: 0 0 0 1px var(--c-accent);
+  }
+  .v56-dataset-item__name {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; font-weight: var(--fw-semibold);
+  }
+  .v56-dataset-item__meta {
+    font-family: var(--font-mono);
+    color: var(--c-muted); font-size: 10px;
+  }
+  .v56-dataset-item__rm {
+    background: transparent; border: 1px solid transparent;
+    color: var(--c-muted);
+    cursor: pointer; padding: 2px 7px;
+    border-radius: var(--rad-xs);
+    font-size: 12px;
+    transition: all var(--t-fast);
+  }
+  .v56-dataset-item__rm:hover {
+    color: var(--c-text);
+    background: var(--c-surface-3);
+    border-color: var(--c-border);
+  }
+
+  
+  
+
+  /* 16) Acessibilidade — foco visível em todos os controles patches */
+  .v56-vtable__row:focus-visible,
+  .v56-dataset-item:focus-visible,
+  .v56-sidebar-toggle:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: -2px;
+  }
+
+  /* 17) Indicador de carregamento durante export PNG/PDF */
+  .v56-export-spinner {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #fff; font-family: var(--font-display);
+    gap: 14px;
+  }
+  .v56-export-spinner__bar {
+    width: 220px; height: 6px; background: rgba(255,255,255,0.15);
+    border-radius: 3px; overflow: hidden;
+  }
+  .v56-export-spinner__bar::after {
+    content: ''; display: block; width: 40%; height: 100%;
+    background: var(--c-accent, #4D9FFF);
+    animation: v56-bar 1.2s ease-in-out infinite;
+  }
+  @keyframes v56-bar {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(280%); }
+  }
+
+  /* Auditoria 2026 (BR-01): modal de boas-vindas quebrado no mobile.
+     Sintoma: em viewports estreitos, o wordmark "Solstice" + "Dashboard Studio"
+     do hero (welcome state) atravessava o card do modal e ficava por cima dos
+     botões "Cancelar" e "Começar".
+     Causa raiz: o card .solstice__cmodal usa `background: var(--c-surface)`,
+     que em alguns temas com transparência (color-mix) ficava translúcido; o
+     backdrop tinha blur mas sem fundo sólido garantido; e o card podia ficar
+     atrás do hero quando o canvas tinha algum `position: relative` com z-index
+     próprio.
+     Fix: força opacidade no card, isolation no backdrop para criar contexto de
+     empilhamento limpo, e backdrop sólido como fallback para browsers sem
+     backdrop-filter. Vale para .solstice__cmodal-backdrop (SolsticeModal —
+     usado no prompt de nome) e para .solstice__modal-overlay (modal clássico). */
+  .solstice__cmodal-backdrop,
+  .solstice__modal-overlay {
+    isolation: isolate;
+  }
+  /* Fallback para browsers sem backdrop-filter (Firefox até v103, alguns mobile). */
+  @supports not (backdrop-filter: blur(1px)) {
+    .solstice__cmodal-backdrop,
+    .solstice__modal-overlay {
+      background: rgba(0,0,0,0.78);
+    }
+  }
+  }

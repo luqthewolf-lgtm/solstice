@@ -1,0 +1,47 @@
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Auditoria 2026.6 (ADAPT-TYPE): escala fluida do app inteiro. Como TODOS os
+     tokens (--fs-* e --sp-*) são rem, o font-size do html é um fator de escala
+     único — a UI cresce/encolhe junto com a janela, sem saltos ("adapta a tudo").
+     Calibrado pra ficar confortável em qualquer tela e nunca grande/pequeno demais:
+       911px≈15px · 1366≈16,5px · 1920≈18,7px · 2560≈19px (teto).
+     Telas pequenas costumam vir de notebooks com escala do Windows (125/150%), que
+     já ampliam fisicamente — então manter ~15px CSS lá resulta em ~22px na tela.
+     PDF/print usam tamanho fixo (regra @media print abaixo) pra export consistente. */
+  html { height: 100%; font-size: clamp(15px, 0.4vw + 11px, 19px); }
+  @media print { html { font-size: 16px; } }
+  body {
+    min-height: 100%;
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    color: var(--c-text);
+    background: var(--c-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; background: transparent; border: 0; }
+  button { cursor: pointer; user-select: none; }
+  a { color: inherit; text-decoration: none; }
+  img, svg { display: block; max-width: 100%; }
+  ul, ol { list-style: none; }
+  /* Design System (DS-3): remove outline default só para foco via MOUSE.
+     Foco via teclado (:focus-visible) continua mostrando — a regra abaixo
+     repinta o halo. Antes era `:focus { outline: 0; }` que apagava TODOS
+     os focos (acessibilidade ruim em browsers sem :focus-visible). */
+  :focus:not(:focus-visible) { outline: 0; }
+  /* Auditoria 2026 (L-C-3 / A-608): focus-visible com halo do background
+     garante contraste mesmo em temas onde --c-accent é próximo do fundo
+     (ex.: Dark Ocean tem accent azul sobre surface azul escuro). */
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+    border-radius: var(--rad-xs);
+    box-shadow: 0 0 0 4px var(--c-bg);
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: var(--rad-full); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--c-muted); }
+}
+
+/* ===== TOKENS PRIMITIVOS ===== */

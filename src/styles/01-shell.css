@@ -1,0 +1,12 @@
+/* ============================================================
+   SOLSTICE v5.3 — SHELL CSS (Bloco 1)
+   Estratégia: @layer ordenado para evitar guerra de especificidade.
+   Tokens primitivos → semânticos por tema → componentes.
+   ============================================================ */
+/* Auditoria 2026 (L-A-1 / A-101): `utilities` era declarada na ordem mas
+   nunca instanciada com bloco — virou camada fantasma. Decisão: REMOVIDA
+   da ordem. Helpers utilitários reais (.solstice__hidden, etc.) vivem na
+   camada `components` ou em `v56patch` quando responsivos. */
+@layer reset, tokens, theme, components, v56patch;
+
+/* ===== RESET ===== */
