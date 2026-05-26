@@ -1201,6 +1201,46 @@
   .solstice__editor-col.is-in-use { cursor: pointer; }
 
   /* ============================================================
+     Polish 57 (solstice-modular-v1) — seção sinaliza que contém tile
+     usando a coluna em hover. Section-head ganha borda lateral accent
+     + chip flutuante "usa <col>" perto do título.
+     ============================================================ */
+  .solstice__section.is-using-hovered-col > .solstice__section-head {
+    position: relative;
+    border-left: 3px solid var(--c-accent);
+    padding-left: calc(var(--solstice-space-4, 16px) - 3px);
+    background: color-mix(in srgb, var(--c-accent) 4%, transparent);
+    transition: border-color 200ms ease, background 200ms ease;
+  }
+  /* data-hovered-col vive no próprio .section-head (setado pelo JS) pra
+     que attr() do ::before consiga ler. */
+  .solstice__section.is-using-hovered-col > .solstice__section-head[data-hovered-col]::before {
+    content: '🎯 usa "' attr(data-hovered-col) '"';
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--c-accent) 20%, var(--c-surface));
+    color: var(--c-accent);
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid color-mix(in srgb, var(--c-accent) 40%, transparent);
+    pointer-events: none;
+    animation: solstice-section-chip-in 220ms ease-out;
+  }
+  @keyframes solstice-section-chip-in {
+    from { opacity: 0; transform: translate(8px, -50%) scale(0.92); }
+    to   { opacity: 1; transform: translate(0,  -50%) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .solstice__section.is-using-hovered-col > .solstice__section-head::before {
+      animation: none;
+    }
+  }
+
+  /* ============================================================
      Polish 56 (solstice-modular-v1) — Search box pra filtrar colunas.
      Aparece no topo do .solstice__editor quando há cards. Estilo
      idêntico ao Ask bar do header pra coerência visual.

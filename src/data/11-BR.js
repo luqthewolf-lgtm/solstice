@@ -863,11 +863,19 @@
       function _annotateTiles(){
         try {
           const sections = SolsticeStore.get('canvas.sections') || [];
-          for (const s of sections) for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
-            const tile = document.querySelector('[data-comp-id="' + sl.id + '"]');
-            if (!tile) continue;
-            const cols = Array.from(_columnsUsedBy(sl)).join(',');
-            tile.setAttribute('data-uses-cols', cols);
+          for (const s of sections) {
+            // Polish 57: agrega colunas usadas em toda a seção pra que o
+            // hover dum card de coluna possa destacar a seção também.
+            const sectionCols = new Set();
+            for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
+              const tile = document.querySelector('[data-comp-id="' + sl.id + '"]');
+              const cols = _columnsUsedBy(sl);
+              cols.forEach(c => sectionCols.add(c));
+              if (!tile) continue;
+              tile.setAttribute('data-uses-cols', Array.from(cols).join(','));
+            }
+            const sectionEl = document.querySelector('.solstice__section[data-id="' + s.id + '"]');
+            if (sectionEl) sectionEl.setAttribute('data-section-uses-cols', Array.from(sectionCols).join(','));
           }
         } catch(_){}
       }
@@ -948,6 +956,19 @@
         document.querySelectorAll('.solstice__canvas').forEach(c => {
           c.classList.toggle('is-dimming-others', anyHighlighted);
         });
+        // Polish 57: marca seções que contêm tile usando a coluna.
+        // Inclui o nome da coluna num data-attr no section-head (que é
+        // onde o pseudo ::before vive), pro chip do CSS exibir o nome.
+        document.querySelectorAll('.solstice__section[data-section-uses-cols]').forEach(sec => {
+          const cols = (sec.getAttribute('data-section-uses-cols') || '').split(',');
+          const match = cols.indexOf(col) >= 0;
+          sec.classList.toggle('is-using-hovered-col', match);
+          const head = sec.querySelector(':scope > .solstice__section-head');
+          if (head){
+            if (match) head.setAttribute('data-hovered-col', col);
+            else head.removeAttribute('data-hovered-col');
+          }
+        });
       });
       document.body.addEventListener('mouseout', function(e){
         const card = e.target.closest && e.target.closest('.solstice__editor-col[data-column-name]');
@@ -957,6 +978,13 @@
         });
         document.querySelectorAll('.solstice__canvas.is-dimming-others').forEach(c => {
           c.classList.remove('is-dimming-others');
+        });
+        // Polish 57: limpa marcação de seções (classe + data-attr no head)
+        document.querySelectorAll('.solstice__section.is-using-hovered-col').forEach(s => {
+          s.classList.remove('is-using-hovered-col');
+        });
+        document.querySelectorAll('.solstice__section-head[data-hovered-col]').forEach(h => {
+          h.removeAttribute('data-hovered-col');
         });
       });
 
