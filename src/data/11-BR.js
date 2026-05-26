@@ -771,6 +771,40 @@
       });
     })();
 
+    // Polish 61 (solstice-modular-v1): toast educativo na primeira vez
+    // que o canvas ganha tiles (após AutoDashboard ou import). Ensina
+    // sobre o hover de colunas (Polish 52) que é descoberta passiva.
+    // Sessão-only (sessionStorage) pra não repetir no mesmo browse.
+    (function _initEducationalToast(){
+      try {
+        if (sessionStorage.getItem('solstice-hint-cols-shown') === '1') return;
+        let scheduled = false;
+        const unsub = SolsticeStore.subscribe('canvas.sections', (sections) => {
+          if (scheduled) return;
+          if (!sections || sections.length === 0) return;
+          // Verifica se há ao menos 1 tile real (slot com comp)
+          let hasTile = false;
+          for (const s of sections) for (const r of (s.rows || [])) for (const sl of (r.slots || [])){
+            if (sl && (sl.type || sl.config)) { hasTile = true; break; }
+          }
+          if (!hasTile) return;
+          // Marca AGORA pra evitar callbacks múltiplos enquanto AutoDash monta
+          scheduled = true;
+          try { sessionStorage.setItem('solstice-hint-cols-shown', '1'); } catch(_){}
+          try { unsub(); } catch(_){}
+          // Atraso 1.5s pra não atropelar o toast do AutoDashboard
+          setTimeout(() => {
+            if (typeof SolsticeToast !== 'undefined' && SolsticeToast.info){
+              SolsticeToast.info(
+                '💡 Dica de exploração',
+                'Passe o mouse num card de coluna na sidebar para destacar os tiles que a usam. Click pra focar.'
+              );
+            }
+          }, 1500);
+        });
+      } catch(_){}
+    })();
+
     // Polish 50 (solstice-modular-v1): preset "Modo Itaú" — aplica paleta
     // + dash-header com cores institucionais Itaú em 1 clique. Pra
     // publicação interna no banco.
