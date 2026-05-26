@@ -181,6 +181,9 @@
       root.setAttribute('data-mode',    t.mode    || (prefersDark ? 'dark' : 'light'));
       root.setAttribute('data-palette', t.palette || 'ocean');
       root.setAttribute('data-density', t.density || 'comfortable');
+      // Fase 4A (UX-MIRROR): layout espelhado — inspector à esquerda,
+      // sidebar à direita. Aplicado ANTES do CSS pintar pra evitar piscar.
+      root.setAttribute('data-layout',  t.layout  || 'default');
     } catch(e){ /* localStorage indisponível — usa defaults do HTML */ }
   })();
 </script>
@@ -351,6 +354,17 @@
                 <option value="compact">Compacto</option>
                 <option value="comfortable">Confortável</option>
                 <option value="spacious">Espaçoso</option>
+              </select>
+            </label>
+            <!-- Fase 4A (UX-MIRROR): toggle de layout. Default = sidebar à
+                 esquerda, inspector à direita (comportamento clássico de BI).
+                 Mirror = sidebar à direita, inspector à esquerda (algumas pessoas
+                 preferem ter as configurações próximas ao mouse). -->
+            <label class="solstice__menu-row" title="Posição do inspector e sidebar">
+              <span class="solstice__menu-row-label">🔀 Layout</span>
+              <select id="layout-select" aria-label="Posição do inspector">
+                <option value="default">Inspector à direita</option>
+                <option value="mirror">Inspector à esquerda</option>
               </select>
             </label>
           </div>

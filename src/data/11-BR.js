@@ -753,6 +753,28 @@
       const next = SolsticeTheme.cycle('mode');
       themeIcon.textContent = next === 'dark' ? '☀️' : '🌙';
     });
+
+    // Fase 4A (UX-MIRROR / 2026.6): layout-select alterna inspector
+    // direita ↔ esquerda. Persistido em localStorage.solstice.theme.layout.
+    // Aplicado em data-layout do <html> (mesmo padrão de mode/palette/density).
+    const layoutSelect = document.getElementById('layout-select');
+    if (layoutSelect){
+      // Sincroniza com o valor atual (já aplicado no FOUC inline)
+      const curr = document.documentElement.getAttribute('data-layout') || 'default';
+      layoutSelect.value = curr;
+      layoutSelect.addEventListener('change', e => {
+        const v = e.target.value === 'mirror' ? 'mirror' : 'default';
+        document.documentElement.setAttribute('data-layout', v);
+        // Persiste no objeto solstice.theme já gerenciado por SolsticeTheme
+        try {
+          const raw = localStorage.getItem('solstice.theme');
+          const t = raw ? JSON.parse(raw) : {};
+          t.layout = v;
+          SolsticeStorage.safeSet('solstice.theme', JSON.stringify(t));
+        } catch(_){}
+        SolsticeToast.success('Layout', v === 'mirror' ? 'Inspector à esquerda' : 'Inspector à direita');
+      });
+    }
     // C-01 v3: sincroniza dropdown quando palette muda via API.
     // BUG1 v4 (Auditoria 2026.4): charts existentes precisam RE-RENDERIZAR ao trocar paleta.
     // Antes: ao trocar Ocean→Forest, gráfico ficava com cor antiga porque Chart.js

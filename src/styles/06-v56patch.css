@@ -418,4 +418,37 @@
       background: rgba(0,0,0,0.78);
     }
   }
+
+  /* ============================================================
+     Fase 4A (UX-MIRROR / 2026.6) — Layout espelhado opcional.
+     Default: sidebar à esquerda, inspector à direita (BI clássico).
+     Mirror:  sidebar à direita, inspector à esquerda.
+     Toggle no menu Aparência (#layout-select).
+     ============================================================ */
+  html[data-layout="mirror"] .solstice__app {
+    grid-template-areas:
+      "header    header  header"
+      "inspector canvas  sidebar"
+      "status    status  status";
+    /* Inspector colapsado por padrão (0px). Sidebar 280px à direita. */
+    grid-template-columns: 0px 1fr 280px;
+  }
+  html[data-layout="mirror"] .solstice__app.has-inspector {
+    /* Inspector aberto à esquerda: 340px. Sidebar 280px à direita. */
+    grid-template-columns: 340px 1fr 280px;
+  }
+  /* Estados has-analysis: replicar pra mirror */
+  html[data-layout="mirror"] .solstice__app.has-analysis {
+    grid-template-columns: 0px 1fr 280px;
+  }
+  /* Bordas: no mirror, inspector ganha borda direita (separa do canvas
+     do lado oposto), sidebar ganha borda esquerda */
+  html[data-layout="mirror"] .solstice__inspector {
+    border-right: 1px solid var(--c-border);
+    border-left: none;
+  }
+  html[data-layout="mirror"] .solstice__sidebar {
+    border-left: 1px solid var(--c-border);
+    border-right: none;
+  }
   }
