@@ -218,34 +218,45 @@
      WCAG 2.4.1 (Bypass Blocks). Aparece só ao receber foco via Tab. -->
 <a href="#canvas-root" class="solstice__skip-link">Pular para o conteúdo principal</a>
 
-<!-- Splash screen (Polish 15) — gradient sutil + logo com pulse + fade out 600ms -->
+<!-- Splash screen (Polish 15 + Sprint Solstice S2) — horizonte violeta→coral.
+     Eclipse: violeta da noite no canto superior-esquerdo, coral do amanhecer
+     no inferior-direito. Profundidade vem de luz (corona), não de sombra preta.
+     prefers-reduced-motion neutraliza pulse/loader/entrada. -->
 <style id="splash-inline-style">
   #solstice-splash {
     position: fixed; inset: 0; z-index: 99999;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     background:
-      radial-gradient(ellipse at 30% 20%, rgba(91,168,255,0.10), transparent 50%),
-      radial-gradient(ellipse at 70% 80%, rgba(255,108,0,0.05), transparent 50%),
-      linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+      /* Coroa do eclipse — radial quente atrás do logo */
+      radial-gradient(circle at 50% 45%, rgba(255,157,92,0.22), transparent 35%),
+      /* Violeta da noite (canto superior) */
+      radial-gradient(ellipse at 18% 12%, rgba(139,111,204,0.32), transparent 55%),
+      /* Coral do amanhecer (canto inferior oposto) */
+      radial-gradient(ellipse at 82% 88%, rgba(255,157,92,0.18), transparent 55%),
+      /* Base eclipse */
+      linear-gradient(135deg, #0A0D1A 0%, #1D2138 100%);
     transition: opacity 600ms ease;
   }
   #solstice-splash .splash-logo {
     font-size: 96px; line-height: 1; margin-bottom: 16px;
-    animation: splash-pulse 2.2s ease-in-out infinite;
-    filter: drop-shadow(0 8px 24px rgba(91,168,255,0.30));
+    animation: splash-pulse 2.4s ease-in-out infinite;
+    /* Drop-shadow coral — o glow do eclipse */
+    filter: drop-shadow(0 0 32px rgba(255,157,92,0.45))
+            drop-shadow(0 8px 24px rgba(139,111,204,0.30));
   }
   #solstice-splash .splash-name {
     font-size: 56px; font-weight: 700; color: #fff;
     font-family: 'Space Grotesk','Inter',sans-serif;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #fff 30%, #5BA8FF 100%);
+    /* Horizonte: violeta → coral */
+    background: linear-gradient(135deg, #C6C3DE 0%, #FFB983 60%, #FF9D5C 100%);
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: splash-name-in 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
   #solstice-splash .splash-sub {
-    font-size: 15px; color: rgba(255,255,255,0.55);
+    font-size: 15px; color: rgba(244,241,250,0.55);
     margin-top: 10px; letter-spacing: 0.05em;
     text-transform: uppercase;
     animation: splash-name-in 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both;
@@ -254,13 +265,14 @@
     position: absolute; bottom: 48px; left: 50%;
     transform: translateX(-50%);
     width: 120px; height: 3px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(244,241,250,0.08);
     border-radius: 2px; overflow: hidden;
   }
   #solstice-splash .splash-loader::after {
     content: '';
     display: block; width: 30%; height: 100%;
-    background: linear-gradient(90deg, transparent, #5BA8FF, transparent);
+    /* Loader varre em coral */
+    background: linear-gradient(90deg, transparent, #FF9D5C, transparent);
     animation: splash-loader-slide 1.4s ease-in-out infinite;
   }
   @keyframes splash-pulse {
@@ -274,6 +286,12 @@
   @keyframes splash-loader-slide {
     0%   { transform: translateX(-100%); }
     100% { transform: translateX(400%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #solstice-splash .splash-logo,
+    #solstice-splash .splash-name,
+    #solstice-splash .splash-sub { animation: none !important; }
+    #solstice-splash .splash-loader::after { animation-duration: 5s; }
   }
 </style>
 <div id="solstice-splash">
