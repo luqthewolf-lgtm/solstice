@@ -440,6 +440,185 @@
     grid-template-columns: 280px 1fr 0px;
   }
   /* ============================================================
+     Polish 4 (solstice-modular-v1) — Inputs e Selects.
+     Transição mais premium em focus, sutil "lift" no foco.
+     ============================================================ */
+  .solstice__props-select,
+  .solstice__props-input {
+    transition: border-color 180ms ease,
+                box-shadow 180ms ease,
+                background 180ms ease,
+                transform 100ms ease;
+  }
+  .solstice__props-select:focus,
+  .solstice__props-input:focus {
+    background: color-mix(in srgb, var(--c-surface) 92%, var(--c-accent) 4%);
+  }
+  /* Hover state com leve "elevação" */
+  .solstice__props-select:not(:focus):hover,
+  .solstice__props-input:not(:focus):hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  /* Caret customizado pros selects (era nativo) — cor accent */
+  .solstice__props-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--c-muted) 50%),
+      linear-gradient(135deg, var(--c-muted) 50%, transparent 50%);
+    background-position:
+      calc(100% - 14px) center,
+      calc(100% - 9px) center;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 26px;
+  }
+  .solstice__props-select:focus {
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--c-accent) 50%),
+      linear-gradient(135deg, var(--c-accent) 50%, transparent 50%);
+  }
+
+  /* ============================================================
+     Polish 3 (solstice-modular-v1) — Botões refinados.
+     - Transição mais suave em background + transform
+     - Active state com leve scale (efeito "press")
+     - Primary com glow accent no hover
+     - Disabled mais claro (não-clickable visualmente)
+     - Focus-visible com ring accent forte
+     ============================================================ */
+  .solstice__btn {
+    transition: background 180ms ease,
+                color 180ms ease,
+                border-color 180ms ease,
+                transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 180ms ease;
+  }
+  .solstice__btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.97);
+  }
+  .solstice__btn:focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+  }
+  .solstice__btn--primary:hover {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 25%, transparent),
+                0 6px 16px -2px color-mix(in srgb, var(--c-accent) 40%, transparent);
+  }
+  .solstice__btn--primary:active:not(:disabled) {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 30%, transparent);
+  }
+  /* Disabled visual menos confuso (cinza claro, sem hover effects) */
+  .solstice__btn:disabled,
+  .solstice__btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  /* Botões com ícone-only (icon class): mais compacto, padding zerado */
+  .solstice__btn--icon:hover {
+    transform: scale(1.08);
+  }
+  .solstice__btn--icon:active {
+    transform: scale(0.92) !important;
+  }
+
+  /* ============================================================
+     Polish 2 (solstice-modular-v1) — Toasts mais elegantes.
+     - Border-left mais largo (4px) e com cor saturada
+     - Backdrop-blur sutil pra parecer "flutuante"
+     - Animação de entrada premium (slide + fade + scale)
+     - Hover do toast pausa o auto-dismiss (afford pra ler)
+     - Tipografia mais polida
+     ============================================================ */
+  .solstice__toast {
+    /* Backdrop blur + cor com transparência pra estilo glass moderno */
+    background: color-mix(in srgb, var(--c-surface) 92%, transparent);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border-width: 1px;
+    border-left-width: 4px;
+    border-radius: var(--rad-md);
+    padding: var(--sp-3) var(--sp-4);
+    box-shadow: 0 10px 30px -6px rgba(0,0,0,0.32),
+                0 2px 8px rgba(0,0,0,0.18);
+    animation: solstice-toast-in 360ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+    transition: transform 180ms ease;
+  }
+  .solstice__toast:hover {
+    transform: translateX(-2px);
+  }
+  @keyframes solstice-toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(24px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+  .solstice__toast-title {
+    font-size: var(--fs-sm);
+    font-weight: var(--fw-semibold);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .solstice__toast-msg {
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    margin-top: 3px;
+  }
+  /* Fallback sem backdrop-filter (browsers antigos) */
+  @supports not (backdrop-filter: blur(1px)) {
+    .solstice__toast {
+      background: var(--c-surface);
+    }
+  }
+
+  /* ============================================================
+     Polish 1 (solstice-modular-v1) — Welcome paths (3 cards na home).
+     Hover mais marcante, CTA com arrow animada, ícone com glow sutil.
+     ============================================================ */
+  .solstice__welcome-path {
+    /* Override do transition base pra ter timing premium */
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                border-color 200ms ease,
+                background 200ms ease;
+  }
+  .solstice__welcome-path:hover {
+    /* Hover mais expressivo (era -2px → agora -4px + ring accent) */
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px -6px color-mix(in srgb, var(--c-accent) 28%, transparent),
+                0 0 0 1px color-mix(in srgb, var(--c-accent) 40%, transparent);
+  }
+  .solstice__welcome-path-icon {
+    /* Glow sutil que pulsa no hover */
+    transition: filter 280ms ease, transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .solstice__welcome-path:hover .solstice__welcome-path-icon {
+    filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--c-accent) 40%, transparent));
+    transform: scale(1.08);
+  }
+  /* CTA com arrow animada (→ desliza no hover) */
+  .solstice__welcome-path-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+  }
+  .solstice__welcome-path-cta::after {
+    content: '→';
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: inline-block;
+  }
+  .solstice__welcome-path:hover .solstice__welcome-path-cta::after {
+    transform: translateX(4px);
+  }
+
+  /* ============================================================
      Fase 7C (solstice-modular-v1) — Sidebar polish (todas as abas).
      Refina hover e active state das abas pra UX moderna: hover desliza
      levemente, padding mais generoso, transição suave em transform.
